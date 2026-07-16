@@ -1,0 +1,82 @@
+name: publish_pub_dev
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pub_dev_${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify_tagged_source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout exact tag
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: ${{ github.ref }}
+          persist-credentials: false
+      - name: Verify tag and source provenance
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+          version=$(sed -n 's/^version:[[:space:]]*//p' pubspec.yaml)
+          test "v$version" = "${GITHUB_REF_NAME}"
+          sha256sum --check SOURCE_MANIFEST.sha256
+          grep -Eq '^Source-vmx-api: [0-9a-f]{40}$' RELEASE_METADATA
+      - name: Install pinned Flutter
+        run: bash install.sh install
+      - name: Verify tagged package
+        run: |
+          bash test.sh regression S17
+          bash build.sh package
+      - name: Record verification evidence
+        run: |
+          mkdir -p "$RUNNER_TEMP/pub-verification"
+          sha256sum SOURCE_MANIFEST.sha256 > "$RUNNER_TEMP/pub-verification/SHA256SUMS"
+          bash install.sh flutter_bin > "$RUNNER_TEMP/pub-verification/flutter-path.txt"
+      - name: Upload verification evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pub-verification-${{ github.sha }}
+          path: ${{ runner.temp }}/pub-verification
+          if-no-files-found: error
+
+  publish_pub_dev:
+    needs: verify_tagged_source
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: pub.dev
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout exact tag
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: ${{ github.ref }}
+          persist-credentials: false
+      - name: Download verification evidence
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: pub-verification-${{ github.sha }}
+          path: ${{ runner.temp }}/pub-verification
+      - name: Recheck immutable tagged source
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+          version=$(sed -n 's/^version:[[:space:]]*//p' pubspec.yaml)
+          test "v$version" = "${GITHUB_REF_NAME}"
+          sha256sum --check SOURCE_MANIFEST.sha256
+          sha256sum --check "$RUNNER_TEMP/pub-verification/SHA256SUMS"
+      - name: Install pinned Flutter
+        run: bash install.sh install
+      - name: Publish through pub.dev OIDC
+        run: |
+          bash build.sh package
+          "$(bash install.sh dart_bin)" pub publish --force

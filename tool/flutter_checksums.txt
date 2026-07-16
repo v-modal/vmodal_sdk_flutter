@@ -1,0 +1,5 @@
+# version platform archive sha256
+3.44.6 macos-x64 stable/macos/flutter_macos_3.44.6-stable.zip d698aeb050198878ec6d5cdc1e6ccf1ef6850ec336985b03812b2525df2289ce
+3.44.6 macos-arm64 stable/macos/flutter_macos_arm64_3.44.6-stable.zip e4824875f22cc7e0f4878bfc8b9382e98ff0137074c5d3ab4686f7a4b5ac775c
+3.44.6 linux-x64 stable/linux/flutter_linux_3.44.6-stable.tar.xz a6320fd72e9a2690c08e2a6a70874a30cb120dee7c78f49d2c628bd7c9e20525
+

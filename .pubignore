@@ -1,0 +1,13 @@
+.dart_tool/
+.git/
+.github/
+.idea/
+build/
+coverage/
+docs/dev_plan.md
+docs/dev_plan_step.md
+release/
+tool/live_test.dart
+SOURCE_MANIFEST.sha256
+*.iml
+

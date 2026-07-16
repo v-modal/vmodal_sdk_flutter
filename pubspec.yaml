@@ -1,0 +1,25 @@
+name: vmodal_sdk_flutter
+description: Typed VModal API client for Flutter applications on Android and iOS.
+version: 1.0.0
+license: MIT
+repository: https://github.com/v-modal/vmodal_sdk_flutter
+issue_tracker: https://github.com/v-modal/vmodal_sdk_flutter/issues
+
+environment:
+  sdk: '>=3.12.0 <4.0.0'
+  flutter: '>=3.44.0'
+
+dependencies:
+  crypto: ^3.0.7
+  flutter:
+    sdk: flutter
+  http: ^1.6.0
+  http_parser: ^4.1.2
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true

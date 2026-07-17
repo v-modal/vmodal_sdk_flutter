@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:vmodal_sdk_flutter/vmodal_sdk_flutter.dart';
 
 void main() => runApp(const VmodalExampleApp());
@@ -14,6 +15,7 @@ class VmodalExampleApp extends StatefulWidget {
 }
 
 class _VmodalExampleAppState extends State<VmodalExampleApp> {
+  static const _sampleAsset = 'asset/video_10frames.mp4';
   final _key = TextEditingController();
   final _query = TextEditingController(text: 'red bicycle');
   final _path = TextEditingController();
@@ -25,6 +27,26 @@ class _VmodalExampleAppState extends State<VmodalExampleApp> {
       'Enter a runtime API key supplied by your authenticated app.';
   int _progress = 0;
   bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_prepareSample());
+  }
+
+  Future<void> _prepareSample() async {
+    final data = await rootBundle.load(_sampleAsset);
+    final file = File('${Directory.systemTemp.path}/video_10frames.mp4');
+    final bytes = data.buffer.asUint8List(
+      data.offsetInBytes,
+      data.lengthInBytes,
+    );
+    await file.writeAsBytes(bytes, flush: true);
+    _safeState(() {
+      _path.text = file.path;
+      _status = 'Bundled 10-frame sample video is ready.';
+    });
+  }
 
   Future<void> _connect() async {
     final value = _key.text.trim();
@@ -174,7 +196,7 @@ class _VmodalExampleAppState extends State<VmodalExampleApp> {
             controller: _path,
             decoration: const InputDecoration(
               labelText: 'App-accessible file path',
-              helperText: 'A picker adapter belongs to the parent app.',
+              helperText: 'The bundled 10-frame sample is preloaded.',
             ),
           ),
           LinearProgressIndicator(value: _progress / 100),

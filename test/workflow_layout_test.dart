@@ -12,6 +12,13 @@ final publicFile = File('release/public_publish.yml').existsSync()
     ? File('release/public_publish.yml')
     : File('.github/workflows/publish.yml');
 final public = publicFile.readAsStringSync();
+final androidProperties = File(
+  'example/android/gradle.properties',
+).readAsStringSync();
+final androidSettings = File(
+  'example/android/settings.gradle.kts',
+).readAsStringSync();
+final examplePubspec = File('example/pubspec.yaml').readAsStringSync();
 
 void checkWorkflow(String main, String tagged) {
   const releaseOnly =
@@ -93,6 +100,18 @@ void checkWorkflow(String main, String tagged) {
 }
 
 void main() {
+  test('Android example uses Flutter 3.44 AGP 9 compatibility mode', () {
+    expect(androidProperties, contains('android.newDsl=false'));
+    expect(androidProperties, contains('android.builtInKotlin=false'));
+    expect(androidProperties, isNot(contains('android.builtInKotlin=true')));
+    expect(
+      androidSettings,
+      contains('id("org.jetbrains.kotlin.android") version "2.3.20"'),
+    );
+    expect(examplePubspec, contains('file_selector: ^1.1.0'));
+    expect(examplePubspec, isNot(contains('file_picker:')));
+  });
+
   test('release workflows enforce tested-source causality', () {
     if (internal.isEmpty) return;
     checkWorkflow(internal, public);

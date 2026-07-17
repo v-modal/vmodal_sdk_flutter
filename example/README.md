@@ -1,12 +1,14 @@
 # VModal Flutter example
 
-This small application shows the basic VModal SDK workflow on Android or iOS:
+This application shows a complete VModal SDK evaluation workflow on Android or
+iOS:
 
 1. Create a client with a runtime API key.
 2. Confirm which user is authenticated.
-3. Search videos with a natural-language query.
-4. Upload the bundled 10-frame sample video while displaying progress.
-5. Cancel an upload if needed.
+3. Choose a video or use the bundled 10-frame sample.
+4. Upload it while displaying progress and cancellation.
+5. Create an image index and refresh its job state.
+6. Search the indexed collection and inspect result fields.
 
 The example is intentionally simple. It keeps all UI and SDK calls in
 [`lib/main.dart`](lib/main.dart), so a beginner can follow the complete flow in
@@ -173,24 +175,7 @@ A successful request displays the authenticated user type. If you receive an
 SDK error instead, check that the key is valid, has not expired, and belongs to
 the intended VModal environment.
 
-## 8. Run a search
-
-1. Leave the default query, `red bicycle`, or enter your own description.
-2. Tap **Search**.
-3. Read the result count in the status area.
-
-The example sends:
-
-```dart
-final result = await client.searches.searchVideo(
-  SearchRequest(queryText: query),
-);
-```
-
-A result count of zero is still a successful request; it only means the user's
-current video collection has no matching items.
-
-## 9. Upload the bundled sample video
+## 8. Choose and upload a video
 
 The repository includes
 [`asset/video_10frames.mp4`](asset/video_10frames.mp4), a one-second, 320 × 240
@@ -203,7 +188,7 @@ file's absolute path. This copy is necessary because the upload SDK accepts a
 `File`, while a bundled Flutter asset is not directly exposed as a normal
 mobile file.
 
-To try it:
+To use the bundled sample:
 
 1. Wait until the status says **Bundled 10-frame sample video is ready.**
 2. Configure the client if you have not already done so.
@@ -220,14 +205,11 @@ collection:     flutter_example
 sub-collection: astream
 ```
 
-To upload your own video instead, replace the pre-filled value with an absolute
-path returned by a file picker, camera flow, downloaded file, or app-owned
-documents/cache directory. A path on your computer is normally not valid
-inside an Android emulator, Android phone, iOS simulator, or iPhone. The mobile
-app must be able to read the file in its own environment.
-
-This example does not include a file-picker package because file picking
-belongs to the parent application.
+To upload your own video, tap **Choose video**. Flutter's `file_selector`
+adapter opens the Android or iOS native picker and places its app-readable path
+in the path field. Canceling the picker leaves the current sample selected. A
+path on your computer is normally not valid inside a phone or emulator; use
+the picker, bundled asset, camera flow, download, or app-owned directory.
 
 In a real application, pass the path returned by your chosen picker or camera
 adapter to:
@@ -244,7 +226,61 @@ The SDK streams the file instead of loading the complete video into memory.
 `task.progress` reports upload progress, `task.result` completes with the
 server response, and `task.cancel()` cancels the operation.
 
-## 10. Stop and clean up
+## 9. Create and monitor the image index
+
+After upload succeeds:
+
+1. Tap **Create index**.
+2. Note the displayed job ID and initial state.
+3. Tap **Refresh status** periodically.
+4. Continue when the state is `success`, `completed`, `done`, or `ok`.
+
+The example creates the image-search index for the same collection and stream:
+
+```dart
+final job = await client.indexes.createIndex(
+  IndexationSubmitRequest(
+    mode: 'vid_file',
+    groupName: collectionName,
+    streamName: streamName,
+    indexType: 'vid_img_emb',
+    modality: 'vid_img_emb',
+    reProcess: true,
+  ),
+);
+```
+
+Indexing is asynchronous. The create call returning successfully means the job
+was accepted, not that search data is ready. Use the visible refresh action or
+`client.indexes.indexStatus(job.jobId)` until it reaches a terminal state.
+
+## 10. Search and inspect results
+
+1. Leave the default query, `red`, for the bundled colored sample or enter a
+   visual description for your chosen video.
+2. Tap **Search** after indexing succeeds.
+3. Inspect up to five result cards showing the best available title/item ID,
+   source modality, timestamp, and normalized score.
+
+Search and upload use the same **Collection** and **Stream** fields. The example
+searches the image index created in the previous step:
+
+```dart
+final result = await client.searches.searchVideo(
+  SearchRequest(
+    queryText: query,
+    groupName: collectionName,
+    streamName: streamName,
+    searchSources: const ['image'],
+  ),
+);
+```
+
+A zero result count is still successful. If the collection has not been
+indexed, the server can return HTTP 404 even though the route is working; the
+example reports that condition without displaying internal server paths.
+
+## 11. Stop and clean up
 
 Press `q` in the terminal to stop `flutter run`.
 
@@ -283,6 +319,9 @@ The main learning points in [`lib/main.dart`](lib/main.dart) are:
 - `client.auth.me()` resolves the current identity.
 - `client.searches.searchVideo()` performs natural-language video search.
 - `client.collections.videoUpload()` creates a cancellable upload task.
+- `openFile()` supplies an app-readable video path through `file_selector`.
+- `client.indexes.createIndex()` and `indexStatus()` expose background work.
+- Raw search rows are rendered as compact result cards.
 - `rootBundle.load()` copies the bundled sample into a temporary `File`.
 - `SdkException` provides SDK and API error details.
 

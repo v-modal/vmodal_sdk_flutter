@@ -53,6 +53,20 @@ void main() {
     }
   });
 
+  test(
+    'development setup invokes install and clean supports public clones',
+    () {
+      final readme = File('README.md').readAsStringSync();
+      expect(readme, contains('bash install.sh install'));
+      expect(readme.split('\n'), isNot(contains('bash install.sh')));
+
+      final build = File('build.sh').readAsStringSync();
+      expect(build, contains('name: vmodal_sdk_flutter'));
+      expect(build, contains('example/pubspec.yaml'));
+      expect(build, isNot(contains('*/uinterface/sdk_flutter')));
+    },
+  );
+
   test('security commands and fixed all ordering are registered', () {
     final text = File('security_check.sh').readAsStringSync();
     for (final command in <String>[

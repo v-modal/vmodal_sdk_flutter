@@ -115,7 +115,14 @@ sdk_clean() {
     ## Usage:
       bash build.sh clean
   '
-  [[ "$PWD" == */uinterface/sdk_flutter ]] || { echo 'Refusing to clean outside sdk_flutter.' >&2; return 2; }
+  [[ -f "$sdk_dir/pubspec.yaml" && -f "$sdk_dir/example/pubspec.yaml" ]] || {
+    echo 'Refusing to clean outside the VModal Flutter SDK.' >&2
+    return 2
+  }
+  grep -q '^name: vmodal_sdk_flutter$' "$sdk_dir/pubspec.yaml" || {
+    echo 'Refusing to clean an unexpected Flutter package.' >&2
+    return 2
+  }
   sdk_flutter clean
   (cd example && sdk_flutter clean)
 }

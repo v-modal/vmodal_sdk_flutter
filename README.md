@@ -158,7 +158,7 @@ Minimum toolchain: Flutter `3.44.0` and Dart `3.12.0`.
 ```bash
 git clone https://github.com/v-modal/vmodal_sdk_flutter.git
 cd vmodal_sdk_flutter
-bash install.sh
+bash install.sh install
 bash test.sh all
 ```
 

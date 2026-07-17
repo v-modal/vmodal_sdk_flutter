@@ -84,6 +84,7 @@ Future<void> _export(Directory root, Directory destination) async {
     'analysis_options.yaml',
     'LICENSE',
     'README.md',
+    'readme_assets',
     'CHANGELOG.md',
     '.flutter-version',
     '.pubignore',

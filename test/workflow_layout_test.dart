@@ -14,6 +14,8 @@ final publicFile = File('release/public_publish.yml').existsSync()
 final public = publicFile.readAsStringSync();
 
 void checkWorkflow(String main, String tagged) {
+  const releaseOnly =
+      "if: \${{ github.event_name == 'workflow_dispatch' && (inputs.publish_sdk_flutter || inputs.publish_pub_dev) }}";
   expect(main, contains('name: sdk_flutter_test_release'));
   expect(main, contains('publish_sdk_flutter:'));
   expect(main, contains('publish_pub_dev:'));
@@ -21,9 +23,21 @@ void checkWorkflow(String main, String tagged) {
   expect(main, contains('group: sdk_flutter_release_\${{ github.ref }}'));
   expect(main, contains('WORKDIR: uinterface/sdk_flutter'));
   expect(main, contains('RELEASE_SHA: \${{ github.sha }}'));
-  expect(main, contains('secret_detection:'));
-  expect(main, contains('needs: secret_detection'));
-  expect(main, contains('needs: [offline_test, example_android]'));
+  expect(
+    main,
+    contains('secret_detection:\n    $releaseOnly\n    runs-on: ubuntu-latest'),
+  );
+  expect(main, contains('offline_test:\n    runs-on: ubuntu-latest'));
+  expect(
+    main,
+    contains(
+      'live_test:\n    needs: [offline_test, example_android]\n    $releaseOnly',
+    ),
+  );
+  expect(
+    main,
+    contains('pub_package:\n    needs: offline_test\n    $releaseOnly'),
+  );
   expect(
     main,
     contains(
@@ -34,10 +48,9 @@ void checkWorkflow(String main, String tagged) {
   expect(main, contains('pub.dev publication requires source export.'));
   expect(main, contains('if: \${{ inputs.publish_pub_dev }}'));
   expect(main, contains('environment: sdk-flutter-production'));
-  expect(main, contains('fetch-depth: 0'));
   expect(main, contains('gitleaks_'));
   expect(main, contains('--source "\$WORKDIR"'));
-  expect(main, contains('--log-opts="--all -- \$WORKDIR"'));
+  expect(main, isNot(contains('--log-opts=')));
   expect(main, contains('SHA256SUMS'));
   expect(main, contains('SOURCE_MANIFEST.sha256'));
   expect(main, contains('RELEASE_TOKEN: \${{ secrets.GH_TOKEN }}'));

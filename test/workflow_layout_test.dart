@@ -35,7 +35,15 @@ void checkWorkflow(String main, String tagged) {
   expect(main, contains('default: true'));
   expect(main, contains('group: sdk_flutter_release_\${{ github.ref }}'));
   expect(main, contains('WORKDIR: uinterface/sdk_flutter'));
-  expect(main, contains('RELEASE_SHA: \${{ github.sha }}'));
+  expect(main, contains('# RELEASE_SHA: \${{ github.sha }}'));
+  expect(main, isNot(contains('\n  RELEASE_SHA: \${{ github.sha }}')));
+  expect(main, isNot(contains('\n          ref: \${{ env.RELEASE_SHA }}')));
+  expect(
+    main,
+    isNot(
+      contains('\n          test "\$(git rev-parse HEAD)" = "\$RELEASE_SHA"'),
+    ),
+  );
   expect(
     main,
     contains('secret_detection:\n    $publishDocs\n    runs-on: ubuntu-latest'),
@@ -80,9 +88,7 @@ void checkWorkflow(String main, String tagged) {
   expect(main, contains('test -f "\$export_dir/\$file"'));
   expect(
     main,
-    contains(
-      'git ls-files --error-unmatch install.sh build.sh run.sh test.sh',
-    ),
+    contains('git ls-files --error-unmatch install.sh build.sh run.sh test.sh'),
   );
   expect(main, contains('RELEASE_TOKEN: \${{ secrets.GH_TOKEN }}'));
   expect(main, isNot(contains('FLUTTER_SDK_APP_')));

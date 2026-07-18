@@ -69,13 +69,18 @@ final groups = await vmodal.collections.listGroups(mode: 'vid_file');
 if (groups.data.isEmpty) {
   throw StateError('No video collection exists for this API key');
 }
-final collectionName = groups.data.first.groupName;
+final group = groups.data.first;
+final version = group.latestLancedbVersion;
+if (version == null) {
+  throw StateError('The collection has no searchable LanceDB version');
+}
 
 final results = await vmodal.searches.searchVideo(
   SearchRequest(
     queryText: 'the cyclist crossing the bridge at sunset',
-    groupName: collectionName,
+    groupName: group.groupName,
     searchSources: const ['image'],
+    versionLancedb: version,
     limit: 20,
   ),
 );
@@ -86,12 +91,14 @@ for (final moment in results.data) {
 }
 ```
 
-`collectionName` must be the `groupName` of a `vid_file` collection returned
+The collection must be a `vid_file` `GroupItem` returned
 for the current runtime API key. Collection access is key-scoped; a name copied
 from another account or environment can return HTTP 404 even when the search
 route is healthy. The example name `flutter_example` is valid only after that
 key has uploaded or otherwise created the collection and a refreshed
-`listGroups()` response contains it.
+`listGroups()` response contains it. Search must also send an advertised
+`lancedbVersions` value; `latestLancedbVersion` converts values such as `v1`
+to the numeric request field `version_lancedb: 1`.
 
 The response stays typed where the contract is stable and preserves the raw JSON so new server fields remain available immediately.
 

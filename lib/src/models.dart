@@ -28,6 +28,21 @@ class GroupItem extends JsonBackedResponse {
   final List<String> modalityTypes;
   final List<String> lancedbVersions;
   final String? lastUpdated;
+
+  int? get latestLancedbVersion {
+    int? latest;
+    for (final value in lancedbVersions) {
+      final match = RegExp(
+        r'^v(\d+)$',
+        caseSensitive: false,
+      ).firstMatch(value.trim());
+      final version = int.tryParse(match?.group(1) ?? '');
+      if (version != null && (latest == null || version > latest)) {
+        latest = version;
+      }
+    }
+    return latest;
+  }
 }
 
 class FolderUploadItem extends JsonBackedResponse {
@@ -348,6 +363,17 @@ class GroupsResponse extends JsonBackedResponse {
   final List<GroupItem> data;
   final int total;
   final double executionTimeMs;
+
+  GroupItem? findGroup(String groupName, {String? mode}) {
+    final name = groupName.trim();
+    for (final item in data) {
+      if (item.groupName.trim() == name &&
+          (mode == null || item.mode == mode)) {
+        return item;
+      }
+    }
+    return null;
+  }
 }
 
 class ExternalUploadSignedUrlResponse extends JsonBackedResponse {

@@ -25,11 +25,13 @@ SearchRequest exampleSearchRequest(
   String query,
   String collectionName,
   String streamName,
+  int versionLancedb,
 ) => SearchRequest(
   queryText: query.trim(),
   groupName: collectionName.trim(),
   streamName: streamName.trim(),
   searchSources: const <String>['image'],
+  versionLancedb: versionLancedb,
 );
 
 IndexationSubmitRequest exampleIndexRequest(
@@ -290,9 +292,20 @@ class _VmodalExampleAppState extends State<VmodalExampleApp> {
         );
         return;
       }
+      final version = groups
+          .findGroup(collection, mode: 'vid_file')
+          ?.latestLancedbVersion;
+      if (version == null) {
+        _safeState(
+          () => _status =
+              'Collection $collection has no advertised LanceDB index '
+              'version. Create or finish its image index before searching.',
+        );
+        return;
+      }
       try {
         final result = await client.searches.searchVideo(
-          exampleSearchRequest(_query.text, collection, stream),
+          exampleSearchRequest(_query.text, collection, stream, version),
         );
         _safeState(() {
           _results = exampleSearchRows(result);

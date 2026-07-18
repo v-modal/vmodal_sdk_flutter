@@ -53,12 +53,17 @@ void main() {
           'group_name': 'travel',
           'video_group': 'vid_file-travel',
           'modality_types': <String>['vid_img_emb'],
-          'lancedb_versions': <String>['v2'],
+          'lancedb_versions': <String>['invalid', 'v2', 'V10', 'v3'],
         },
       ],
     });
     expect(groups.data.single.groupName, 'travel');
-    expect(groups.data.single.lancedbVersions, <String>['v2']);
+    expect(groups.data.single.latestLancedbVersion, 10);
+    expect(
+      groups.findGroup(' travel ', mode: 'vid_file'),
+      same(groups.data.single),
+    );
+    expect(groups.findGroup('travel', mode: 'img_file'), isNull);
   });
 
   test('gateway bulk image payload removes nested identity fields', () async {

@@ -346,24 +346,31 @@ was accepted, not that search data is ready. Use the visible refresh action or
 
 Search and upload use the same **Collection** and **Stream** fields. The example
 refreshes the authenticated key's collection list before every search and
-searches the ready image index selected or created in the earlier steps:
+selects the latest LanceDB version advertised for that collection:
 
 ```dart
+final groups = await client.collections.listGroups(mode: 'vid_file');
+final group = groups.findGroup(collectionName, mode: 'vid_file');
+final version = group?.latestLancedbVersion;
+if (version == null) {
+  throw StateError('The collection has no searchable LanceDB version');
+}
 final result = await client.searches.searchVideo(
   SearchRequest(
     queryText: query,
     groupName: collectionName,
     streamName: streamName,
     searchSources: const ['image'],
+    versionLancedb: version,
   ),
 );
 ```
 
 A zero result count is still successful. Search is blocked locally when the
 Collection value is not returned for the current key. If the collection exists
-but has not been indexed, the server can return HTTP 404 even though the route
-is working; the example reports that condition without displaying internal
-server paths.
+but has no advertised LanceDB version, the example asks the user to create or
+finish its image index instead of omitting `version_lancedb` and accidentally
+requesting the backend's `v0` default.
 
 ## 12. Stop and clean up
 

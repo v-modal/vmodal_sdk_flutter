@@ -1,10 +1,10 @@
 e789cd4d1bed8a78ec8014c5c5913e300f81b63ea56a56aacb0dfec3b5e7ce2b  ./.flutter-version
 fbbda2e7e29bbd860539a9ca18c478f3b02de140f25a872c19a6dbecd11bc94b  ./.github/workflows/publish.yml
 b2dc1cfc58dcd93d62c8f4a1c05210c9f4a3e5b93e69541a40fcf8176cb5f2aa  ./.pubignore
-28315361fb94de58b44de0e303fab5271aec59c752a8c36ec76fd66c806bfc59  ./CHANGELOG.md
+44900e7c55f6cf8e5068d7a3f169fdf8590ae63bb20602ef67941b879e70582a  ./CHANGELOG.md
 37b7148216ac6090e36adfb699d642b8dd1e1b8ba99870e65e88733947a59fa6  ./LICENSE
-6e785c7885b880da65d2b8aea7948b6713b198f79b152ef6efb03e3aacdb1d6a  ./README.md
-35d363dcd77d9f3472728f064efd21041b4b84e7c37e53b80d8d0ac1647a1a34  ./RELEASE_METADATA
+fb7735dc843f246dbcce8225de0def3ff5dc2d0d1655c606eeffd920e356c162  ./README.md
+90aa083e21bef8e9312602137560780f9a81174f5123753a8d1336e2467ac181  ./RELEASE_METADATA
 def7e4f643adff5b01b877b6a7fa5b2381612b693c0bf06bd232ee0f7197d342  ./analysis_options.yaml
 09a850ca6ebd5470138b7f20204d4dbe0fec89d268a205f14cf3bff0b99f365b  ./build.sh
 28c321f8798c0e803246c737e0b634c5f3ade930239bb6e5429098bb2b096d86  ./doc/manage_api_key.md
@@ -14,7 +14,7 @@ def7e4f643adff5b01b877b6a7fa5b2381612b693c0bf06bd232ee0f7197d342  ./analysis_opt
 da330cad4fc27776d249a5db97c1e20bf2cac015d0bbab73b781c0a9ec15b00f  ./doc/search_app.md
 e246ed229511a24a1ee7e98529c203ef90d1d352290ce8486caebe05683db3a0  ./env.sh
 c5ce516b547327aab5b6fa27a523d4c76e66294ada3248b293c54b9595cd3a87  ./example/.metadata
-e0451fd568c97a89b6562fe4dfc66b2fed9f610d8fa4e6a0512b2e0c8e29cf28  ./example/README.md
+87d97512b92970c2cfd412f06a91baff7afa73f0c292fc52334a9fd9461670a3  ./example/README.md
 e0ea485cfdbc3e12b93efb8679a5ea73ebfe20ea4ca0c473dc594fc2fb274ed5  ./example/analysis_options.yaml
 807e56bf3e3fb8a082d8b802658ce8735bef5b88998ccd6f46f010955aa0081a  ./example/android/app/build.gradle.kts
 30b0832ed8b92dfbd6ae2abfa939ccf26333d37600056b1572bd4a397a18a74b  ./example/android/app/src/debug/AndroidManifest.xml
@@ -74,10 +74,10 @@ fd367b6c43006d61b730f674970dd48b9f662c8f2264e52ffc1558102a2c9f2d  ./example/ios/
 1a8d11d01d1cc92c650c9c9ed35299240052d4683a15a719a2315ef44185e074  ./example/ios/Runner/Runner-Bridging-Header.h
 add68b905971dedfcc0d0b5b7118030de5925ba8c081ad9815463699e3a444ad  ./example/ios/Runner/SceneDelegate.swift
 5e8f4908dacea6f29b2a790e4d38bf5fded69096063f9a27a2f21584d62b30c0  ./example/ios/RunnerTests/RunnerTests.swift
-a0175c6ed42796d783d99ef5889d05811b5dba10c7f50e697ecab0fed24c9945  ./example/lib/main.dart
+a9f053afcdfd007c455291dc2280d72300ee0e9b2893d878d726192b5a68cd78  ./example/lib/main.dart
 c59d35f6e3b82291eff92d5c7d55d9efb18ef2375cdef091c282282930729cad  ./example/pubspec.lock
 ca703ea63f5117dea4c308af57be8ff3a65e95400862159b7e793a90dc4d3200  ./example/pubspec.yaml
-a8b39ed66acd738fd81dbcba1788a35715df695505ee58969c8a89742d9ab17b  ./example/test/widget_test.dart
+f6bae8dec3f5ce5afd314198c9a107082d3172cfe0bc6e02efcbc528cabdac1a  ./example/test/widget_test.dart
 23756b83470b1f25f6a7e6b5a6270f123a5224e49fd8e2eda36001358951b688  ./install.sh
 4630bdec004652eae39bd30f1e864a5b6e5f27a7d98f866bdea192b4d65b4046  ./lib/src/adaptive_upload.dart
 05a8215a0f8d4d5ca26d8dfdf93d8c41b5785d84855459f979b079527f6232b3  ./lib/src/api_key_provider.dart
@@ -86,7 +86,7 @@ cafa2529768e48a6b89f85a069e337eff7a5cf75103d6ac8623bdbb7a1088549  ./lib/src/coll
 744ea1477f794e3a2f8f4b8f7e63fe5a84da6f027f5bf83c9780f81bce0fb09d  ./lib/src/config.dart
 fcef63e72b69415a1090c376095f8f44977e26104ffaeccf3a82430f65dcd4ff  ./lib/src/errors.dart
 2ad9b4183bce96eacd91c5514de9231b1f0a4f269392726e174507cfa507981a  ./lib/src/http.dart
-9e1238f41046a713e0b3157a53a0be86bd74f548187e83920cde3b8e67f24f67  ./lib/src/models.dart
+90310dad6e207dca0d6fd20598fecee615519b819d537cf26a5f3a152dc3ee84  ./lib/src/models.dart
 8b6a10c89a44568aed939d712b05b120f513e04e909ba141a4d55998afa9aaa5  ./lib/src/resources.dart
 28f1ad1be044eb3fbee9a9435c4905a8296ba1ded9a9508fda5436f0de7b93bf  ./lib/src/routes.dart
 a3134f6fc8387589e96a345ea35d4c68240c7c1893ef5cd5926707e4168e5309  ./lib/src/transport.dart
@@ -108,7 +108,7 @@ b1d3b70a6c9ecde707a9f139a3e7c5a2b4db808e9746db6ac6195c2205c9522e  ./test/fakes.d
 14368b598ece0ce9b2e249148a10a92f2c80e38427c077013a1515826f4365bd  ./test/fixtures/routes_contract.json
 fd2bad0ad87fbf2f15f7e9845b830db58408bb4c502c6ff105f39e4e7cce1905  ./test/multipart_upload_test.dart
 3270adb09a27fb379747524a7d94f5958818a85067d0df0c634c7b401866d7d5  ./test/regression_manifest_test.dart
-337b610dab998481876a5efcfd008b1037420494104ce12572f2b344637913a0  ./test/resources_models_test.dart
+ec2d3ab09457fdccf30fc338585b89cf466f5d8f7fc8ce5f6c0ae52357390277  ./test/resources_models_test.dart
 fdff04bb5b384271443aad9f2b5b1a3c8c2f40ca56bdf75661cdef965ebcb347  ./test/shell_scripts_test.dart
 79e3de3c03451cd9d62327430106edf861da6aeb97b546bbac2d93a0bcbbe3d3  ./test/transport_test.dart
 c13557f89597f0be73f48dc8463aa7513e9e814c0e6a0ab871e441834687abb1  ./test/upload_test.dart

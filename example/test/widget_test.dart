@@ -28,11 +28,14 @@ void main() {
       ' bicycle ',
       exampleCollectionName,
       exampleStreamName,
+      1,
     );
     expect(request.queryText, 'bicycle');
     expect(request.groupName, exampleCollectionName);
     expect(request.streamName, exampleStreamName);
     expect(request.searchSources, <String>['image']);
+    expect(request.versionLancedb, 1);
+    expect(request.toJson()['version_lancedb'], 1);
 
     final index = exampleIndexRequest(exampleCollectionName, exampleStreamName);
     expect(index.groupName, exampleCollectionName);

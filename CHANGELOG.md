@@ -4,4 +4,4 @@
 - Bearer-only gateway authentication and request-time API-key rotation.
 - Bounded streamed responses and cancelable signed uploads.
 - Explicit experimental multipart upload with checkpoint reconciliation.
-
+- Collection helpers select the latest advertised LanceDB version for search.

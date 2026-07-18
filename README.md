@@ -65,11 +65,17 @@ final vmodal = VmodalClient(
 ## Search video with natural language
 
 ```dart
+final groups = await vmodal.collections.listGroups(mode: 'vid_file');
+if (groups.data.isEmpty) {
+  throw StateError('No video collection exists for this API key');
+}
+final collectionName = groups.data.first.groupName;
+
 final results = await vmodal.searches.searchVideo(
-  const SearchRequest(
+  SearchRequest(
     queryText: 'the cyclist crossing the bridge at sunset',
-    groupName: 'travel_diaries',
-    searchSources: ['ocr', 'asr', 'image'],
+    groupName: collectionName,
+    searchSources: const ['image'],
     limit: 20,
   ),
 );
@@ -79,6 +85,13 @@ for (final moment in results.data) {
   print(moment);
 }
 ```
+
+`collectionName` must be the `groupName` of a `vid_file` collection returned
+for the current runtime API key. Collection access is key-scoped; a name copied
+from another account or environment can return HTTP 404 even when the search
+route is healthy. The example name `flutter_example` is valid only after that
+key has uploaded or otherwise created the collection and a refreshed
+`listGroups()` response contains it.
 
 The response stays typed where the contract is stable and preserves the raw JSON so new server fields remain available immediately.
 

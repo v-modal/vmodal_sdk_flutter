@@ -10,6 +10,7 @@ void main() {
     await tester.pumpWidget(const VmodalExampleApp());
     expect(find.widgetWithText(TextField, 'Runtime API key'), findsOneWidget);
     expect(find.text('Configure client'), findsOneWidget);
+    expect(find.text('Refresh collections'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'Collection'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'Stream'), findsOneWidget);
     await tester.drag(find.byType(ListView), const Offset(0, -600));
@@ -38,6 +39,20 @@ void main() {
     expect(index.streamName, exampleStreamName);
     expect(index.indexType, exampleIndexType);
     expect(index.modality, exampleIndexType);
+  });
+
+  test('collection names come from the authenticated video groups', () {
+    final names = exampleCollectionNames(
+      GroupsResponse(<String, Object?>{
+        'total': 3,
+        'data': <Object?>[
+          <String, Object?>{'mode': 'vid_file', 'group_name': 'travel'},
+          <String, Object?>{'mode': 'img_file', 'group_name': 'images'},
+          <String, Object?>{'mode': 'vid_file', 'group_name': 'archive'},
+        ],
+      }),
+    );
+    expect(names, <String>['archive', 'travel']);
   });
 
   test('search 404 is explained without exposing the server body', () {

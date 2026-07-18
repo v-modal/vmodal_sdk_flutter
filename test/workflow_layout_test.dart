@@ -60,9 +60,41 @@ void checkWorkflow(String main, String tagged) {
   expect(main, isNot(contains('--log-opts=')));
   expect(main, contains('SHA256SUMS'));
   expect(main, contains('SOURCE_MANIFEST.sha256'));
+  expect(main, contains('for file in install.sh build.sh run.sh test.sh; do'));
+  expect(main, contains('test -f "\$export_dir/\$file"'));
+  expect(main, contains('git ls-files --error-unmatch "\$file"'));
   expect(main, contains('RELEASE_TOKEN: \${{ secrets.GH_TOKEN }}'));
   expect(main, isNot(contains('FLUTTER_SDK_APP_')));
   expect(main, contains('git push --atomic'));
+  expect(
+    main,
+    contains(
+      'swagger_docs_artifact:\n    needs: [secret_detection, publish_sdk_flutter]\n    $releaseOnly',
+    ),
+  );
+  expect(
+    main,
+    contains(
+      'publish_swagger_docs:\n    needs: swagger_docs_artifact\n    $releaseOnly',
+    ),
+  );
+  expect(main, contains('python "\$WORKDIR/docs.py" generate'));
+  expect(main, contains('python "\$WORKDIR/docs.py" check'));
+  expect(
+    main,
+    contains('openapi-spec-validator "\$WORKDIR/docs_swagger/swagger.yaml"'),
+  );
+  expect(main, contains('path: \${{ env.WORKDIR }}/docs_swagger'));
+  expect(main, contains('include-hidden-files: true'));
+  expect(main, contains('DOCS_REPOSITORY: v-modal/vmodal_sdk_flutter'));
+  expect(
+    main,
+    contains('DOCS_URL: https://v-modal.github.io/vmodal_sdk_flutter'),
+  );
+  expect(main, isNot(contains('gh repo create "\$DOCS_REPOSITORY"')));
+  expect(main, contains('git push origin HEAD:gh-pages'));
+  expect(main, contains('repos/\$DOCS_REPOSITORY/pages'));
+  expect(main, contains('"\$DOCS_URL/RELEASE_SHA"'));
   expect(main, contains('for attempt in {1..30}'));
   expect(main, contains('https://pub.dev/api/packages/vmodal_sdk_flutter'));
 

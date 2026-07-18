@@ -3,16 +3,34 @@
 This application shows a complete VModal SDK evaluation workflow on Android or
 iOS:
 
-1. Create a client with a runtime API key.
-2. Confirm which user is authenticated.
-3. Choose a video or use the bundled 10-frame sample.
-4. Upload it while displaying progress and cancellation.
-5. Create an image index and refresh its job state.
+1. Authenticate with a runtime API key and stop if identity resolution fails.
+2. List the collections visible to the authenticated user.
+3. List the existing index jobs for the selected collection.
+4. Reuse ready data, or upload the bundled 10-frame sample or another video.
+5. Create an image index when needed and wait until it is ready.
 6. Search the indexed collection and inspect result fields.
 
-The example is intentionally simple. It keeps all UI and SDK calls in
-[`lib/main.dart`](lib/main.dart), so a beginner can follow the complete flow in
-one file.
+The runnable example is intentionally simple. It keeps its UI and SDK calls in
+[`lib/main.dart`](lib/main.dart), so a beginner can follow the main flow in one
+file. This guide also shows `jobsList()`, which an application can use to load
+index jobs created during earlier runs.
+
+## Beginner validation flow
+
+After the app opens, validate one stage at a time:
+
+```text
+authentication
+  -> existing collections
+  -> existing index jobs
+  -> existing ready data OR upload
+  -> index ready
+  -> search
+```
+
+Do not continue after a failed stage. An empty collection or index-job list is
+not a failure; it means this account needs an upload or a new index before it
+can search.
 
 ## What you need
 
@@ -143,39 +161,101 @@ Keep this terminal open while developing:
 - Press `R` for a full hot restart.
 - Press `q` to stop the app.
 
-## 6. Configure the VModal client
+## 6. First validation: authenticate
 
 When the application opens:
 
 1. Paste a valid runtime API key into **Runtime API key**.
 2. Tap **Configure client**.
-3. Check the status message at the bottom of the screen.
+3. Confirm that the status says:
 
-The expected status is:
+   ```text
+   Client configured. Resolve identity to load its collections.
+   ```
 
-```text
-Client configured. Resolve identity or search next.
+4. Tap **Resolve auth.me**.
+5. Do not continue until the app displays `Authenticated user type: ...`.
+
+The authentication request is:
+
+```dart
+final me = await client.auth.me();
 ```
 
 The input is obscured, and the example clears the text field after creating
 the client. The key remains only in `MutableApiKeyProvider` memory while the
 application is running.
 
-## 7. Confirm authentication
+If authentication fails, stop here. Check that the key is valid, has not
+expired, and belongs to the intended VModal environment. Upload, indexing, and
+search are not useful checks until `auth.me()` succeeds.
 
-Tap **Resolve auth.me**.
+## 7. List existing collections
 
-The example calls:
+A successful **Resolve auth.me** request automatically loads the existing
+`vid_file` collections visible to that runtime API key. You can also tap
+**Refresh collections** to run the collection check again:
 
 ```dart
-final me = await client.auth.me();
+final groups = await client.collections.listGroups(mode: 'vid_file');
 ```
 
-A successful request displays the authenticated user type. If you receive an
-SDK error instead, check that the key is valid, has not expired, and belongs to
-the intended VModal environment.
+Validate the result before continuing:
 
-## 8. Choose and upload a video
+- `Loaded N video collection(s).` means collection access works. Select one of
+  the names shown under **Available collections**.
+- `No existing video collections...` is a valid empty-account result. Keep the
+  suggested `flutter_example` name and continue to upload.
+- An SDK error means this stage failed. Do not continue until authentication,
+  environment selection, or collection access is fixed.
+
+If the current Collection value is not in the returned list, the example
+selects the first available collection. Refresh the list whenever uploads or
+another client may have changed it.
+
+The Collection field must contain a collection returned for the current API
+key before search. Access is key-scoped: a name from another account or
+environment returns HTTP 404 even when the route is healthy. `flutter_example`
+is only a suggested name for a new upload; do not search it until refreshing
+the list shows that it exists and its index is ready.
+
+## 8. List existing index jobs
+
+For an existing collection, check its index jobs before uploading or creating
+another index:
+
+```dart
+const collectionName = 'your_collection_from_step_7';
+final jobs = await client.indexes.jobsList(
+  mode: 'vid_file',
+  groupName: collectionName,
+);
+
+print('Index jobs: ${jobs.total}');
+for (final job in jobs.data) {
+  print(job);
+}
+```
+
+The API exposes index jobs rather than a separate index catalog. Each job
+records an indexing attempt and its state. Treat the result as follows:
+
+- A completed state such as `success`, `completed`, `done`, or `ok` means the
+  collection is a candidate for immediate search.
+- A queued or running state means wait and check that job with
+  `client.indexes.indexStatus(jobId)`.
+- An empty list means no index job exists for that collection. Upload data if
+  needed, then create an index.
+- A failed state means inspect the job error and fix it before search.
+
+The example screen displays the job created during the current run. Use
+`jobsList()` in your application when you also need to show jobs from earlier
+runs. If the account has no collections, skip this check and upload first.
+
+## 9. Choose and upload a video when needed
+
+If Step 8 found a completed index job and you want to search that existing
+collection, skip to Step 11. Otherwise, upload a video and create its index.
 
 The repository includes
 [`asset/video_10frames.mp4`](asset/video_10frames.mp4), a one-second, 320 × 240
@@ -198,7 +278,9 @@ To use the bundled sample:
 6. Tap **Cancel** while an upload is running to test cancellation. The sample
    is very small, so it may finish before you can cancel it.
 
-The upload is stored under:
+By default, the upload is stored under the Collection and Stream currently
+shown in the app. On an account with no collections, the suggested new target
+is:
 
 ```text
 collection:     flutter_example
@@ -226,7 +308,7 @@ The SDK streams the file instead of loading the complete video into memory.
 `task.progress` reports upload progress, `task.result` completes with the
 server response, and `task.cancel()` cancels the operation.
 
-## 9. Create and monitor the image index
+## 10. Create and monitor the image index
 
 After upload succeeds:
 
@@ -254,7 +336,7 @@ Indexing is asynchronous. The create call returning successfully means the job
 was accepted, not that search data is ready. Use the visible refresh action or
 `client.indexes.indexStatus(job.jobId)` until it reaches a terminal state.
 
-## 10. Search and inspect results
+## 11. Search and inspect results
 
 1. Leave the default query, `red`, for the bundled colored sample or enter a
    visual description for your chosen video.
@@ -263,7 +345,8 @@ was accepted, not that search data is ready. Use the visible refresh action or
    source modality, timestamp, and normalized score.
 
 Search and upload use the same **Collection** and **Stream** fields. The example
-searches the image index created in the previous step:
+refreshes the authenticated key's collection list before every search and
+searches the ready image index selected or created in the earlier steps:
 
 ```dart
 final result = await client.searches.searchVideo(
@@ -276,11 +359,13 @@ final result = await client.searches.searchVideo(
 );
 ```
 
-A zero result count is still successful. If the collection has not been
-indexed, the server can return HTTP 404 even though the route is working; the
-example reports that condition without displaying internal server paths.
+A zero result count is still successful. Search is blocked locally when the
+Collection value is not returned for the current key. If the collection exists
+but has not been indexed, the server can return HTTP 404 even though the route
+is working; the example reports that condition without displaying internal
+server paths.
 
-## 11. Stop and clean up
+## 12. Stop and clean up
 
 Press `q` in the terminal to stop `flutter run`.
 

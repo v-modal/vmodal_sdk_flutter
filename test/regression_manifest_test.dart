@@ -100,6 +100,14 @@ void main() {
       expect(result.exitCode, 0, reason: '${result.stderr}');
       expect(File('${dir.path}/pubspec.lock').existsSync(), isTrue);
       for (final path in <String>[
+        'install.sh',
+        'build.sh',
+        'run.sh',
+        'test.sh',
+      ]) {
+        expect(File('${dir.path}/$path').existsSync(), isTrue, reason: path);
+      }
+      for (final path in <String>[
         'example/android/local.properties',
         'example/android/gradle/wrapper/gradle-wrapper.jar',
         'example/android/gradlew',

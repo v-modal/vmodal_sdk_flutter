@@ -68,6 +68,11 @@ List<Map<String, Object?>> objectList(Object? value) {
       .toList(growable: false);
 }
 
+List<String> stringList(Object? value) {
+  if (value is! List) return <String>[];
+  return value.map((Object? item) => '$item').toList(growable: false);
+}
+
 Object? jsonDecodeStrict(List<int> bytes) {
   try {
     final text = utf8.decode(bytes);

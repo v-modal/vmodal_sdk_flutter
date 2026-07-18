@@ -43,6 +43,22 @@ void main() {
     expect(response.cntActual, 2);
     expect(response.cntTotal, 3);
     expect(response.executionTimeMs, 1.5);
+
+    final groups = GroupsResponse(<String, Object?>{
+      'total': 1,
+      'data': <Object?>[
+        <String, Object?>{
+          'user_id': 'u',
+          'mode': 'vid_file',
+          'group_name': 'travel',
+          'video_group': 'vid_file-travel',
+          'modality_types': <String>['vid_img_emb'],
+          'lancedb_versions': <String>['v2'],
+        },
+      ],
+    });
+    expect(groups.data.single.groupName, 'travel');
+    expect(groups.data.single.lancedbVersions, <String>['v2']);
   });
 
   test('gateway bulk image payload removes nested identity fields', () async {

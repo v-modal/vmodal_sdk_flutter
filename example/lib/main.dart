@@ -10,6 +10,17 @@ const String exampleCollectionName = 'flutter_example';
 const String exampleStreamName = 'astream';
 const String exampleIndexType = 'vid_img_emb';
 
+List<String> exampleCollectionNames(GroupsResponse response) {
+  final names = response.data
+      .where((GroupItem item) => item.mode == 'vid_file')
+      .map((GroupItem item) => item.groupName.trim())
+      .where((String name) => name.isNotEmpty)
+      .toSet()
+      .toList();
+  names.sort();
+  return names;
+}
+
 SearchRequest exampleSearchRequest(
   String query,
   String collectionName,
@@ -112,6 +123,8 @@ class _VmodalExampleAppState extends State<VmodalExampleApp> {
   int _progress = 0;
   bool _busy = false;
   bool _hasSearched = false;
+  bool _collectionsLoaded = false;
+  List<String> _collections = <String>[];
 
   @override
   void initState() {
@@ -147,7 +160,9 @@ class _VmodalExampleAppState extends State<VmodalExampleApp> {
     _client = client;
     _safeState(() {
       _key.clear();
-      _status = 'Client configured. Resolve identity or search next.';
+      _collectionsLoaded = false;
+      _collections = <String>[];
+      _status = 'Client configured. Resolve identity to load its collections.';
     });
   }
 
@@ -156,7 +171,32 @@ class _VmodalExampleAppState extends State<VmodalExampleApp> {
     if (client == null) return _needClient();
     await _run(() async {
       final me = await client.auth.me();
-      _safeState(() => _status = 'Authenticated user type: ${me.type}');
+      final groups = await client.collections.listGroups(mode: 'vid_file');
+      final names = exampleCollectionNames(groups);
+      _setCollections(
+        names,
+        names.isEmpty
+            ? 'Authenticated user type: ${me.type}. No existing video '
+                  'collections were found; upload to create one.'
+            : 'Authenticated user type: ${me.type}. Loaded '
+                  '${names.length} video collection(s).',
+        selectFirst: true,
+      );
+    });
+  }
+
+  Future<void> _loadCollections() async {
+    final client = _client;
+    if (client == null) return _needClient();
+    await _run(() async {
+      final groups = await client.collections.listGroups(mode: 'vid_file');
+      final names = exampleCollectionNames(groups);
+      _setCollections(
+        names,
+        names.isEmpty
+            ? 'No existing video collections are available for this API key.'
+            : 'Loaded ${names.length} video collection(s).',
+      );
     });
   }
 
@@ -232,10 +272,24 @@ class _VmodalExampleAppState extends State<VmodalExampleApp> {
   Future<void> _search() async {
     final client = _client;
     if (client == null) return _needClient();
-    final collection = _collection.text.trim();
-    final stream = _stream.text.trim();
-    if (collection.isEmpty || stream.isEmpty) return _needCollection();
     await _run(() async {
+      final groups = await client.collections.listGroups(mode: 'vid_file');
+      final names = exampleCollectionNames(groups);
+      final collection = _collection.text.trim();
+      final stream = _stream.text.trim();
+      _setCollections(names, '', selectFirst: false);
+      if (collection.isEmpty || stream.isEmpty) {
+        _needCollection();
+        return;
+      }
+      if (!names.contains(collection)) {
+        _safeState(
+          () => _status =
+              'Collection $collection is not available for this '
+              'API key. Choose a loaded collection or upload it first.',
+        );
+        return;
+      }
       try {
         final result = await client.searches.searchVideo(
           exampleSearchRequest(_query.text, collection, stream),
@@ -319,6 +373,29 @@ class _VmodalExampleAppState extends State<VmodalExampleApp> {
     _safeState(() => _status = 'Collection and stream are required.');
   }
 
+  void _setCollections(
+    List<String> names,
+    String status, {
+    bool selectFirst = false,
+  }) {
+    final current = _collection.text.trim();
+    final selected = selectFirst && names.isNotEmpty && !names.contains(current)
+        ? names.first
+        : current;
+    _safeState(() {
+      _collections = names;
+      _collectionsLoaded = true;
+      if (selected != current) {
+        _collection.text = selected;
+        _jobId = '';
+        _indexStatus = 'not started';
+        _results = <Map<String, Object?>>[];
+        _hasSearched = false;
+      }
+      if (status.isNotEmpty) _status = status;
+    });
+  }
+
   void _scopeChanged(String _) {
     if (_jobId.isEmpty && _results.isEmpty) return;
     _safeState(() {
@@ -374,11 +451,25 @@ class _VmodalExampleAppState extends State<VmodalExampleApp> {
             onPressed: _busy ? null : _identity,
             child: const Text('Resolve auth.me'),
           ),
+          OutlinedButton(
+            onPressed: _busy ? null : _loadCollections,
+            child: const Text('Refresh collections'),
+          ),
           TextField(
             controller: _collection,
             onChanged: _scopeChanged,
-            decoration: const InputDecoration(labelText: 'Collection'),
+            decoration: const InputDecoration(
+              labelText: 'Collection',
+              helperText: 'Must exist for the current API key before search.',
+            ),
           ),
+          if (_collectionsLoaded)
+            Text(
+              _collections.isEmpty
+                  ? 'Available collections: none'
+                  : 'Available collections: ${_collections.join(', ')}',
+              key: const Key('available-collections'),
+            ),
           TextField(
             controller: _stream,
             onChanged: _scopeChanged,

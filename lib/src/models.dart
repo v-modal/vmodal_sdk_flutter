@@ -12,7 +12,22 @@ class SearchResultItem extends JsonBackedResponse {
 }
 
 class GroupItem extends JsonBackedResponse {
-  const GroupItem(super.raw);
+  GroupItem(super.raw)
+    : userId = '${raw['user_id'] ?? ''}',
+      mode = '${raw['mode'] ?? ''}',
+      groupName = '${raw['group_name'] ?? ''}',
+      videoGroup = '${raw['video_group'] ?? ''}',
+      modalityTypes = stringList(raw['modality_types']),
+      lancedbVersions = stringList(raw['lancedb_versions']),
+      lastUpdated = raw['last_updated']?.toString();
+
+  final String userId;
+  final String mode;
+  final String groupName;
+  final String videoGroup;
+  final List<String> modalityTypes;
+  final List<String> lancedbVersions;
+  final String? lastUpdated;
 }
 
 class FolderUploadItem extends JsonBackedResponse {
@@ -326,13 +341,11 @@ class SearchResponse extends JsonBackedResponse {
 
 class GroupsResponse extends JsonBackedResponse {
   GroupsResponse(super.raw)
-    : data = raw['data'] is List
-          ? List<Object?>.from(raw['data']! as List)
-          : <Object?>[],
+    : data = objectList(raw['data']).map(GroupItem.new).toList(),
       total = intValue(raw['total']),
       executionTimeMs = doubleValue(raw['execution_time_ms']);
 
-  final List<Object?> data;
+  final List<GroupItem> data;
   final int total;
   final double executionTimeMs;
 }

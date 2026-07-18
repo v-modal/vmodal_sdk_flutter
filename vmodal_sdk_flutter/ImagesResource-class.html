@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the ImagesResource class from the vmodal_sdk_flutter library, for the Dart programming language.">
+  <title>ImagesResource class - vmodal_sdk_flutter library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../static-assets/styles.css?v1">
+  <link rel="icon" href="../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../index.html">vmodal_sdk_flutter</a></li>
+    <li><a href="../vmodal_sdk_flutter/">vmodal_sdk_flutter.dart</a></li>
+    <li class="self-crumb">ImagesResource class</li>
+  </ol>
+  <div class="self-name">ImagesResource</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="vmodal_sdk_flutter&#47;vmodal_sdk_flutter-library-sidebar.html"
+    data-below-sidebar="vmodal_sdk_flutter&#47;ImagesResource-class-sidebar.html">
+    <div>
+<h1><span class="kind-class">ImagesResource</span> class 
+ 
+</h1></div>
+
+    
+<section class="desc markdown">
+  <p>Image-location and image-download operations.</p>
+</section>
+
+
+
+    
+    
+  <section
+      class="summary offset-anchor inherited"
+      id="instance-properties">
+    <h2>Properties</h2>
+    <dl class="properties">
+        <dt id="hashCode" class="property inherited">
+  <span class="name"><a href="../vmodal_sdk_flutter/ImagesResource/hashCode.html">hashCode</a></span>
+  <span class="signature">&#8594; int</span>
+  
+
+</dt>
+<dd class="inherited">
+  The hash code for this object.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="runtimeType" class="property inherited">
+  <span class="name"><a href="../vmodal_sdk_flutter/ImagesResource/runtimeType.html">runtimeType</a></span>
+  <span class="signature">&#8594; Type</span>
+  
+
+</dt>
+<dd class="inherited">
+  A representation of the runtime type of the object.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+
+    
+  <section
+      class="summary offset-anchor"
+      id="instance-methods">
+    <h2>Methods</h2>
+    <dl class="callables">
+        <dt id="getImageBulkFromUrls" class="callable">
+  <span class="name"><a href="../vmodal_sdk_flutter/ImagesResource/getImageBulkFromUrls.html">getImageBulkFromUrls</a></span><span class="signature">(<wbr><span class="parameter" id="getImageBulkFromUrls-param-urls"><span class="type-annotation">List<span class="signature">&lt;<wbr><span class="type-parameter">String</span>&gt;</span></span> <span class="parameter-name">urls</span>, {</span><span class="parameter" id="getImageBulkFromUrls-param-userid"><span class="type-annotation">String?</span> <span class="parameter-name">userid</span>, </span><span class="parameter" id="getImageBulkFromUrls-param-cancellation"><span class="type-annotation"><a href="../vmodal_sdk_flutter/CancellationToken-class.html">CancellationToken</a>?</span> <span class="parameter-name">cancellation</span></span>})
+    <span class="returntype parameter">&#8594; Future<span class="signature">&lt;<wbr><span class="type-parameter"><a href="../vmodal_sdk_flutter/ImageGetBulkResponse-class.html">ImageGetBulkResponse</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Downloads several images represented by <code>urls</code>.
+  
+
+</dd>
+
+        <dt id="getImageFromUrl" class="callable">
+  <span class="name"><a href="../vmodal_sdk_flutter/ImagesResource/getImageFromUrl.html">getImageFromUrl</a></span><span class="signature">(<wbr><span class="parameter" id="getImageFromUrl-param-urlPreSigned"><span class="type-annotation">String</span> <span class="parameter-name">urlPreSigned</span>, {</span><span class="parameter" id="getImageFromUrl-param-userid"><span class="type-annotation">String?</span> <span class="parameter-name">userid</span>, </span><span class="parameter" id="getImageFromUrl-param-cancellation"><span class="type-annotation"><a href="../vmodal_sdk_flutter/CancellationToken-class.html">CancellationToken</a>?</span> <span class="parameter-name">cancellation</span></span>})
+    <span class="returntype parameter">&#8594; Future<span class="signature">&lt;<wbr><span class="type-parameter">Uint8List</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Downloads image bytes from a previously returned temporary URL.
+  
+
+</dd>
+
+        <dt id="getUrl" class="callable">
+  <span class="name"><a href="../vmodal_sdk_flutter/ImagesResource/getUrl.html">getUrl</a></span><span class="signature">(<wbr>{<span class="parameter" id="getUrl-param-mode"><span>required</span> <span class="type-annotation">String</span> <span class="parameter-name">mode</span>, </span><span class="parameter" id="getUrl-param-groupName"><span>required</span> <span class="type-annotation">String</span> <span class="parameter-name">groupName</span>, </span><span class="parameter" id="getUrl-param-modality"><span>required</span> <span class="type-annotation">String</span> <span class="parameter-name">modality</span>, </span><span class="parameter" id="getUrl-param-filename"><span>required</span> <span class="type-annotation">String</span> <span class="parameter-name">filename</span>, </span><span class="parameter" id="getUrl-param-streamName"><span class="type-annotation">String</span> <span class="parameter-name">streamName</span> = <span class="default-value">&#39;astream&#39;</span>, </span><span class="parameter" id="getUrl-param-tsUnix13digits"><span class="type-annotation">Object?</span> <span class="parameter-name">tsUnix13digits</span>, </span><span class="parameter" id="getUrl-param-userid"><span class="type-annotation">String?</span> <span class="parameter-name">userid</span>, </span><span class="parameter" id="getUrl-param-cancellation"><span class="type-annotation"><a href="../vmodal_sdk_flutter/CancellationToken-class.html">CancellationToken</a>?</span> <span class="parameter-name">cancellation</span></span>})
+    <span class="returntype parameter">&#8594; Future<span class="signature">&lt;<wbr><span class="type-parameter"><a href="../vmodal_sdk_flutter/ImageUrlResponse-class.html">ImageUrlResponse</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Resolves a temporary URL for one stored image.
+  
+
+</dd>
+
+        <dt id="getUrlBulk" class="callable">
+  <span class="name"><a href="../vmodal_sdk_flutter/ImagesResource/getUrlBulk.html">getUrlBulk</a></span><span class="signature">(<wbr><span class="parameter" id="getUrlBulk-param-records"><span class="type-annotation">List<span class="signature">&lt;<wbr><span class="type-parameter">Map<span class="signature">&lt;<wbr><span class="type-parameter">String</span>, <span class="type-parameter">Object?</span>&gt;</span></span>&gt;</span></span> <span class="parameter-name">records</span>, {</span><span class="parameter" id="getUrlBulk-param-userid"><span class="type-annotation">String?</span> <span class="parameter-name">userid</span>, </span><span class="parameter" id="getUrlBulk-param-cancellation"><span class="type-annotation"><a href="../vmodal_sdk_flutter/CancellationToken-class.html">CancellationToken</a>?</span> <span class="parameter-name">cancellation</span></span>})
+    <span class="returntype parameter">&#8594; Future<span class="signature">&lt;<wbr><span class="type-parameter"><a href="../vmodal_sdk_flutter/ImageUrlBulkResponse-class.html">ImageUrlBulkResponse</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Resolves image URLs for <code>records</code> in one call.
+  
+
+</dd>
+
+        <dt id="noSuchMethod" class="callable inherited">
+  <span class="name"><a href="../vmodal_sdk_flutter/ImagesResource/noSuchMethod.html">noSuchMethod</a></span><span class="signature">(<wbr><span class="parameter" id="noSuchMethod-param-invocation"><span class="type-annotation">Invocation</span> <span class="parameter-name">invocation</span></span>)
+    <span class="returntype parameter">&#8594; dynamic</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Invoked when a nonexistent method or property is accessed.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="toString" class="callable inherited">
+  <span class="name"><a href="../vmodal_sdk_flutter/ImagesResource/toString.html">toString</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; String</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  A string representation of this object.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+    
+  <section
+      class="summary offset-anchor inherited"
+      id="operators">
+    <h2>Operators</h2>
+    <dl class="callables">
+        <dt id="operator ==" class="callable inherited">
+  <span class="name"><a href="../vmodal_sdk_flutter/ImagesResource/operator_equals.html">operator ==</a></span><span class="signature">(<wbr><span class="parameter" id="==-param-other"><span class="type-annotation">Object</span> <span class="parameter-name">other</span></span>)
+    <span class="returntype parameter">&#8594; bool</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  The equality operator.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+    
+    
+    
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../index.html">vmodal_sdk_flutter</a></li>
+    <li><a href="../vmodal_sdk_flutter/">vmodal_sdk_flutter</a></li>
+    <li class="self-crumb">ImagesResource class</li>
+</ol>
+
+    <h5>vmodal_sdk_flutter library</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div>
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    vmodal_sdk_flutter
+      1.0.0
+  </span>
+  
+</footer>
+
+
+<script src="../static-assets/highlight.pack.js?v1"></script>
+<script src="../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

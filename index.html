@@ -1,19 +1,299 @@
-<!-- HTML for static distribution bundle build -->
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <title>Swagger UI</title>
-    <link rel="stylesheet" type="text/css" href="dist/swagger-ui.css" />
-    <link rel="stylesheet" type="text/css" href="dist/index.css" />
-    <link rel="icon" type="image/png" href="dist/favicon-32x32.png" sizes="32x32" />
-    <link rel="icon" type="image/png" href="dist/favicon-16x16.png" sizes="16x16" />
-  </head>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="vmodal_sdk_flutter API docs, for the Dart programming language.">
+  <title>vmodal_sdk_flutter - Dart API docs</title>
 
-  <body>
-    <div id="swagger-ui"></div>
-    <script src="dist/swagger-ui-bundle.js" charset="UTF-8"> </script>
-    <script src="dist/swagger-ui-standalone-preset.js" charset="UTF-8"> </script>
-    <script src="dist/swagger-initializer.js" charset="UTF-8"> </script>
-  </body>
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="static-assets/github.css?v1">
+  <link rel="stylesheet" href="static-assets/styles.css?v1">
+  <link rel="icon" href="static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li class="self-crumb">vmodal_sdk_flutter package</li>
+  </ol>
+  <div class="self-name">vmodal_sdk_flutter</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+  <div id="dartdoc-main-content" class="main-content">
+      
+<section class="desc markdown">
+  <div align="center">
+  <img src="readme_assets/logo_vmodal_owl.jpeg" alt="VModal owl" width="96">
+  <h1>VModal for Flutter</h1>
+  <p><strong>Give your Android and iOS apps a multimodal memory.</strong></p>
+  <p>Upload video. Find moments by meaning, speech, text, or imagery.<br>Keep the experience fast, native, and 100% Flutter.</p>
+  <img src="https://flutter.dev/assets/lockup_built-w-flutter.5443036ead976e7afea9249e17cd32b3.svg" alt="Built with Flutter" width="210">
+  <br><br>
+  <img src="https://img.shields.io/badge/Flutter-3.44%2B-02569B?logo=flutter&amp;logoColor=white" alt="Flutter 3.44+">
+  <img src="https://img.shields.io/badge/Dart-3.12%2B-0175C2?logo=dart&amp;logoColor=white" alt="Dart 3.12+">
+  <img src="https://img.shields.io/badge/Android-supported-3DDC84?logo=android&amp;logoColor=white" alt="Android supported">
+  <img src="https://img.shields.io/badge/iOS-supported-000000?logo=apple&amp;logoColor=white" alt="iOS supported">
+  <img src="https://img.shields.io/badge/license-MIT-6C63FF" alt="MIT license">
+</div>
+<br>
+<img src="readme_assets/dev_homepage.jpg" alt="A wall of searchable video moments and developer screens" width="100%">
+<p align="center"><em>Turn every video library into an experience your users can explore.</em></p>
+<h2 id="build-the-feature-people-remember">Build the feature people remember</h2>
+<p>VModal brings multimodal video search and mobile-friendly uploads to Dart with a small, typed API. Your app owns the interface; the SDK handles the VModal gateway, request models, responses, upload streams, progress, and cancellation.</p>
+<table>
+<thead>
+<tr>
+<th>Your Flutter experience</th>
+<th>VModal gives you</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>“Find the cyclist in the red jacket”</td>
+<td>Semantic video and image search</td>
+</tr>
+<tr>
+<td>Search words spoken or shown on screen</td>
+<td>ASR and OCR search sources</td>
+</tr>
+<tr>
+<td>Upload from a picker or camera flow</td>
+<td>Streamed, signed uploads with live progress</td>
+</tr>
+<tr>
+<td>A cancel button that really cancels</td>
+<td>Per-operation cancellation tokens</td>
+</tr>
+<tr>
+<td>Collection and indexing screens</td>
+<td>Typed collection, index, usage, and image resources</td>
+</tr>
+<tr>
+<td>Login and account switching your way</td>
+<td>App-owned runtime credentials—no login UI imposed</td>
+</tr>
+</tbody>
+</table>
+<h2 id="start-in-minutes">Start in minutes</h2>
+<p>The public package source is available on GitHub. Add it to your app:</p>
+<pre class="language-yaml"><code class="language-yaml">dependencies:
+  vmodal_sdk_flutter:
+    git:
+      url: https://github.com/v-modal/vmodal_sdk_flutter.git
+      ref: main
+</code></pre>
+<p>Then run:</p>
+<pre class="language-bash"><code class="language-bash">flutter pub get
+</code></pre>
+<p>Create one client from the API key already loaded by your authenticated app:</p>
+<pre class="language-dart"><code class="language-dart">import 'package:vmodal_sdk_flutter/vmodal_sdk_flutter.dart';
+
+final keys = MutableApiKeyProvider(runtimeApiKey);
+final vmodal = VmodalClient(
+  config: SdkConfig(apiKeyProvider: keys),
+);
+</code></pre>
+<blockquote>
+<p>The SDK never owns your login screen or persists your API key. It receives an in-memory credential from your application at runtime.</p>
+</blockquote>
+<h2 id="search-video-with-natural-language">Search video with natural language</h2>
+<pre class="language-dart"><code class="language-dart">final groups = await vmodal.collections.listGroups(mode: 'vid_file');
+if (groups.data.isEmpty) {
+  throw StateError('No video collection exists for this API key');
+}
+final group = groups.data.first;
+final version = group.latestLancedbVersion;
+if (version == null) {
+  throw StateError('The collection has no searchable LanceDB version');
+}
+
+final results = await vmodal.searches.searchVideo(
+  SearchRequest(
+    queryText: 'the cyclist crossing the bridge at sunset',
+    groupName: group.groupName,
+    searchSources: const ['image'],
+    versionLancedb: version,
+    limit: 20,
+  ),
+);
+
+print('${results.cntActual} moments found');
+for (final moment in results.data) {
+  print(moment);
+}
+</code></pre>
+<p>The collection must be a <code>vid_file</code> <code>GroupItem</code> returned
+for the current runtime API key. Collection access is key-scoped; a name copied
+from another account or environment can return HTTP 404 even when the search
+route is healthy. The example name <code>flutter_example</code> is valid only after that
+key has uploaded or otherwise created the collection and a refreshed
+<code>listGroups()</code> response contains it. Search must also send an advertised
+<code>lancedbVersions</code> value; <code>latestLancedbVersion</code> converts values such as <code>v1</code>
+to the numeric request field <code>version_lancedb: 1</code>.</p>
+<p>The response stays typed where the contract is stable and preserves the raw JSON so new server fields remain available immediately.</p>
+<h2 id="upload-with-progress-and-cancellation">Upload with progress and cancellation</h2>
+<p>The SDK reads an app-accessible <code>File</code> as a stream. It does not load the entire video into memory.</p>
+<pre class="language-dart"><code class="language-dart">import 'dart:io';
+
+final task = vmodal.collections.videoUpload(
+  UploadSource.fromFile(File(videoPath)),
+  collectionName: 'travel_diaries',
+  subCollectionName: 'mobile_uploads',
+);
+
+final progress = task.progress.listen((value) {
+  print('Uploading ${value.percent}%');
+});
+
+// Connect this to your Flutter cancel button when needed:
+// task.cancel();
+
+final uploaded = await task.result;
+await progress.cancel();
+print('Ready: ${uploaded.fileName}');
+</code></pre>
+<p>Signed single upload is the production default for every file size. Multipart upload is experimental and must be enabled explicitly with <code>VideoUploadOptions(multipart: true)</code>; it fails with <code>FeatureDisabled</code> when the complete backend route family is unavailable.</p>
+<h2 id="designed-for-real-mobile-lifecycles">Designed for real mobile lifecycles</h2>
+<ul>
+<li>Rotate credentials without rebuilding the client: <code>keys.rotate(newApiKey)</code>.</li>
+<li>Cancel search or upload work when a screen closes.</li>
+<li>Show upload progress from a broadcast Dart stream.</li>
+<li>Keep file picking, secure storage, background scheduling, and lifecycle UI in the parent app.</li>
+<li>Close network resources deterministically with <code>await vmodal.close()</code>.</li>
+</ul>
+<p>For logout or account switching, cancel active work, clear upload persistence, call <code>keys.clear()</code>, close the client, and create a new client for the next identity. Key rotation alone is not an identity switch.</p>
+<h2 id="one-client-focused-resources">One client, focused resources</h2>
+<pre class="language-text"><code class="language-text">vmodal.auth          identity and health
+vmodal.searches      multimodal video search
+vmodal.collections   upload and collection lifecycle
+vmodal.indexes       create, inspect, and delete indexes
+vmodal.admin         usage and cache statistics
+vmodal.r2            presigned object-storage operations
+vmodal.images        image retrieval
+</code></pre>
+<p>Gateway mode is the safe default and sends caller identity only as a bearer credential. <code>VmodalClient.unsafeDirect</code> is reserved for trusted private networks.</p>
+<h2 id="platform-support">Platform support</h2>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th align="right">Status</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Android</td>
+<td align="right">✅ Supported</td>
+<td>Flutter-native Dart API</td>
+</tr>
+<tr>
+<td>iOS</td>
+<td align="right">✅ Supported</td>
+<td>Flutter-native Dart API</td>
+</tr>
+<tr>
+<td>Flutter Web</td>
+<td align="right">⛔ Not supported</td>
+<td>Not part of the 1.0 release contract</td>
+</tr>
+<tr>
+<td>macOS, Windows, Linux</td>
+<td align="right">⏳ Not targeted</td>
+<td>Mobile-first release</td>
+</tr>
+</tbody>
+</table>
+<p>Minimum toolchain: Flutter <code>3.44.0</code> and Dart <code>3.12.0</code>.</p>
+<h2 id="explore-the-sdk">Explore the SDK</h2>
+<ul>
+<li><a href="https://github.com/v-modal/vmodal_sdk_flutter/tree/main/example">Run the complete example app</a></li>
+<li><a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/sdk_doc.md">Read the SDK guide</a></li>
+<li><a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/manage_api_key.md">Manage API keys safely</a></li>
+<li><a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/search_app.md">Build a search experience</a></li>
+<li><a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/sdk_contract.md">Review the API contract</a></li>
+<li><a href="https://github.com/v-modal/vmodal_sdk_flutter/issues">Open an issue</a></li>
+</ul>
+<h2 id="development">Development</h2>
+<pre class="language-bash"><code class="language-bash">git clone https://github.com/v-modal/vmodal_sdk_flutter.git
+cd vmodal_sdk_flutter
+bash install.sh install
+bash test.sh all
+</code></pre>
+<p>The offline gate analyzes the package, runs the SDK and example tests, checks route synchronization, and validates Android/iOS example builds. Live tests require the repository's existing test credentials and are intentionally separate.</p>
+<hr>
+<p align="center"><strong>Build video experiences people can search, not just scroll.</strong></p>
+<p><sub>Flutter and the related logo are trademarks of Google LLC. VModal is not endorsed by or affiliated with Google LLC.</sub></p>
+</section>
+
+
+      <section class="summary">
+          <h2>Libraries</h2>
+        <dl>
+          <dt id="vmodal_sdk_flutter">
+  <span class="name"><a href="vmodal_sdk_flutter/">vmodal_sdk_flutter</a></span> 
+
+</dt>
+<dd>Typed Flutter client for uploading, indexing, and searching VModal media.
+</dd>
+
+        </dl>
+      </section>
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li class="self-crumb">vmodal_sdk_flutter package</li>
+</ol>
+
+    <h5 class="hidden-xs"><span class="package-name">vmodal_sdk_flutter</span> <span class="package-kind">package</span></h5>
+    <ol>
+      <li class="section-title">Libraries</li>
+      <li><a href="vmodal_sdk_flutter/">vmodal_sdk_flutter</a></li>
+</ol>
+
+  </div>
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div>
+</main>
+<footer>
+  <span class="no-break">
+    vmodal_sdk_flutter
+      1.0.0
+  </span>
+  
+</footer>
+
+
+<script src="static-assets/highlight.pack.js?v1"></script>
+<script src="static-assets/docs.dart.js"></script>
+
+</body>
 </html>
+

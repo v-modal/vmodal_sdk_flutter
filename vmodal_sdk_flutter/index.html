@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="vmodal_sdk_flutter library API docs, for the Dart programming language.">
+  <title>vmodal_sdk_flutter library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../static-assets/styles.css?v1">
+  <link rel="icon" href="../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../index.html">vmodal_sdk_flutter</a></li>
+    <li class="self-crumb">vmodal_sdk_flutter.dart</li>
+  </ol>
+  <div class="self-name">vmodal_sdk_flutter</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar=""
+    data-below-sidebar="vmodal_sdk_flutter&#47;vmodal_sdk_flutter-library-sidebar.html">
+  
+    <div>
+      
+
+      <h1>
+        <span class="kind-library">vmodal_sdk_flutter</span>
+        library 
+ 
+
+      </h1>
+    </div>
+
+    
+<section class="desc markdown">
+  <p>Typed Flutter client for uploading, indexing, and searching VModal media.</p>
+<p>Create one <a href="../vmodal_sdk_flutter/VmodalClient-class.html">VmodalClient</a> for the active signed-in session and share its
+resource objects across the app. The SDK does not own login UI or persist
+credentials; supply the current key through <a href="../vmodal_sdk_flutter/MutableApiKeyProvider-class.html">MutableApiKeyProvider</a> and
+close the client when the session ends.</p>
+<pre class="language-dart"><code class="language-dart">final keys = MutableApiKeyProvider(runtimeApiKey);
+final vmodal = VmodalClient(config: SdkConfig(apiKeyProvider: keys));
+
+final groups = await vmodal.collections.listGroups();
+final results = await vmodal.searches.searchVideo(
+  const SearchRequest(queryText: 'a person entering the room'),
+);
+
+await vmodal.close();
+keys.close();
+</code></pre>
+<p>Long-running calls accept a <a href="../vmodal_sdk_flutter/CancellationToken-class.html">CancellationToken</a>. Media uploads return an
+<a href="../vmodal_sdk_flutter/UploadTask-class.html">UploadTask</a>, whose <a href="../vmodal_sdk_flutter/UploadTask/progress.html">UploadTask.progress</a> stream is suitable for progress
+indicators and whose <a href="../vmodal_sdk_flutter/UploadTask/cancel.html">UploadTask.cancel</a> method stops pending work.</p>
+</section>
+
+
+    <section class="summary offset-anchor" id="classes">
+      <h2>Classes</h2>
+      <dl>
+          <dt id="AdaptiveUploadPolicy">
+  <span class="name "><a href="../vmodal_sdk_flutter/AdaptiveUploadPolicy-class.html">AdaptiveUploadPolicy</a></span> 
+
+</dt>
+<dd>
+  Selects bounded multipart settings from source size and app observations.
+</dd>
+
+          <dt id="AdaptiveUploadPreset">
+  <span class="name "><a href="../vmodal_sdk_flutter/AdaptiveUploadPreset-class.html">AdaptiveUploadPreset</a></span> 
+
+</dt>
+<dd>
+  Resolved multipart settings for the current source and conditions.
+</dd>
+
+          <dt id="AdminResource">
+  <span class="name "><a href="../vmodal_sdk_flutter/AdminResource-class.html">AdminResource</a></span> 
+
+</dt>
+<dd>
+  Usage and operational-statistics queries for the active identity.
+</dd>
+
+          <dt id="AdminUserStatItem">
+  <span class="name "><a href="../vmodal_sdk_flutter/AdminUserStatItem-class.html">AdminUserStatItem</a></span> 
+
+</dt>
+<dd>
+  One user-statistics row with forward-compatible <a href="../vmodal_sdk_flutter/JsonBackedResponse/raw.html">raw</a> data.
+</dd>
+
+          <dt id="AdminUserStatsResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/AdminUserStatsResponse-class.html">AdminUserStatsResponse</a></span> 
+
+</dt>
+<dd>
+  User-statistics rows and total count.
+</dd>
+
+          <dt id="ApiKeyProvider">
+  <span class="name "><a href="../vmodal_sdk_flutter/ApiKeyProvider-class.html">ApiKeyProvider</a></span> 
+
+</dt>
+<dd>
+  Supplies the API key used immediately before each SDK request.
+</dd>
+
+          <dt id="AuthResource">
+  <span class="name "><a href="../vmodal_sdk_flutter/AuthResource-class.html">AuthResource</a></span> 
+
+</dt>
+<dd>
+  Authentication, identity, and service-health operations.
+</dd>
+
+          <dt id="CacheStats">
+  <span class="name "><a href="../vmodal_sdk_flutter/CacheStats-class.html">CacheStats</a></span> 
+
+</dt>
+<dd>
+  Cache, limiter, and related service configuration counters.
+</dd>
+
+          <dt id="CancellationToken">
+  <span class="name "><a href="../vmodal_sdk_flutter/CancellationToken-class.html">CancellationToken</a></span> 
+
+</dt>
+<dd>
+  Cooperative cancellation signal shared with an in-flight operation.
+</dd>
+
+          <dt id="CollectionAddAssetsRequest">
+  <span class="name "><a href="../vmodal_sdk_flutter/CollectionAddAssetsRequest-class.html">CollectionAddAssetsRequest</a></span> 
+
+</dt>
+<dd>
+  Parameters for associating existing assets with a collection.
+</dd>
+
+          <dt id="CollectionAddAssetsResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/CollectionAddAssetsResponse-class.html">CollectionAddAssetsResponse</a></span> 
+
+</dt>
+<dd>
+  Result of associating assets with a collection.
+</dd>
+
+          <dt id="CollectionAsset">
+  <span class="name "><a href="../vmodal_sdk_flutter/CollectionAsset-class.html">CollectionAsset</a></span> 
+
+</dt>
+<dd>
+  One asset associated with a collection.
+</dd>
+
+          <dt id="CollectionDescriptionUpdateResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/CollectionDescriptionUpdateResponse-class.html">CollectionDescriptionUpdateResponse</a></span> 
+
+</dt>
+<dd>
+  Result of updating collection-item metadata.
+</dd>
+
+          <dt id="CollectionsResource">
+  <span class="name "><a href="../vmodal_sdk_flutter/CollectionsResource-class.html">CollectionsResource</a></span> 
+
+</dt>
+<dd>
+  Collection discovery, mutation, and media-upload operations.
+</dd>
+
+          <dt id="DeleteCollectionRequest">
+  <span class="name "><a href="../vmodal_sdk_flutter/DeleteCollectionRequest-class.html">DeleteCollectionRequest</a></span> 
+
+</dt>
+<dd>
+  Parameters for previewing or confirming collection deletion.
+</dd>
+
+          <dt id="DeleteCollectionResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/DeleteCollectionResponse-class.html">DeleteCollectionResponse</a></span> 
+
+</dt>
+<dd>
+  Result or preview of collection deletion.
+</dd>
+
+          <dt id="ExternalUploadSignedUrlResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/ExternalUploadSignedUrlResponse-class.html">ExternalUploadSignedUrlResponse</a></span> 
+
+</dt>
+<dd>
+  Temporary upload grant returned for a signed upload.
+</dd>
+
+          <dt id="FileUploadSessionStore">
+  <span class="name "><a href="../vmodal_sdk_flutter/FileUploadSessionStore-class.html">FileUploadSessionStore</a></span> 
+
+</dt>
+<dd>
+  File-backed upload checkpoint store with bounded, atomic JSON writes.
+</dd>
+
+          <dt id="FolderUploadItem">
+  <span class="name "><a href="../vmodal_sdk_flutter/FolderUploadItem-class.html">FolderUploadItem</a></span> 
+
+</dt>
+<dd>
+  One item returned by a folder-upload operation.
+</dd>
+
+          <dt id="FolderUploadResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/FolderUploadResponse-class.html">FolderUploadResponse</a></span> 
+
+</dt>
+<dd>
+  Folder-upload compatibility response.
+</dd>
+
+          <dt id="FullPathImageResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/FullPathImageResponse-class.html">FullPathImageResponse</a></span> 
+
+</dt>
+<dd>
+  Base64-encoded image result with its stored path.
+</dd>
+
+          <dt id="GDriveResource">
+  <span class="name "><a href="../vmodal_sdk_flutter/GDriveResource-class.html">GDriveResource</a></span> 
+
+</dt>
+<dd>
+  Disabled Google Drive compatibility surface.
+</dd>
+
+          <dt id="GroupItem">
+  <span class="name "><a href="../vmodal_sdk_flutter/GroupItem-class.html">GroupItem</a></span> 
+
+</dt>
+<dd>
+  Typed summary of one collection group.
+</dd>
+
+          <dt id="GroupsResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/GroupsResponse-class.html">GroupsResponse</a></span> 
+
+</dt>
+<dd>
+  Typed collection-group listing.
+</dd>
+
+          <dt id="HealthResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/HealthResponse-class.html">HealthResponse</a></span> 
+
+</dt>
+<dd>
+  Service health, version, and dependency summary.
+</dd>
+
+          <dt id="ImageBulkResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/ImageBulkResponse-class.html">ImageBulkResponse</a></span> 
+
+</dt>
+<dd>
+  Raw per-record base64 image results.
+</dd>
+
+          <dt id="ImageGetBulkResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/ImageGetBulkResponse-class.html">ImageGetBulkResponse</a></span> 
+
+</dt>
+<dd>
+  Raw per-record results for bulk image download.
+</dd>
+
+          <dt id="ImageRecord">
+  <span class="name "><a href="../vmodal_sdk_flutter/ImageRecord-class.html">ImageRecord</a></span> 
+
+</dt>
+<dd>
+  Stored-image selector used by image lookup helpers.
+</dd>
+
+          <dt id="ImageResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/ImageResponse-class.html">ImageResponse</a></span> 
+
+</dt>
+<dd>
+  Base64-encoded image result.
+</dd>
+
+          <dt id="ImagesResource">
+  <span class="name "><a href="../vmodal_sdk_flutter/ImagesResource-class.html">ImagesResource</a></span> 
+
+</dt>
+<dd>
+  Image-location and image-download operations.
+</dd>
+
+          <dt id="ImageUrlBulkResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/ImageUrlBulkResponse-class.html">ImageUrlBulkResponse</a></span> 
+
+</dt>
+<dd>
+  Raw per-record results for bulk image URL lookup.
+</dd>
+
+          <dt id="ImageUrlRecord">
+  <span class="name "><a href="../vmodal_sdk_flutter/ImageUrlRecord-class.html">ImageUrlRecord</a></span> 
+
+</dt>
+<dd>
+  Stored-image selector for temporary URL lookup.
+</dd>
+
+          <dt id="ImageUrlResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/ImageUrlResponse-class.html">ImageUrlResponse</a></span> 
+
+</dt>
+<dd>
+  Temporary image location and lookup status.
+</dd>
+
+          <dt id="IndexationDeleteRequest">
+  <span class="name "><a href="../vmodal_sdk_flutter/IndexationDeleteRequest-class.html">IndexationDeleteRequest</a></span> 
+
+</dt>
+<dd>
+  Parameters for previewing or confirming index deletion.
+</dd>
+
+          <dt id="IndexationDeleteResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/IndexationDeleteResponse-class.html">IndexationDeleteResponse</a></span> 
+
+</dt>
+<dd>
+  Result of deleting index data.
+</dd>
+
+          <dt id="IndexationJobItem">
+  <span class="name "><a href="../vmodal_sdk_flutter/IndexationJobItem-class.html">IndexationJobItem</a></span> 
+
+</dt>
+<dd>
+  One indexation job with forward-compatible <a href="../vmodal_sdk_flutter/JsonBackedResponse/raw.html">raw</a> data.
+</dd>
+
+          <dt id="IndexationJobsListResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/IndexationJobsListResponse-class.html">IndexationJobsListResponse</a></span> 
+
+</dt>
+<dd>
+  Indexation job rows and total count.
+</dd>
+
+          <dt id="IndexationStatusResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/IndexationStatusResponse-class.html">IndexationStatusResponse</a></span> 
+
+</dt>
+<dd>
+  Identifier and current state of an indexation job.
+</dd>
+
+          <dt id="IndexationSubmitRequest">
+  <span class="name "><a href="../vmodal_sdk_flutter/IndexationSubmitRequest-class.html">IndexationSubmitRequest</a></span> 
+
+</dt>
+<dd>
+  Parameters for creating an indexation job.
+</dd>
+
+          <dt id="IndexationSubmitResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/IndexationSubmitResponse-class.html">IndexationSubmitResponse</a></span> 
+
+</dt>
+<dd>
+  Identifier and initial state of a new indexation job.
+</dd>
+
+          <dt id="IndexesResource">
+  <span class="name "><a href="../vmodal_sdk_flutter/IndexesResource-class.html">IndexesResource</a></span> 
+
+</dt>
+<dd>
+  Index lifecycle operations for searchable collections.
+</dd>
+
+          <dt id="IoSignedUploadTransport">
+  <span class="name "><a href="../vmodal_sdk_flutter/IoSignedUploadTransport-class.html">IoSignedUploadTransport</a></span> 
+
+</dt>
+<dd>
+  <code>dart:io</code> implementation of <a href="../vmodal_sdk_flutter/SignedUploadTransport-class.html">SignedUploadTransport</a>.
+</dd>
+
+          <dt id="JsonBackedResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/JsonBackedResponse-class.html">JsonBackedResponse</a></span> 
+
+</dt>
+<dd>
+  Base response retaining unmodeled service fields in <a href="../vmodal_sdk_flutter/JsonBackedResponse/raw.html">raw</a>.
+</dd>
+
+          <dt id="MemoryUploadSessionStore">
+  <span class="name "><a href="../vmodal_sdk_flutter/MemoryUploadSessionStore-class.html">MemoryUploadSessionStore</a></span> 
+
+</dt>
+<dd>
+  Process-local upload checkpoint store.
+</dd>
+
+          <dt id="MetadataParquetUploadResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/MetadataParquetUploadResponse-class.html">MetadataParquetUploadResponse</a></span> 
+
+</dt>
+<dd>
+  Result of a metadata JSON Lines upload.
+</dd>
+
+          <dt id="MultipartCompleteResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/MultipartCompleteResponse-class.html">MultipartCompleteResponse</a></span> 
+
+</dt>
+<dd>
+  Completed multipart object metadata.
+</dd>
+
+          <dt id="MultipartCreateResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/MultipartCreateResponse-class.html">MultipartCreateResponse</a></span> 
+
+</dt>
+<dd>
+  Newly created multipart session and its resolved limits.
+</dd>
+
+          <dt id="MultipartPart">
+  <span class="name "><a href="../vmodal_sdk_flutter/MultipartPart-class.html">MultipartPart</a></span> 
+
+</dt>
+<dd>
+  Uploaded multipart part summary.
+</dd>
+
+          <dt id="MultipartSignedPart">
+  <span class="name "><a href="../vmodal_sdk_flutter/MultipartSignedPart-class.html">MultipartSignedPart</a></span> 
+
+</dt>
+<dd>
+  Temporary upload grant for one multipart part.
+</dd>
+
+          <dt id="MultipartSignResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/MultipartSignResponse-class.html">MultipartSignResponse</a></span> 
+
+</dt>
+<dd>
+  Temporary grants for a requested set of multipart parts.
+</dd>
+
+          <dt id="MultipartStatusResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/MultipartStatusResponse-class.html">MultipartStatusResponse</a></span> 
+
+</dt>
+<dd>
+  Current multipart session status and accepted parts.
+</dd>
+
+          <dt id="MutableApiKeyProvider">
+  <span class="name "><a href="../vmodal_sdk_flutter/MutableApiKeyProvider-class.html">MutableApiKeyProvider</a></span> 
+
+</dt>
+<dd>
+  In-memory credential provider supporting rotation and explicit clearing.
+</dd>
+
+          <dt id="PresignedFolderItem">
+  <span class="name "><a href="../vmodal_sdk_flutter/PresignedFolderItem-class.html">PresignedFolderItem</a></span> 
+
+</dt>
+<dd>
+  One file and its temporary object-upload grant.
+</dd>
+
+          <dt id="PresignedFolderResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/PresignedFolderResponse-class.html">PresignedFolderResponse</a></span> 
+
+</dt>
+<dd>
+  Batch of temporary object-upload grants.
+</dd>
+
+          <dt id="PresignedUploadResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/PresignedUploadResponse-class.html">PresignedUploadResponse</a></span> 
+
+</dt>
+<dd>
+  Temporary object-upload grant for one file.
+</dd>
+
+          <dt id="R2Resource">
+  <span class="name "><a href="../vmodal_sdk_flutter/R2Resource-class.html">R2Resource</a></span> 
+
+</dt>
+<dd>
+  Advanced signed object-upload preparation operations.
+</dd>
+
+          <dt id="SdkConfig">
+  <span class="name "><a href="../vmodal_sdk_flutter/SdkConfig-class.html">SdkConfig</a></span> 
+
+</dt>
+<dd>
+  Immutable client configuration and credential-provider binding.
+</dd>
+
+          <dt id="SearchesResource">
+  <span class="name "><a href="../vmodal_sdk_flutter/SearchesResource-class.html">SearchesResource</a></span> 
+
+</dt>
+<dd>
+  Multimodal media-search operations.
+</dd>
+
+          <dt id="SearchRequest">
+  <span class="name "><a href="../vmodal_sdk_flutter/SearchRequest-class.html">SearchRequest</a></span> 
+
+</dt>
+<dd>
+  Parameters for a multimodal media search.
+</dd>
+
+          <dt id="SearchResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/SearchResponse-class.html">SearchResponse</a></span> 
+
+</dt>
+<dd>
+  Search results, counts, and execution timing.
+</dd>
+
+          <dt id="SearchResultItem">
+  <span class="name "><a href="../vmodal_sdk_flutter/SearchResultItem-class.html">SearchResultItem</a></span> 
+
+</dt>
+<dd>
+  One untyped search result with forward-compatible <a href="../vmodal_sdk_flutter/JsonBackedResponse/raw.html">raw</a> data.
+</dd>
+
+          <dt id="SignedUploadResult">
+  <span class="name "><a href="../vmodal_sdk_flutter/SignedUploadResult-class.html">SignedUploadResult</a></span> 
+
+</dt>
+<dd>
+  Integrity and response metadata from a completed byte upload.
+</dd>
+
+          <dt id="SignedUploadTransport">
+  <span class="name "><a href="../vmodal_sdk_flutter/SignedUploadTransport-class.html">SignedUploadTransport</a></span> 
+
+</dt>
+<dd>
+  Pluggable transport for temporary signed media uploads.
+</dd>
+
+          <dt id="SqlResource">
+  <span class="name "><a href="../vmodal_sdk_flutter/SqlResource-class.html">SqlResource</a></span> 
+
+</dt>
+<dd>
+  Disabled SQL compatibility surface.
+</dd>
+
+          <dt id="UploadConditions">
+  <span class="name "><a href="../vmodal_sdk_flutter/UploadConditions-class.html">UploadConditions</a></span> 
+
+</dt>
+<dd>
+  Device and network conditions used by <a href="../vmodal_sdk_flutter/AdaptiveUploadPolicy-class.html">AdaptiveUploadPolicy</a>.
+</dd>
+
+          <dt id="UploadProgress">
+  <span class="name "><a href="../vmodal_sdk_flutter/UploadProgress-class.html">UploadProgress</a></span> 
+
+</dt>
+<dd>
+  Monotonic upload progress snapshot.
+</dd>
+
+          <dt id="UploadResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/UploadResponse-class.html">UploadResponse</a></span> 
+
+</dt>
+<dd>
+  Result of a basic collection upload.
+</dd>
+
+          <dt id="UploadSessionStore">
+  <span class="name "><a href="../vmodal_sdk_flutter/UploadSessionStore-class.html">UploadSessionStore</a></span> 
+
+</dt>
+<dd>
+  Stores resumable multipart-upload checkpoints.
+</dd>
+
+          <dt id="UploadSessionStores">
+  <span class="name "><a href="../vmodal_sdk_flutter/UploadSessionStores-class.html">UploadSessionStores</a></span> 
+
+</dt>
+<dd>
+  Shared built-in upload checkpoint stores.
+</dd>
+
+          <dt id="UploadSource">
+  <span class="name "><a href="../vmodal_sdk_flutter/UploadSource-class.html">UploadSource</a></span> 
+
+</dt>
+<dd>
+  Replayable media source with a known byte length.
+</dd>
+
+          <dt id="UploadTask">
+  <span class="name "><a href="../vmodal_sdk_flutter/UploadTask-class.html">UploadTask</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span> 
+
+</dt>
+<dd>
+  Running upload with result, progress, state, and cooperative cancellation.
+</dd>
+
+          <dt id="UsageUserDetail">
+  <span class="name "><a href="../vmodal_sdk_flutter/UsageUserDetail-class.html">UsageUserDetail</a></span> 
+
+</dt>
+<dd>
+  Usage totals grouped by operation for one date.
+</dd>
+
+          <dt id="UserProfile">
+  <span class="name "><a href="../vmodal_sdk_flutter/UserProfile-class.html">UserProfile</a></span> 
+
+</dt>
+<dd>
+  Identity and permissions resolved for the current credential.
+</dd>
+
+          <dt id="VideoUploadBulkResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/VideoUploadBulkResponse-class.html">VideoUploadBulkResponse</a></span> 
+
+</dt>
+<dd>
+  Ordered results for a bulk signed upload.
+</dd>
+
+          <dt id="VideoUploadOptions">
+  <span class="name "><a href="../vmodal_sdk_flutter/VideoUploadOptions-class.html">VideoUploadOptions</a></span> 
+
+</dt>
+<dd>
+  Controls signed and optional multipart video uploads.
+</dd>
+
+          <dt id="VideoUploadResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/VideoUploadResponse-class.html">VideoUploadResponse</a></span> 
+
+</dt>
+<dd>
+  Detailed result of one signed video upload.
+</dd>
+
+          <dt id="VmodalClient">
+  <span class="name "><a href="../vmodal_sdk_flutter/VmodalClient-class.html">VmodalClient</a></span> 
+
+</dt>
+<dd>
+  Owns configuration, transports, and feature resources for one app session.
+</dd>
+
+          <dt id="VmodalFilePart">
+  <span class="name "><a href="../vmodal_sdk_flutter/VmodalFilePart-class.html">VmodalFilePart</a></span> 
+
+</dt>
+<dd>
+  Replayable file part used by multipart SDK operations.
+</dd>
+
+          <dt id="VmodalRequest">
+  <span class="name "><a href="../vmodal_sdk_flutter/VmodalRequest-class.html">VmodalRequest</a></span> 
+
+</dt>
+<dd>
+  Transport-neutral request supplied to <a href="../vmodal_sdk_flutter/VmodalTransport-class.html">VmodalTransport</a>.
+</dd>
+
+          <dt id="VmodalResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/VmodalResponse-class.html">VmodalResponse</a></span> 
+
+</dt>
+<dd>
+  Streaming transport response consumed by the SDK.
+</dd>
+
+          <dt id="VmodalTransport">
+  <span class="name "><a href="../vmodal_sdk_flutter/VmodalTransport-class.html">VmodalTransport</a></span> 
+
+</dt>
+<dd>
+  Pluggable request transport owned by <a href="../vmodal_sdk_flutter/VmodalClient-class.html">VmodalClient</a>.
+</dd>
+
+      </dl>
+    </section>
+
+    <section class="summary offset-anchor" id="enums">
+      <h2>Enums</h2>
+      <dl>
+          <dt id="UploadDeviceMemory">
+  <span class="name "><a href="../vmodal_sdk_flutter/UploadDeviceMemory.html">UploadDeviceMemory</a></span> 
+
+</dt>
+<dd>
+  Memory capacity category supplied by the app.
+</dd>
+
+          <dt id="UploadNetworkSpeed">
+  <span class="name "><a href="../vmodal_sdk_flutter/UploadNetworkSpeed.html">UploadNetworkSpeed</a></span> 
+
+</dt>
+<dd>
+  Approximate throughput category observed by the app.
+</dd>
+
+          <dt id="UploadNetworkType">
+  <span class="name "><a href="../vmodal_sdk_flutter/UploadNetworkType.html">UploadNetworkType</a></span> 
+
+</dt>
+<dd>
+  Network family observed when choosing multipart settings.
+</dd>
+
+          <dt id="UploadTaskState">
+  <span class="name "><a href="../vmodal_sdk_flutter/UploadTaskState.html">UploadTaskState</a></span> 
+
+</dt>
+<dd>
+  Lifecycle state of an <a href="../vmodal_sdk_flutter/UploadTask-class.html">UploadTask</a>.
+</dd>
+
+          <dt id="VmodalResponseMode">
+  <span class="name "><a href="../vmodal_sdk_flutter/VmodalResponseMode.html">VmodalResponseMode</a></span> 
+
+</dt>
+<dd>
+  Expected response representation for a <a href="../vmodal_sdk_flutter/VmodalRequest-class.html">VmodalRequest</a>.
+</dd>
+
+      </dl>
+    </section>
+
+
+
+    <section class="summary offset-anchor" id="extensions">
+      <h2>Extensions</h2>
+      <dl>
+          <dt id="CollectionUploads">
+  <span class="name "><a href="../vmodal_sdk_flutter/CollectionUploads.html">CollectionUploads</a></span>
+  on <a href="../vmodal_sdk_flutter/CollectionsResource-class.html">CollectionsResource</a>
+  
+
+</dt>
+<dd>
+  Signed upload operations available on <a href="../vmodal_sdk_flutter/CollectionsResource-class.html">CollectionsResource</a>.
+</dd>
+
+      </dl>
+    </section>
+
+    <section class="summary offset-anchor" id="constants">
+      <h2>Constants</h2>
+      <dl class="properties">
+          <dt id="vmodalSdkVersion" class="constant">
+    <span class="name "><a href="../vmodal_sdk_flutter/vmodalSdkVersion-constant.html">vmodalSdkVersion</a></span>
+  <span class="signature">&#8594; const String</span>
+  
+
+</dt>
+<dd>
+  Version of the Dart SDK contract represented by this package.
+  
+
+</dd>
+
+      </dl>
+    </section>
+
+
+    <section class="summary offset-anchor" id="functions">
+      <h2>Functions</h2>
+      <dl class="callables">
+          <dt id="filePart" class="callable">
+  <span class="name"><a href="../vmodal_sdk_flutter/filePart.html">filePart</a></span><span class="signature">(<wbr><span class="parameter" id="filePart-param-fieldName"><span class="type-annotation">String</span> <span class="parameter-name">fieldName</span>, </span><span class="parameter" id="filePart-param-file"><span class="type-annotation">File</span> <span class="parameter-name">file</span>, {</span><span class="parameter" id="filePart-param-contentType"><span class="type-annotation">String?</span> <span class="parameter-name">contentType</span></span>})
+    <span class="returntype parameter">&#8594; <a href="../vmodal_sdk_flutter/VmodalFilePart-class.html">VmodalFilePart</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Creates a replayable part from <code>file</code>.
+  
+
+</dd>
+
+          <dt id="guessContentType" class="callable">
+  <span class="name"><a href="../vmodal_sdk_flutter/guessContentType.html">guessContentType</a></span><span class="signature">(<wbr><span class="parameter" id="guessContentType-param-name"><span class="type-annotation">String</span> <span class="parameter-name">name</span></span>)
+    <span class="returntype parameter">&#8594; String</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Infers a conservative media type from <code>name</code>.
+  
+
+</dd>
+
+          <dt id="md5Hex" class="callable">
+  <span class="name"><a href="../vmodal_sdk_flutter/md5Hex.html">md5Hex</a></span><span class="signature">(<wbr><span class="parameter" id="md5Hex-param-source"><span class="type-annotation"><a href="../vmodal_sdk_flutter/UploadSource-class.html">UploadSource</a></span> <span class="parameter-name">source</span>, {</span><span class="parameter" id="md5Hex-param-offset"><span>required</span> <span class="type-annotation">int</span> <span class="parameter-name">offset</span>, </span><span class="parameter" id="md5Hex-param-length"><span>required</span> <span class="type-annotation">int</span> <span class="parameter-name">length</span></span>})
+    <span class="returntype parameter">&#8594; Future<span class="signature">&lt;<wbr><span class="type-parameter">String</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Calculates the MD5 digest for a validated range of <code>source</code>.
+  
+
+</dd>
+
+          <dt id="streamPart" class="callable">
+  <span class="name"><a href="../vmodal_sdk_flutter/streamPart.html">streamPart</a></span><span class="signature">(<wbr>{<span class="parameter" id="streamPart-param-fieldName"><span>required</span> <span class="type-annotation">String</span> <span class="parameter-name">fieldName</span>, </span><span class="parameter" id="streamPart-param-fileName"><span>required</span> <span class="type-annotation">String</span> <span class="parameter-name">fileName</span>, </span><span class="parameter" id="streamPart-param-contentLength"><span>required</span> <span class="type-annotation">int</span> <span class="parameter-name">contentLength</span>, </span><span class="parameter" id="streamPart-param-opener"><span>required</span> <span class="type-annotation">Stream<span class="signature">&lt;<wbr><span class="type-parameter">List<span class="signature">&lt;<wbr><span class="type-parameter">int</span>&gt;</span></span>&gt;</span></span> <span class="parameter-name">opener</span>(), </span><span class="parameter" id="streamPart-param-contentType"><span class="type-annotation">String?</span> <span class="parameter-name">contentType</span></span>})
+    <span class="returntype parameter">&#8594; <a href="../vmodal_sdk_flutter/VmodalFilePart-class.html">VmodalFilePart</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Creates a replayable part from a caller-provided stream factory.
+  
+
+</dd>
+
+      </dl>
+    </section>
+
+    <section class="summary offset-anchor" id="typedefs">
+      <h2>Typedefs</h2>
+      <dl>
+          
+  <dt id="UploadRunner" class="callable">
+    <span class="name"><a href="../vmodal_sdk_flutter/UploadRunner.html">UploadRunner</a></span>&lt;<wbr><span class="type-parameter">T</span>&gt;<span class="signature">
+      <span class="returntype parameter">= Future<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span> Function<span class="signature">(<span class="parameter" id="param-cancellation"><span class="type-annotation"><a href="../vmodal_sdk_flutter/CancellationToken-class.html">CancellationToken</a></span> <span class="parameter-name">cancellation</span>, </span><span class="parameter" id="param-emit"><span class="type-annotation">void</span> <span class="parameter-name">emit</span>(<span class="parameter" id="param-progress"><span class="type-annotation"><a href="../vmodal_sdk_flutter/UploadProgress-class.html">UploadProgress</a></span> <span class="parameter-name">progress</span></span>)</span>)</span></span>
+    </span>
+    
+
+  </dt>
+  <dd>
+    Work function used to create an <a href="../vmodal_sdk_flutter/UploadTask-class.html">UploadTask</a>.
+    
+
+  </dd>
+
+      </dl>
+    </section>
+
+    <section class="summary offset-anchor" id="exceptions">
+      <h2>Exceptions / Errors</h2>
+      <dl>
+          <dt id="ApiException">
+  <span class="name "><a href="../vmodal_sdk_flutter/ApiException-class.html">ApiException</a></span> 
+
+</dt>
+<dd>
+  Valid service response that represents an unsuccessful operation.
+</dd>
+
+          <dt id="AuthException">
+  <span class="name "><a href="../vmodal_sdk_flutter/AuthException-class.html">AuthException</a></span> 
+
+</dt>
+<dd>
+  Credential or identity-resolution failure.
+</dd>
+
+          <dt id="FeatureDisabled">
+  <span class="name "><a href="../vmodal_sdk_flutter/FeatureDisabled-class.html">FeatureDisabled</a></span> 
+
+</dt>
+<dd>
+  Compatibility method that is intentionally unavailable.
+</dd>
+
+          <dt id="MalformedResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/MalformedResponse-class.html">MalformedResponse</a></span> 
+
+</dt>
+<dd>
+  Structured response could not be decoded into the documented contract.
+</dd>
+
+          <dt id="OperationCanceled">
+  <span class="name "><a href="../vmodal_sdk_flutter/OperationCanceled-class.html">OperationCanceled</a></span> 
+
+</dt>
+<dd>
+  Operation stopped because its <a href="../vmodal_sdk_flutter/CancellationToken-class.html">CancellationToken</a> was canceled.
+</dd>
+
+          <dt id="ResponseTooLarge">
+  <span class="name "><a href="../vmodal_sdk_flutter/ResponseTooLarge-class.html">ResponseTooLarge</a></span> 
+
+</dt>
+<dd>
+  Response or checkpoint exceeded an SDK safety limit.
+</dd>
+
+          <dt id="SdkException">
+  <span class="name "><a href="../vmodal_sdk_flutter/SdkException-class.html">SdkException</a></span> 
+
+</dt>
+<dd>
+  Base class for failures intentionally surfaced by the SDK.
+</dd>
+
+          <dt id="SignedUploadFailure">
+  <span class="name "><a href="../vmodal_sdk_flutter/SignedUploadFailure-class.html">SignedUploadFailure</a></span> 
+
+</dt>
+<dd>
+  Transport failure that retains partial-upload integrity information.
+</dd>
+
+          <dt id="TransportException">
+  <span class="name "><a href="../vmodal_sdk_flutter/TransportException-class.html">TransportException</a></span> 
+
+</dt>
+<dd>
+  Connectivity, timeout, stream, or lower-level transport failure.
+</dd>
+
+          <dt id="ValidationException">
+  <span class="name "><a href="../vmodal_sdk_flutter/ValidationException-class.html">ValidationException</a></span> 
+
+</dt>
+<dd>
+  Invalid caller input detected before or while preparing an operation.
+</dd>
+
+      </dl>
+    </section>
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../index.html">vmodal_sdk_flutter</a></li>
+    <li class="self-crumb">vmodal_sdk_flutter.dart</li>
+</ol>
+
+    <h5><span class="package-name">vmodal_sdk_flutter</span> <span class="package-kind">package</span></h5>
+    <ol>
+      <li class="section-title">Libraries</li>
+      <li><a href="../vmodal_sdk_flutter/">vmodal_sdk_flutter</a></li>
+</ol>
+
+  </div>
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+    <h5>vmodal_sdk_flutter library</h5>
+  </div><!--/sidebar-offcanvas-right-->
+</main>
+<footer>
+  <span class="no-break">
+    vmodal_sdk_flutter
+      1.0.0
+  </span>
+  
+</footer>
+
+
+<script src="../static-assets/highlight.pack.js?v1"></script>
+<script src="../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

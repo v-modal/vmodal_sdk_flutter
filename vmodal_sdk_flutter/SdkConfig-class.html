@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the SdkConfig class from the vmodal_sdk_flutter library, for the Dart programming language.">
+  <title>SdkConfig class - vmodal_sdk_flutter library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../static-assets/styles.css?v1">
+  <link rel="icon" href="../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../index.html">vmodal_sdk_flutter</a></li>
+    <li><a href="../vmodal_sdk_flutter/">vmodal_sdk_flutter.dart</a></li>
+    <li class="self-crumb">SdkConfig class</li>
+  </ol>
+  <div class="self-name">SdkConfig</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="vmodal_sdk_flutter&#47;vmodal_sdk_flutter-library-sidebar.html"
+    data-below-sidebar="vmodal_sdk_flutter&#47;SdkConfig-class-sidebar.html">
+    <div>
+<h1><span class="kind-class">SdkConfig</span> class 
+ 
+</h1></div>
+
+    
+<section class="desc markdown">
+  <p>Immutable client configuration and credential-provider binding.</p>
+<p>The constructor validates timeout, retry, mode, and base-address values.
+Supply either <a href="../vmodal_sdk_flutter/SdkConfig/token.html">token</a> or an <a href="../vmodal_sdk_flutter/SdkConfig/apiKeyProvider.html">apiKeyProvider</a>; a provider is preferred when
+credentials can rotate during a mobile session.</p>
+</section>
+
+
+
+    
+  <section class="summary offset-anchor" id="constructors">
+    <h2>Constructors</h2>
+    <dl class="constructor-summary-list">
+        <dt id="SdkConfig.new" class="callable">
+          <span class="name"><a href="../vmodal_sdk_flutter/SdkConfig/SdkConfig.html">SdkConfig</a></span><span class="signature">({<span class="parameter" id="param-baseUrl"><span class="type-annotation">String?</span> <span class="parameter-name">baseUrl</span>, </span><span class="parameter" id="param-userId"><span class="type-annotation">String</span> <span class="parameter-name">userId</span> = <span class="default-value">&#39;&#39;</span>, </span><span class="parameter" id="param-tenantId"><span class="type-annotation">String</span> <span class="parameter-name">tenantId</span> = <span class="default-value">&#39;&#39;</span>, </span><span class="parameter" id="param-email"><span class="type-annotation">String</span> <span class="parameter-name">email</span> = <span class="default-value">&#39;&#39;</span>, </span><span class="parameter" id="param-token"><span class="type-annotation">String</span> <span class="parameter-name">token</span> = <span class="default-value">&#39;&#39;</span>, </span><span class="parameter" id="param-timeout"><span class="type-annotation">Duration</span> <span class="parameter-name">timeout</span> = <span class="default-value">const Duration(seconds: 30)</span>, </span><span class="parameter" id="param-mode"><span class="type-annotation">String</span> <span class="parameter-name">mode</span> = <span class="default-value">&#39;gateway&#39;</span>, </span><span class="parameter" id="param-maxRetries"><span class="type-annotation">int</span> <span class="parameter-name">maxRetries</span> = <span class="default-value">1</span>, </span><span class="parameter" id="param-apiKeyProvider"><span class="type-annotation"><a href="../vmodal_sdk_flutter/ApiKeyProvider-class.html">ApiKeyProvider</a>?</span> <span class="parameter-name">apiKeyProvider</span></span>})</span>
+        </dt>
+        <dd>
+          Creates and validates configuration with mobile-safe defaults.
+        </dd>
+        <dt id="SdkConfig.fromEnvironment" class="callable">
+          <span class="name"><a href="../vmodal_sdk_flutter/SdkConfig/SdkConfig.fromEnvironment.html">SdkConfig.fromEnvironment</a></span><span class="signature">(<span class="parameter" id="fromEnvironment-param-env"><span class="type-annotation">Map<span class="signature">&lt;<wbr><span class="type-parameter">String</span>, <span class="type-parameter">String</span>&gt;</span></span> <span class="parameter-name">env</span>, {</span><span class="parameter" id="fromEnvironment-param-baseUrl"><span class="type-annotation">String?</span> <span class="parameter-name">baseUrl</span>, </span><span class="parameter" id="fromEnvironment-param-userId"><span class="type-annotation">String?</span> <span class="parameter-name">userId</span>, </span><span class="parameter" id="fromEnvironment-param-tenantId"><span class="type-annotation">String?</span> <span class="parameter-name">tenantId</span>, </span><span class="parameter" id="fromEnvironment-param-email"><span class="type-annotation">String?</span> <span class="parameter-name">email</span>, </span><span class="parameter" id="fromEnvironment-param-token"><span class="type-annotation">String?</span> <span class="parameter-name">token</span>, </span><span class="parameter" id="fromEnvironment-param-timeout"><span class="type-annotation">Duration?</span> <span class="parameter-name">timeout</span>, </span><span class="parameter" id="fromEnvironment-param-mode"><span class="type-annotation">String?</span> <span class="parameter-name">mode</span>, </span><span class="parameter" id="fromEnvironment-param-maxRetries"><span class="type-annotation">int?</span> <span class="parameter-name">maxRetries</span>, </span><span class="parameter" id="fromEnvironment-param-apiKeyProvider"><span class="type-annotation"><a href="../vmodal_sdk_flutter/ApiKeyProvider-class.html">ApiKeyProvider</a>?</span> <span class="parameter-name">apiKeyProvider</span></span>})</span>
+        </dt>
+        <dd>
+          Builds configuration from the supported environment keys and overrides.
+            <div class="constructor-modifier features">factory</div>
+        </dd>
+    </dl>
+  </section>
+    
+  <section
+      class="summary offset-anchor"
+      id="instance-properties">
+    <h2>Properties</h2>
+    <dl class="properties">
+        <dt id="apiKeyProvider" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/SdkConfig/apiKeyProvider.html">apiKeyProvider</a></span>
+  <span class="signature">&#8594; <a href="../vmodal_sdk_flutter/ApiKeyProvider-class.html">ApiKeyProvider</a>?</span>
+  
+
+</dt>
+<dd>
+  Optional rotating credential source.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="baseUrl" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/SdkConfig/baseUrl.html">baseUrl</a></span>
+  <span class="signature">&#8594; String</span>
+  
+
+</dt>
+<dd>
+  Configured service origin. It is normalized internally before use.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="email" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/SdkConfig/email.html">email</a></span>
+  <span class="signature">&#8594; String</span>
+  
+
+</dt>
+<dd>
+  Optional user email supplied with direct integrations.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="hashCode" class="property inherited">
+  <span class="name"><a href="../vmodal_sdk_flutter/SdkConfig/hashCode.html">hashCode</a></span>
+  <span class="signature">&#8594; int</span>
+  
+
+</dt>
+<dd class="inherited">
+  The hash code for this object.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="maxRetries" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/SdkConfig/maxRetries.html">maxRetries</a></span>
+  <span class="signature">&#8594; int</span>
+  
+
+</dt>
+<dd>
+  Number of retries allowed for retryable SDK operations.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="mode" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/SdkConfig/mode.html">mode</a></span>
+  <span class="signature">&#8594; String</span>
+  
+
+</dt>
+<dd>
+  Connection mode, either <code>gateway</code> or <code>direct</code>.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="normalizedBaseUrl" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/SdkConfig/normalizedBaseUrl.html">normalizedBaseUrl</a></span>
+  <span class="signature">&#8594; String</span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="normalizedEmail" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/SdkConfig/normalizedEmail.html">normalizedEmail</a></span>
+  <span class="signature">&#8594; String</span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="normalizedMaxRetries" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/SdkConfig/normalizedMaxRetries.html">normalizedMaxRetries</a></span>
+  <span class="signature">&#8594; int</span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="normalizedMode" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/SdkConfig/normalizedMode.html">normalizedMode</a></span>
+  <span class="signature">&#8594; String</span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="normalizedTenantId" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/SdkConfig/normalizedTenantId.html">normalizedTenantId</a></span>
+  <span class="signature">&#8594; String</span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="normalizedUserId" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/SdkConfig/normalizedUserId.html">normalizedUserId</a></span>
+  <span class="signature">&#8594; String</span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="runtimeType" class="property inherited">
+  <span class="name"><a href="../vmodal_sdk_flutter/SdkConfig/runtimeType.html">runtimeType</a></span>
+  <span class="signature">&#8594; Type</span>
+  
+
+</dt>
+<dd class="inherited">
+  A representation of the runtime type of the object.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="tenantId" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/SdkConfig/tenantId.html">tenantId</a></span>
+  <span class="signature">&#8594; String</span>
+  
+
+</dt>
+<dd>
+  Optional tenant identifier supplied with direct integrations.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="timeout" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/SdkConfig/timeout.html">timeout</a></span>
+  <span class="signature">&#8594; Duration</span>
+  
+
+</dt>
+<dd>
+  Maximum duration for an SDK request.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="token" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/SdkConfig/token.html">token</a></span>
+  <span class="signature">&#8594; String</span>
+  
+
+</dt>
+<dd>
+  Static API key used when <a href="../vmodal_sdk_flutter/SdkConfig/apiKeyProvider.html">apiKeyProvider</a> is absent.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="userId" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/SdkConfig/userId.html">userId</a></span>
+  <span class="signature">&#8594; String</span>
+  
+
+</dt>
+<dd>
+  Optional known user identifier.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+
+    
+  <section
+      class="summary offset-anchor"
+      id="instance-methods">
+    <h2>Methods</h2>
+    <dl class="callables">
+        <dt id="copyWith" class="callable">
+  <span class="name"><a href="../vmodal_sdk_flutter/SdkConfig/copyWith.html">copyWith</a></span><span class="signature">(<wbr>{<span class="parameter" id="copyWith-param-baseUrl"><span class="type-annotation">String?</span> <span class="parameter-name">baseUrl</span>, </span><span class="parameter" id="copyWith-param-userId"><span class="type-annotation">String?</span> <span class="parameter-name">userId</span>, </span><span class="parameter" id="copyWith-param-tenantId"><span class="type-annotation">String?</span> <span class="parameter-name">tenantId</span>, </span><span class="parameter" id="copyWith-param-email"><span class="type-annotation">String?</span> <span class="parameter-name">email</span>, </span><span class="parameter" id="copyWith-param-token"><span class="type-annotation">String?</span> <span class="parameter-name">token</span>, </span><span class="parameter" id="copyWith-param-timeout"><span class="type-annotation">Duration?</span> <span class="parameter-name">timeout</span>, </span><span class="parameter" id="copyWith-param-mode"><span class="type-annotation">String?</span> <span class="parameter-name">mode</span>, </span><span class="parameter" id="copyWith-param-maxRetries"><span class="type-annotation">int?</span> <span class="parameter-name">maxRetries</span>, </span><span class="parameter" id="copyWith-param-apiKeyProvider"><span class="type-annotation"><a href="../vmodal_sdk_flutter/ApiKeyProvider-class.html">ApiKeyProvider</a>?</span> <span class="parameter-name">apiKeyProvider</span></span>})
+    <span class="returntype parameter">&#8594; <a href="../vmodal_sdk_flutter/SdkConfig-class.html">SdkConfig</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns a new validated configuration with selected values replaced.
+  
+
+</dd>
+
+        <dt id="currentApiKey" class="callable">
+  <span class="name"><a href="../vmodal_sdk_flutter/SdkConfig/currentApiKey.html">currentApiKey</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; String</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns the current validated API key without storing provider output.
+  
+
+</dd>
+
+        <dt id="noSuchMethod" class="callable inherited">
+  <span class="name"><a href="../vmodal_sdk_flutter/SdkConfig/noSuchMethod.html">noSuchMethod</a></span><span class="signature">(<wbr><span class="parameter" id="noSuchMethod-param-invocation"><span class="type-annotation">Invocation</span> <span class="parameter-name">invocation</span></span>)
+    <span class="returntype parameter">&#8594; dynamic</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Invoked when a nonexistent method or property is accessed.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="toString" class="callable">
+  <span class="name"><a href="../vmodal_sdk_flutter/SdkConfig/toString.html">toString</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; String</span>
+  </span>
+  
+
+</dt>
+<dd>
+  A string representation of this object.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+    
+  <section
+      class="summary offset-anchor inherited"
+      id="operators">
+    <h2>Operators</h2>
+    <dl class="callables">
+        <dt id="operator ==" class="callable inherited">
+  <span class="name"><a href="../vmodal_sdk_flutter/SdkConfig/operator_equals.html">operator ==</a></span><span class="signature">(<wbr><span class="parameter" id="==-param-other"><span class="type-annotation">Object</span> <span class="parameter-name">other</span></span>)
+    <span class="returntype parameter">&#8594; bool</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  The equality operator.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+    
+    
+    
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../index.html">vmodal_sdk_flutter</a></li>
+    <li><a href="../vmodal_sdk_flutter/">vmodal_sdk_flutter</a></li>
+    <li class="self-crumb">SdkConfig class</li>
+</ol>
+
+    <h5>vmodal_sdk_flutter library</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div>
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    vmodal_sdk_flutter
+      1.0.0
+  </span>
+  
+</footer>
+
+
+<script src="../static-assets/highlight.pack.js?v1"></script>
+<script src="../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

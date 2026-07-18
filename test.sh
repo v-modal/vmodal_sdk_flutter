@@ -88,6 +88,18 @@ sdk_package() {
   bash build.sh package
 }
 
+sdk_live_lancedb_version() {
+  local help='
+    ## Usage:
+      sdk_live_lancedb_version
+
+    Upload a video, create its index, read the advertised LanceDB version,
+    and verify that search sends that version successfully.
+  '
+  echo 'Live gate: collection metadata -> version_lancedb search'
+  "$(bash install.sh dart_bin)" run tool/live_test.dart
+}
+
 sdk_live() {
   local help='
     ## Usage:
@@ -97,7 +109,7 @@ sdk_live() {
   source env.sh
   sdk_env_live
   [[ -n "${VMODAL_API_KEY:-}" ]] || { echo 'Live API credential is required.' >&2; return 2; }
-  "$(bash install.sh dart_bin)" run tool/live_test.dart
+  sdk_live_lancedb_version
 }
 
 sdk_all() {
@@ -139,4 +151,3 @@ case "${1:-test}" in
   help|-h|--help) sdk_help ;;
   *) echo "Unknown command: ${1:-}" >&2; echo "$help" >&2; exit 2 ;;
 esac
-

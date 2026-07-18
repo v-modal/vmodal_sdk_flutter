@@ -97,4 +97,14 @@ void main() {
       offset = next;
     }
   });
+
+  test('live gate searches with the advertised LanceDB version', () {
+    final shell = File('test.sh').readAsStringSync();
+    final live = File('tool/live_test.dart').readAsStringSync();
+    expect(shell, contains('sdk_live_lancedb_version'));
+    expect(shell, contains('run tool/live_test.dart'));
+    expect(live, contains('.findGroup(group, mode: \'vid_file\')'));
+    expect(live, contains('?.latestLancedbVersion'));
+    expect(live, contains('versionLancedb: version'));
+  });
 }

@@ -22,19 +22,30 @@ final examplePubspec = File('example/pubspec.yaml').readAsStringSync();
 
 void checkWorkflow(String main, String tagged) {
   const releaseOnly =
-      "if: \${{ github.event_name == 'workflow_dispatch' && (inputs.publish_sdk_flutter || inputs.publish_pub_dev) }}";
+      "if: \${{ github.event_name == 'workflow_dispatch' && !inputs.publish_docs_swagger_only && (inputs.publish_sdk_flutter || inputs.publish_pub_dev) }}";
+  const publishDocs =
+      "if: \${{ github.event_name == 'workflow_dispatch' && (inputs.publish_sdk_flutter || inputs.publish_pub_dev || inputs.publish_docs_swagger_only) }}";
+  const buildDocs =
+      "if: \${{ always() && github.event_name == 'workflow_dispatch' && (inputs.publish_sdk_flutter || inputs.publish_pub_dev || inputs.publish_docs_swagger_only) && needs.secret_detection.result == 'success' && (inputs.publish_docs_swagger_only || needs.publish_sdk_flutter.result == 'success') }}";
   expect(main, contains('name: sdk_flutter_test_release'));
   expect(main, contains('publish_sdk_flutter:'));
   expect(main, contains('publish_pub_dev:'));
+  expect(main, contains('publish_docs_swagger_only:'));
+  expect(main, contains('description: Publish only the doc swagger'));
   expect(main, contains('default: true'));
   expect(main, contains('group: sdk_flutter_release_\${{ github.ref }}'));
   expect(main, contains('WORKDIR: uinterface/sdk_flutter'));
   expect(main, contains('RELEASE_SHA: \${{ github.sha }}'));
   expect(
     main,
-    contains('secret_detection:\n    $releaseOnly\n    runs-on: ubuntu-latest'),
+    contains('secret_detection:\n    $publishDocs\n    runs-on: ubuntu-latest'),
   );
-  expect(main, contains('offline_test:\n    runs-on: ubuntu-latest'));
+  expect(
+    main,
+    contains(
+      'offline_test:\n    if: \${{ !inputs.publish_docs_swagger_only }}\n    runs-on: ubuntu-latest',
+    ),
+  );
   expect(
     main,
     contains(
@@ -53,7 +64,12 @@ void checkWorkflow(String main, String tagged) {
   );
   expect(main, contains('needs: release_gate'));
   expect(main, contains('pub.dev publication requires source export.'));
-  expect(main, contains('if: \${{ inputs.publish_pub_dev }}'));
+  expect(
+    main,
+    contains(
+      'if: \${{ !inputs.publish_docs_swagger_only && inputs.publish_pub_dev }}',
+    ),
+  );
   expect(main, contains('environment: sdk-flutter-production'));
   expect(main, contains('gitleaks_'));
   expect(main, contains('--source "\$WORKDIR"'));
@@ -62,20 +78,31 @@ void checkWorkflow(String main, String tagged) {
   expect(main, contains('SOURCE_MANIFEST.sha256'));
   expect(main, contains('for file in install.sh build.sh run.sh test.sh; do'));
   expect(main, contains('test -f "\$export_dir/\$file"'));
-  expect(main, contains('git ls-files --error-unmatch "\$file"'));
+  expect(
+    main,
+    contains(
+      'git ls-files --error-unmatch install.sh build.sh run.sh test.sh',
+    ),
+  );
   expect(main, contains('RELEASE_TOKEN: \${{ secrets.GH_TOKEN }}'));
   expect(main, isNot(contains('FLUTTER_SDK_APP_')));
   expect(main, contains('git push --atomic'));
   expect(
     main,
     contains(
-      'swagger_docs_artifact:\n    needs: [secret_detection, publish_sdk_flutter]\n    $releaseOnly',
+      'if: \${{ !inputs.publish_docs_swagger_only && (inputs.publish_sdk_flutter || inputs.publish_pub_dev) }}',
     ),
   );
   expect(
     main,
     contains(
-      'publish_swagger_docs:\n    needs: swagger_docs_artifact\n    $releaseOnly',
+      'swagger_docs_artifact:\n    needs: [secret_detection, publish_sdk_flutter]\n    $buildDocs',
+    ),
+  );
+  expect(
+    main,
+    contains(
+      'publish_swagger_docs:\n    needs: swagger_docs_artifact\n    $publishDocs',
     ),
   );
   expect(main, contains('python "\$WORKDIR/docs.py" generate'));
@@ -93,6 +120,7 @@ void checkWorkflow(String main, String tagged) {
   );
   expect(main, isNot(contains('gh repo create "\$DOCS_REPOSITORY"')));
   expect(main, contains('git push origin HEAD:gh-pages'));
+  expect(main, contains('build_type:"legacy"'));
   expect(main, contains('repos/\$DOCS_REPOSITORY/pages'));
   expect(main, contains('"\$DOCS_URL/RELEASE_SHA"'));
   expect(main, contains('for attempt in {1..30}'));

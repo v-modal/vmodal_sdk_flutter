@@ -18,11 +18,12 @@ stored.
 After the tested SDK source is published, the same workflow regenerates
 `docs_swagger`, validates its OpenAPI contract, and publishes the immutable site
 artifact to the `gh-pages` branch of the existing public repository
-`v-modal/vmodal_sdk_flutter`. The workflow configures GitHub Pages and verifies
-the exact source SHA at `https://v-modal.github.io/vmodal_sdk_flutter/`. The
-deployment depends on both the source publication and the workflow's
-secret-detection gate, so documentation cannot publish from an untested SDK
-candidate.
+`v-modal/vmodal_sdk_flutter`. The workflow pushes that branch directly, without
+opening a pull request, and configures GitHub Pages for branch-based (`legacy`)
+publishing. It verifies the exact source SHA at
+`https://v-modal.github.io/vmodal_sdk_flutter/`. The deployment depends on both
+the source publication and the workflow's secret-detection gate, so
+documentation cannot publish from an untested SDK candidate.
 
 Multipart is excluded from production live claims until all five backend routes
 are verified. A failed publication is fixed forward with a new version after the

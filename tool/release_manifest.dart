@@ -113,6 +113,8 @@ Future<void> _export(Directory root, Directory destination) async {
         Directory('${root.path}/$name'),
         Directory('${destination.path}/$name'),
       );
+    } else {
+      throw StateError('export source missing: $name');
     }
   }
   final docs = Directory('${root.path}/docs').existsSync() ? 'docs' : 'doc';

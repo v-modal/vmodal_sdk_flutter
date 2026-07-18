@@ -84,8 +84,11 @@ void checkWorkflow(String main, String tagged) {
   expect(main, isNot(contains('--log-opts=')));
   expect(main, contains('SHA256SUMS'));
   expect(main, contains('SOURCE_MANIFEST.sha256'));
-  expect(main, contains('for file in install.sh build.sh run.sh test.sh; do'));
-  expect(main, contains('test -f "\$export_dir/\$file"'));
+  expect(
+    main,
+    contains('run tool/release_manifest.dart export "\$export_dir"'),
+  );
+  expect(main, contains('sha256sum --check SOURCE_MANIFEST.sha256'));
   expect(
     main,
     contains('git ls-files --error-unmatch install.sh build.sh run.sh test.sh'),
@@ -197,6 +200,15 @@ void main() {
     final bad = internal.replaceFirst(
       'needs: release_gate',
       'needs: offline_test',
+    );
+    expect(() => checkWorkflow(bad, public), throwsA(isA<TestFailure>()));
+  });
+
+  test('source export mutation fails', () {
+    if (internal.isEmpty) return;
+    final bad = internal.replaceFirst(
+      'run tool/release_manifest.dart export "\$export_dir"',
+      'run tool/release_manifest.dart check',
     );
     expect(() => checkWorkflow(bad, public), throwsA(isA<TestFailure>()));
   });

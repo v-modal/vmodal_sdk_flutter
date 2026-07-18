@@ -1,0 +1,2109 @@
+openapi: 3.0.3
+info:
+  title: VModal Flutter SDK API
+  version: 1.0.0
+  description: HTTP contract used by `vmodal_sdk_flutter`. Each operation shows the corresponding Dart
+    SDK method in `x-flutter-sdk-method`. Signed and multipart operations are managed internally by the
+    SDK.
+  license:
+    name: MIT
+externalDocs:
+  description: Flutter SDK source
+  url: https://github.com/v-modal/vmodal_sdk_flutter
+servers:
+- url: https://searchapi-test.v-modal.com
+  description: VModal public gateway
+security:
+- bearerAuth: []
+tags:
+- name: Auth
+- name: Search
+- name: Collections
+- name: Signed uploads
+- name: Indexes
+- name: Admin
+- name: R2
+- name: Images
+- name: Multipart (experimental)
+paths:
+  /api/v1/proxy/search_api/api/external/v1/health:
+    get:
+      tags:
+      - Auth
+      summary: Check API health
+      description: 'Flutter SDK: `vmodal.health()`'
+      operationId: auth_health
+      x-flutter-sdk-method: vmodal.health()
+      parameters: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/auth/me:
+    get:
+      tags:
+      - Auth
+      summary: Resolve the authenticated user
+      description: 'Flutter SDK: `vmodal.auth.me()`'
+      operationId: auth_me
+      x-flutter-sdk-method: vmodal.auth.me()
+      parameters: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/proxy/search_api/api/external/v1/search:
+    post:
+      tags:
+      - Search
+      summary: Search video
+      description: 'Flutter SDK: `vmodal.searches.searchVideo(request)`'
+      operationId: searches_search_video
+      x-flutter-sdk-method: vmodal.searches.searchVideo(request)
+      parameters: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchRequest'
+  /api/v1/proxy/search_api/api/external/v1/collection/groups:
+    get:
+      tags:
+      - Collections
+      summary: List collections
+      description: 'Flutter SDK: `vmodal.collections.listGroups()`'
+      operationId: collections_list_groups
+      x-flutter-sdk-method: vmodal.collections.listGroups()
+      parameters:
+      - name: mode
+        in: query
+        required: false
+        description: Collection mode filter
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/proxy/search_api/api/external/v1/collection/upload:
+    post:
+      tags:
+      - Collections
+      summary: Upload a file
+      description: 'Flutter SDK: `vmodal.collections.uploadFile(part)`'
+      operationId: collections_upload_file
+      x-flutter-sdk-method: vmodal.collections.uploadFile(part)
+      parameters: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FileUploadForm'
+  /api/v1/proxy/search_api/api/external/v1/collection/upload/metadata:
+    post:
+      tags:
+      - Collections
+      summary: Upload JSONL metadata
+      description: 'Flutter SDK: `vmodal.collections.uploadMetadataJsonl(part)`'
+      operationId: collections_upload_metadata_jsonl
+      x-flutter-sdk-method: vmodal.collections.uploadMetadataJsonl(part)
+      parameters: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MetadataUploadForm'
+  /api/v1/proxy/search_api/api/external/v1/collection/description/update:
+    post:
+      tags:
+      - Collections
+      summary: Update a collection item description
+      description: 'Flutter SDK: `vmodal.collections.updateDescription()`'
+      operationId: collections_update_description
+      x-flutter-sdk-method: vmodal.collections.updateDescription()
+      parameters: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DescriptionUpdateForm'
+  /api/v1/proxy/search_api/api/external/v1/collection/delete:
+    delete:
+      tags:
+      - Collections
+      summary: Delete collection data
+      description: 'Flutter SDK: `vmodal.collections.delete()`'
+      operationId: collections_delete
+      x-flutter-sdk-method: vmodal.collections.delete()
+      parameters: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteCollectionRequest'
+  /api/v1/proxy/search_api/api/external/v1/collection/{collection_id}/assets/create:
+    post:
+      tags:
+      - Collections
+      summary: Add assets to a collection
+      description: 'Flutter SDK: `vmodal.collections.addAssets()`'
+      operationId: collections_add_assets
+      x-flutter-sdk-method: vmodal.collections.addAssets()
+      parameters:
+      - name: collection_id
+        in: path
+        required: true
+        description: Collection identifier
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionAddAssetsRequest'
+  /api/v1/proxy/search_api/api/external/v1/indexation/jobs:
+    get:
+      tags:
+      - Indexes
+      summary: List indexation jobs
+      description: 'Flutter SDK: `vmodal.indexes.jobsList()`'
+      operationId: indexes_jobs_list
+      x-flutter-sdk-method: vmodal.indexes.jobsList()
+      parameters:
+      - name: status
+        in: query
+        required: false
+        description: Status filter
+        schema:
+          type: string
+      - name: mode
+        in: query
+        required: false
+        description: Collection mode
+        schema:
+          type: string
+      - name: group_name
+        in: query
+        required: false
+        description: Collection name
+        schema:
+          type: string
+      - name: limit
+        in: query
+        required: false
+        description: Maximum rows; 1 to 1000
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/proxy/search_api/api/external/v1/indexation/job/create:
+    post:
+      tags:
+      - Indexes
+      summary: Create an indexation job
+      description: 'Flutter SDK: `vmodal.indexes.createIndex(request)`'
+      operationId: indexes_create_index
+      x-flutter-sdk-method: vmodal.indexes.createIndex(request)
+      parameters: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndexationResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IndexationSubmitRequest'
+  /api/v1/proxy/search_api/api/external/v1/indexation/job/{job_id}:
+    get:
+      tags:
+      - Indexes
+      summary: Get indexation status
+      description: 'Flutter SDK: `vmodal.indexes.indexStatus(jobId)`'
+      operationId: indexes_index_status
+      x-flutter-sdk-method: vmodal.indexes.indexStatus(jobId)
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        description: Indexation job identifier
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndexationResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/proxy/search_api/api/external/v1/indexation/index/delete:
+    delete:
+      tags:
+      - Indexes
+      summary: Delete an index
+      description: 'Flutter SDK: `vmodal.indexes.deleteIndex(request)`'
+      operationId: indexes_delete_index
+      x-flutter-sdk-method: vmodal.indexes.deleteIndex(request)
+      parameters: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IndexationDeleteRequest'
+  /api/v1/proxy/search_api/api/external/v1/admin/user-stats:
+    get:
+      tags:
+      - Admin
+      summary: Get search API user statistics
+      description: 'Flutter SDK: `vmodal.admin.userStats()`'
+      operationId: admin_user_stats
+      x-flutter-sdk-method: vmodal.admin.userStats()
+      parameters: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/usage:
+    get:
+      tags:
+      - Admin
+      summary: Get authenticated user usage
+      description: 'Flutter SDK: `vmodal.admin.usage()`'
+      operationId: admin_usage
+      x-flutter-sdk-method: vmodal.admin.usage()
+      parameters:
+      - name: date
+        in: query
+        required: false
+        description: Usage date
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/cache/stats:
+    get:
+      tags:
+      - Admin
+      summary: Get users API cache statistics
+      description: 'Flutter SDK: `vmodal.admin.cacheStats()`'
+      operationId: admin_cache_stats
+      x-flutter-sdk-method: vmodal.admin.cacheStats()
+      parameters: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/upload_file/:
+    get:
+      tags:
+      - R2
+      summary: Create a presigned file upload
+      description: 'Flutter SDK: `vmodal.r2.presignUploadFile()`'
+      operationId: r2_presign_upload_file
+      x-flutter-sdk-method: vmodal.r2.presignUploadFile()
+      parameters:
+      - name: mode
+        in: query
+        required: true
+        description: Collection mode
+        schema:
+          type: string
+      - name: group_name
+        in: query
+        required: true
+        description: Collection name
+        schema:
+          type: string
+      - name: stream_name
+        in: query
+        required: true
+        description: Stream name
+        schema:
+          type: string
+      - name: modality
+        in: query
+        required: true
+        description: Asset modality
+        schema:
+          type: string
+      - name: filename
+        in: query
+        required: true
+        description: File name
+        schema:
+          type: string
+      - name: expires_in
+        in: query
+        required: false
+        description: URL lifetime in seconds
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresignedUploadResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/upload_folder_video/:
+    post:
+      tags:
+      - R2
+      summary: Create presigned video upload URLs
+      description: 'Flutter SDK: `vmodal.r2.presignUploadFolderVideo()`'
+      operationId: r2_presign_upload_folder_video
+      x-flutter-sdk-method: vmodal.r2.presignUploadFolderVideo()
+      parameters: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresignedFolderRequest'
+  /api/v1/proxy/search_api/api/external/v1/image/get_url:
+    post:
+      tags:
+      - Images
+      summary: Create a presigned image URL
+      description: 'Flutter SDK: `vmodal.images.getUrl()`'
+      operationId: images_get_url
+      x-flutter-sdk-method: vmodal.images.getUrl()
+      parameters: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageUrlResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageUrlRequest'
+  /api/v1/proxy/search_api/api/external/v1/image/get_url_bulk:
+    post:
+      tags:
+      - Images
+      summary: Create presigned image URLs in bulk
+      description: 'Flutter SDK: `vmodal.images.getUrlBulk(records)`'
+      operationId: images_get_url_bulk
+      x-flutter-sdk-method: vmodal.images.getUrlBulk(records)
+      parameters: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageUrlBulkRequest'
+  /api/v1/proxy/search_api/api/external/v1/image/get_image:
+    post:
+      tags:
+      - Images
+      summary: Download an image through the API
+      description: 'Flutter SDK: `vmodal.images.getImageFromUrl(url)`'
+      operationId: images_get_image_from_url
+      x-flutter-sdk-method: vmodal.images.getImageFromUrl(url)
+      parameters: []
+      responses:
+        '200':
+          description: Image bytes
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageDownloadRequest'
+  /api/v1/proxy/search_api/api/external/v1/image/get_image_bulk:
+    post:
+      tags:
+      - Images
+      summary: Download images in bulk
+      description: 'Flutter SDK: `vmodal.images.getImageBulkFromUrls(urls)`'
+      operationId: images_get_image_bulk_from_urls
+      x-flutter-sdk-method: vmodal.images.getImageBulkFromUrls(urls)
+      parameters: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageBulkDownloadRequest'
+  /api/v1/proxy/search_api/api/external/v1/collections/external_upload_get_signed_url:
+    post:
+      tags:
+      - Signed uploads
+      summary: Start the signed upload workflow
+      description: Managed internally by videoUpload; the SDK then uploads bytes to the returned URL.
+      operationId: collections_video_upload_presign
+      x-flutter-sdk-method: vmodal.collections.videoUpload(source)
+      parameters:
+      - name: mode
+        in: query
+        required: true
+        description: Collection mode
+        schema:
+          type: string
+      - name: group_name
+        in: query
+        required: true
+        description: Collection name
+        schema:
+          type: string
+      - name: stream_name
+        in: query
+        required: true
+        description: Subcollection name
+        schema:
+          type: string
+      - name: modality
+        in: query
+        required: true
+        description: Asset modality
+        schema:
+          type: string
+      - name: filename
+        in: query
+        required: true
+        description: File name
+        schema:
+          type: string
+      - name: ttl
+        in: query
+        required: false
+        description: Signed URL lifetime
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/proxy/search_api/api/external/v1/collection/upload/done:
+    post:
+      tags:
+      - Signed uploads
+      summary: Finalize a signed upload
+      description: Managed internally after the signed object upload succeeds.
+      operationId: collections_video_upload_done
+      x-flutter-sdk-method: vmodal.collections.videoUpload(source)
+      parameters:
+      - name: key
+        in: query
+        required: true
+        description: Uploaded object key
+        schema:
+          type: string
+      - name: mode
+        in: query
+        required: true
+        description: Collection mode
+        schema:
+          type: string
+      - name: group_name
+        in: query
+        required: true
+        description: Collection name
+        schema:
+          type: string
+      - name: stream_name
+        in: query
+        required: true
+        description: Subcollection name
+        schema:
+          type: string
+      - name: modality
+        in: query
+        required: true
+        description: Asset modality
+        schema:
+          type: string
+      - name: filename
+        in: query
+        required: true
+        description: File name
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/proxy/search_api/api/external/v1/collections/external_upload_multipart/create:
+    post:
+      tags:
+      - Multipart (experimental)
+      summary: Create an experimental multipart upload
+      description: 'Flutter SDK: `videoUpload(... options: VideoUploadOptions(multipart: true))`'
+      operationId: multipart_create
+      x-flutter-sdk-method: 'videoUpload(... options: VideoUploadOptions(multipart: true))'
+      parameters: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MultipartCreateRequest'
+  /api/v1/proxy/search_api/api/external/v1/collections/external_upload_multipart/sign_parts:
+    post:
+      tags:
+      - Multipart (experimental)
+      summary: Sign multipart upload parts
+      description: 'Flutter SDK: `videoUpload(... options: VideoUploadOptions(multipart: true))`'
+      operationId: multipart_sign_parts
+      x-flutter-sdk-method: 'videoUpload(... options: VideoUploadOptions(multipart: true))'
+      parameters: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MultipartSignRequest'
+  /api/v1/proxy/search_api/api/external/v1/collections/external_upload_multipart/status:
+    get:
+      tags:
+      - Multipart (experimental)
+      summary: Inspect multipart upload status
+      description: 'Flutter SDK: `videoUpload(... options: VideoUploadOptions(multipart: true))`'
+      operationId: multipart_status
+      x-flutter-sdk-method: 'videoUpload(... options: VideoUploadOptions(multipart: true))'
+      parameters:
+      - name: request_id
+        in: query
+        required: true
+        description: Idempotency request identifier
+        schema:
+          type: string
+      - name: upload_id
+        in: query
+        required: true
+        description: Multipart upload identifier
+        schema:
+          type: string
+      - name: key
+        in: query
+        required: true
+        description: Object key
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/proxy/search_api/api/external/v1/collections/external_upload_multipart/complete:
+    post:
+      tags:
+      - Multipart (experimental)
+      summary: Complete a multipart upload
+      description: 'Flutter SDK: `videoUpload(... options: VideoUploadOptions(multipart: true))`'
+      operationId: multipart_complete
+      x-flutter-sdk-method: 'videoUpload(... options: VideoUploadOptions(multipart: true))'
+      parameters: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MultipartCompleteRequest'
+  /api/v1/proxy/search_api/api/external/v1/collections/external_upload_multipart/abort:
+    post:
+      tags:
+      - Multipart (experimental)
+      summary: Abort a multipart upload
+      description: 'Flutter SDK: `videoUpload(... options: VideoUploadOptions(multipart: true))`'
+      operationId: multipart_abort
+      x-flutter-sdk-method: 'videoUpload(... options: VideoUploadOptions(multipart: true))'
+      parameters: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+        '400':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MultipartSessionRequest'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: API key
+  schemas:
+    GenericResponse:
+      type: object
+      additionalProperties: true
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          description: API error detail
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        timestamp:
+          type: string
+        version:
+          type: string
+        python_version:
+          type: string
+        dependencies: {}
+    UserProfile:
+      type: object
+      properties:
+        user_id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        roles:
+          type: array
+          items: {}
+        tenant_id:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        type:
+          type: string
+    SearchRequest:
+      type: object
+      properties:
+        query_text:
+          type: string
+          default: ''
+        query_metadata:
+          type: object
+          additionalProperties: true
+        image_query:
+          type: string
+        mode:
+          type: string
+          default: vid_file
+        group_name:
+          type: string
+          default: agroup
+        stream_name:
+          type: string
+          default: astream
+        search_sources:
+          type: array
+          items:
+            type: string
+          default:
+          - ocr
+          - asr
+          - image
+        search_combine_mode:
+          type: string
+          default: union
+        start_date:
+          type: string
+        end_date:
+          type: string
+        offset:
+          type: integer
+          default: 0
+        limit:
+          type: integer
+          default: 50
+        text_emb_score_min:
+          type: number
+          default: 0.9
+        image_emb_score_min:
+          type: number
+          default: 1.5
+        version_lancedb:
+          type: integer
+      description: query_text or image_query is required.
+    SearchResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        cnt_actual:
+          type: integer
+        cnt_total:
+          type: integer
+        execution_time_ms:
+          type: number
+    FileUploadForm:
+      type: object
+      required:
+      - file
+      properties:
+        file:
+          type: string
+          format: binary
+        mode:
+          type: string
+          default: vid_file
+        group_name:
+          type: string
+        stream_name:
+          type: string
+          default: astream
+        description:
+          type: string
+        tag:
+          type: array
+          items:
+            type: string
+    MetadataUploadForm:
+      type: object
+      required:
+      - file
+      properties:
+        file:
+          type: string
+          format: binary
+        mode:
+          type: string
+          default: img_file
+        group_name:
+          type: string
+        stream_name:
+          type: string
+        write_mode:
+          type: string
+          default: append
+        allow_overlap:
+          type: boolean
+          default: false
+    DescriptionUpdateForm:
+      type: object
+      required:
+      - group_name
+      - mode
+      - stream_name
+      - filename_sanitized
+      properties:
+        group_name:
+          type: string
+        mode:
+          type: string
+        stream_name:
+          type: string
+        filename_sanitized:
+          type: string
+        description:
+          type: string
+        tag:
+          type: array
+          items:
+            type: string
+    DeleteCollectionRequest:
+      type: object
+      required:
+      - group_name
+      - mode
+      properties:
+        group_name:
+          type: string
+        mode:
+          type: string
+        scope:
+          type: string
+          default: all
+        dry_run:
+          type: boolean
+          default: false
+        confirm:
+          type: boolean
+          default: false
+    CollectionAddAssetsRequest:
+      type: object
+      required:
+      - collection_id
+      - asset_ids
+      - mode
+      - group_name
+      properties:
+        collection_id:
+          type: string
+        asset_ids:
+          type: array
+          items:
+            type: string
+        mode:
+          type: string
+        group_name:
+          type: string
+        stream_name:
+          type: string
+          default: astream
+    IndexationSubmitRequest:
+      type: object
+      required:
+      - mode
+      - group_name
+      properties:
+        mode:
+          type: string
+        group_name:
+          type: string
+        stream_name:
+          type: string
+        index_type:
+          type: string
+        modality:
+          type: string
+        insert_mode:
+          type: string
+          default: append
+        create_index:
+          type: boolean
+          default: true
+        version:
+          type: string
+          default: new_version
+        start_date:
+          type: string
+        end_date:
+          type: string
+        embedding_model:
+          type: string
+        re_process:
+          type: boolean
+          default: false
+        dry_run:
+          type: boolean
+          default: false
+    IndexationDeleteRequest:
+      type: object
+      required:
+      - mode
+      - group_name
+      - version
+      properties:
+        mode:
+          type: string
+        group_name:
+          type: string
+        version:
+          type: string
+        modality:
+          type: string
+        dry_run:
+          type: boolean
+          default: false
+        confirm:
+          type: boolean
+          default: false
+    IndexationResponse:
+      type: object
+      properties:
+        job_id:
+          type: string
+        status:
+          type: string
+    UsageResponse:
+      type: object
+      properties:
+        date:
+          type: string
+        user_id:
+          type: string
+        total:
+          type: integer
+        endpoints:
+          type: object
+          additionalProperties:
+            type: integer
+    PresignedUploadResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+        expires_in:
+          type: integer
+        key:
+          type: string
+        url:
+          type: string
+          format: uri
+        method:
+          type: string
+    PresignedFolderRequest:
+      type: object
+      required:
+      - mode
+      - group_name
+      - stream_name
+      - filenames
+      properties:
+        mode:
+          type: string
+        group_name:
+          type: string
+        stream_name:
+          type: string
+        filenames:
+          type: array
+          items:
+            type: string
+        expires_in:
+          type: integer
+          default: 900
+    ImageUrlRequest:
+      type: object
+      required:
+      - mode
+      - group_name
+      - modality
+      - filename
+      properties:
+        mode:
+          type: string
+        group_name:
+          type: string
+        modality:
+          type: string
+        stream_name:
+          type: string
+          default: astream
+        filename:
+          type: string
+        ts_unix_13digits:
+          type: string
+    ImageUrlResponse:
+      type: object
+      properties:
+        found:
+          type: boolean
+        url_pre_signed:
+          type: string
+          format: uri
+        full_path:
+          type: string
+        expire_sec:
+          type: integer
+        error:
+          type: string
+    ImageUrlBulkRequest:
+      type: object
+      required:
+      - records
+      properties:
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImageUrlRequest'
+    ImageDownloadRequest:
+      type: object
+      required:
+      - url_pre_signed
+      properties:
+        url_pre_signed:
+          type: string
+          format: uri
+    ImageBulkDownloadRequest:
+      type: object
+      required:
+      - urls
+      properties:
+        urls:
+          type: array
+          items:
+            type: string
+            format: uri
+    MultipartCreateRequest:
+      type: object
+      required:
+      - request_id
+      - mode
+      - group_name
+      - stream_name
+      - modality
+      - filename
+      - content_type
+      - size_bytes
+      - part_size_bytes
+      properties:
+        request_id:
+          type: string
+        mode:
+          type: string
+        group_name:
+          type: string
+        stream_name:
+          type: string
+        modality:
+          type: string
+        filename:
+          type: string
+        content_type:
+          type: string
+        size_bytes:
+          type: integer
+        part_size_bytes:
+          type: integer
+    MultipartSessionRequest:
+      type: object
+      required:
+      - request_id
+      - upload_id
+      - key
+      properties:
+        request_id:
+          type: string
+        upload_id:
+          type: string
+        key:
+          type: string
+    MultipartSignRequest:
+      allOf:
+      - $ref: '#/components/schemas/MultipartSessionRequest'
+      - type: object
+        required:
+        - part_numbers
+        properties:
+          part_numbers:
+            type: array
+            items:
+              type: integer
+          ttl:
+            type: integer
+    MultipartCompleteRequest:
+      allOf:
+      - $ref: '#/components/schemas/MultipartSessionRequest'
+      - type: object
+        required:
+        - size_bytes
+        - parts
+        properties:
+          size_bytes:
+            type: integer
+          parts:
+            type: array
+            items:
+              type: object
+              required:
+              - part_number
+              - etag
+              properties:
+                part_number:
+                  type: integer
+                etag:
+                  type: string

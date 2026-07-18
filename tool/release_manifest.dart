@@ -99,6 +99,7 @@ Future<void> _export(Directory root, Directory destination) async {
     'security_check.sh',
     'tool/flutter_checksums.txt',
     'tool/check_route_sync.dart',
+    'tool/live_test.dart',
     'tool/release_manifest.dart',
   ];
   for (final name in roots) {

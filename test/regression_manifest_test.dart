@@ -104,6 +104,7 @@ void main() {
         'build.sh',
         'run.sh',
         'test.sh',
+        'tool/live_test.dart',
       ]) {
         expect(File('${dir.path}/$path').existsSync(), isTrue, reason: path);
       }

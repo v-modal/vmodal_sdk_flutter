@@ -6,9 +6,19 @@ import 'resources.dart';
 import 'transport.dart';
 import 'upload.dart';
 
+/// Version of the Dart SDK contract represented by this package.
 const String vmodalSdkVersion = '1.0.0';
 
+/// Owns configuration, transports, and feature resources for one app session.
+///
+/// Reuse a client while the same identity is active. Call [close] when the
+/// identity changes or the app no longer needs the SDK; closing is idempotent.
 class VmodalClient {
+  /// Creates a client from validated [config].
+  ///
+  /// Custom transports are primarily useful for testing and platform-specific
+  /// integrations. The client owns every supplied transport and closes it from
+  /// [close].
   VmodalClient({
     required this.config,
     VmodalTransport? transport,
@@ -27,27 +37,62 @@ class VmodalClient {
     images = ImagesResource(http);
   }
 
+  /// Immutable configuration used by all resources.
   final SdkConfig config;
+
+  /// Transport used for typed SDK operations.
   final VmodalTransport transport;
+
+  /// Transport used after the SDK obtains permission to upload media bytes.
   final SignedUploadTransport signedUploadTransport;
+
+  /// @nodoc
   late final VmodalHttp http;
+
+  /// Authentication and identity operations.
   late final AuthResource auth;
+
+  /// Multimodal search operations.
   late final SearchesResource searches;
+
+  /// Collection management and upload operations.
   late final CollectionsResource collections;
+
+  /// Index creation, status, and deletion operations.
   late final IndexesResource indexes;
+
+  /// Usage and service-statistics operations.
   late final AdminResource admin;
+
+  /// Advanced signed object-upload operations.
   late final R2Resource r2;
+
+  /// Image lookup and download operations.
   late final ImagesResource images;
+
+  /// Compatibility surface whose methods currently throw [FeatureDisabled].
   final GDriveResource gdrive = GDriveResource();
+
+  /// Compatibility surface whose methods currently throw [FeatureDisabled].
   final SqlResource sql = SqlResource();
   bool _closed = false;
 
+  /// Checks service health and returns version/dependency information.
   Future<HealthResponse> health({CancellationToken? cancellation}) =>
       auth.health(cancellation: cancellation);
 
+  /// Returns `true` when an authenticated health request succeeds.
+  ///
+  /// Authentication, transport, and cancellation failures are surfaced as
+  /// typed [SdkException] subclasses.
   Future<bool> authCheck({CancellationToken? cancellation}) =>
       auth.authCheck(cancellation: cancellation);
 
+  /// Creates a client from the supported environment map.
+  ///
+  /// Unless [resolveIdentity] is false or a user ID is already configured, the
+  /// factory resolves the active profile and rebuilds the client with that
+  /// identity. A profile without a user ID throws [AuthException].
   static Future<VmodalClient> fromEnvironment(
     Map<String, String> env, {
     VmodalTransport? transport,
@@ -83,6 +128,9 @@ class VmodalClient {
     return client;
   }
 
+  /// Creates a direct-mode client for controlled development integrations.
+  ///
+  /// Most mobile apps should use the default gateway configuration instead.
   factory VmodalClient.unsafeDirect({
     required String baseUrl,
     required String userId,
@@ -111,6 +159,7 @@ class VmodalClient {
     );
   }
 
+  /// Closes both owned transports. Repeated calls have no effect.
   Future<void> close() async {
     if (_closed) return;
     _closed = true;

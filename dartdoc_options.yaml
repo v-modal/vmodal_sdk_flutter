@@ -1,0 +1,10 @@
+dartdoc:
+  include:
+    - vmodal_sdk_flutter
+  nodoc:
+    - lib/src/http.dart
+    - lib/src/routes.dart
+  errors:
+    - ambiguous-doc-reference
+    - broken-link
+    - unresolved-doc-reference

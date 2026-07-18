@@ -13,7 +13,12 @@ import 'transport.dart';
 import 'upload.dart';
 import 'utils.dart';
 
+/// Controls signed and optional multipart video uploads.
+///
+/// Multipart mode is opt-in. When [adaptiveConditions] is supplied, the SDK
+/// derives bounded part and concurrency settings before validating the upload.
 class VideoUploadOptions {
+  /// Creates upload options with single-upload behavior by default.
   const VideoUploadOptions({
     this.multipart = false,
     this.multipartThresholdBytes = 100 * 1024 * 1024,
@@ -26,18 +31,37 @@ class VideoUploadOptions {
     this.adaptiveConditions,
   });
 
+  /// Enables experimental multipart upload behavior.
   final bool multipart;
+
+  /// Source size at which callers may choose multipart behavior.
   final int multipartThresholdBytes;
+
+  /// Requested bytes per multipart part.
   final int partSizeBytes;
+
+  /// Maximum number of parts uploaded concurrently.
   final int maxConcurrency;
+
+  /// Maximum attempts for one part.
   final int maxPartAttempts;
+
+  /// Timeout applied to each part upload.
   final Duration partTimeout;
+
+  /// Whether a compatible checkpoint can resume an earlier session.
   final bool resume;
+
+  /// Optional checkpoint store; defaults to process-local memory.
   final UploadSessionStore? sessionStore;
+
+  /// Optional device/network snapshot for adaptive preset selection.
   final UploadConditions? adaptiveConditions;
 
+  /// Effective checkpoint store.
   UploadSessionStore get store => sessionStore ?? UploadSessionStores.memory;
 
+  /// Returns options resolved for [size] using [adaptiveConditions].
   VideoUploadOptions resolvedFor(int size) {
     if (!multipart || adaptiveConditions == null) return this;
     final preset = AdaptiveUploadPolicy.select(size, adaptiveConditions!);
@@ -49,6 +73,7 @@ class VideoUploadOptions {
     );
   }
 
+  /// Returns a copy with selected options replaced.
   VideoUploadOptions copyWith({
     bool? multipart,
     int? multipartThresholdBytes,
@@ -72,6 +97,7 @@ class VideoUploadOptions {
     adaptiveConditions: adaptiveConditions ?? this.adaptiveConditions,
   );
 
+  /// Validates multipart constraints for a source of [size] bytes.
   void validate(int size) {
     if (!multipart) return;
     if (partSizeBytes < 5 * 1024 * 1024) {
@@ -97,7 +123,12 @@ class VideoUploadOptions {
   }
 }
 
+/// Signed upload operations available on [CollectionsResource].
 extension CollectionUploads on CollectionsResource {
+  /// Starts one video upload and returns immediately with an [UploadTask].
+  ///
+  /// Listen to [UploadTask.progress], await [UploadTask.result], or call
+  /// [UploadTask.cancel]. Multipart behavior is enabled only through [options].
   UploadTask<VideoUploadResponse> videoUpload(
     UploadSource source, {
     required String collectionName,
@@ -125,6 +156,10 @@ extension CollectionUploads on CollectionsResource {
     );
   }
 
+  /// Starts an ordered bulk upload with aggregate progress.
+  ///
+  /// The result keeps input order. The first failure cancels remaining work
+  /// and completes [UploadTask.result] with that error.
   UploadTask<VideoUploadBulkResponse> videoUploadBulk(
     List<UploadSource> sources, {
     required String collectionName,

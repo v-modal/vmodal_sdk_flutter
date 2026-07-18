@@ -82,6 +82,7 @@ Future<void> _export(Directory root, Directory destination) async {
     'pubspec.yaml',
     'pubspec.lock',
     'analysis_options.yaml',
+    'dartdoc_options.yaml',
     'LICENSE',
     'README.md',
     'readme_assets',
@@ -121,6 +122,7 @@ Future<void> _export(Directory root, Directory destination) async {
   await _copyDirectory(
     Directory('${root.path}/$docs'),
     Directory('${destination.path}/doc'),
+    excluded: const <String>{'todo'},
   );
   final publish = File('${root.path}/release/public_publish.yml').existsSync()
       ? File('${root.path}/release/public_publish.yml')
@@ -131,20 +133,29 @@ Future<void> _export(Directory root, Directory destination) async {
   await _manifest(destination);
 }
 
-Future<void> _copyDirectory(Directory source, Directory destination) async {
+Future<void> _copyDirectory(
+  Directory source,
+  Directory destination, {
+  Set<String> excluded = const <String>{},
+}) async {
   await destination.create(recursive: true);
   await for (final entity in source.list(recursive: false)) {
     final name = entity.uri.pathSegments
         .where((String value) => value.isNotEmpty)
         .last;
-    if (isGeneratedName(name) ||
+    if (excluded.contains(name) ||
+        isGeneratedName(name) ||
         const <String>{'dev_plan.md', 'dev_plan_step.md'}.contains(name)) {
       continue;
     }
     if (entity is File) {
       await entity.copy('${destination.path}/$name');
     } else if (entity is Directory) {
-      await _copyDirectory(entity, Directory('${destination.path}/$name'));
+      await _copyDirectory(
+        entity,
+        Directory('${destination.path}/$name'),
+        excluded: excluded,
+      );
     }
   }
 }

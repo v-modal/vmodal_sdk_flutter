@@ -1,16 +1,21 @@
 import 'errors.dart';
 import 'utils.dart';
 
+/// Base response retaining unmodeled service fields in [raw].
 class JsonBackedResponse {
+  /// Creates a response backed by [raw].
   const JsonBackedResponse([this.raw = const <String, Object?>{}]);
 
+  /// Complete decoded response, including extension fields unknown to the SDK.
   final Map<String, Object?> raw;
 }
 
+/// One untyped search result with forward-compatible [raw] data.
 class SearchResultItem extends JsonBackedResponse {
   const SearchResultItem(super.raw);
 }
 
+/// Typed summary of one collection group.
 class GroupItem extends JsonBackedResponse {
   GroupItem(super.raw)
     : userId = '${raw['user_id'] ?? ''}',
@@ -29,6 +34,7 @@ class GroupItem extends JsonBackedResponse {
   final List<String> lancedbVersions;
   final String? lastUpdated;
 
+  /// Highest numeric `vN` value in [lancedbVersions], when present.
   int? get latestLancedbVersion {
     int? latest;
     for (final value in lancedbVersions) {
@@ -45,23 +51,32 @@ class GroupItem extends JsonBackedResponse {
   }
 }
 
+/// One item returned by a folder-upload operation.
 class FolderUploadItem extends JsonBackedResponse {
   const FolderUploadItem(super.raw);
 }
 
+/// One asset associated with a collection.
 class CollectionAsset extends JsonBackedResponse {
   const CollectionAsset(super.raw);
 }
 
+/// One indexation job with forward-compatible [raw] data.
 class IndexationJobItem extends JsonBackedResponse {
   const IndexationJobItem(super.raw);
 }
 
+/// One user-statistics row with forward-compatible [raw] data.
 class AdminUserStatItem extends JsonBackedResponse {
   const AdminUserStatItem(super.raw);
 }
 
+/// Parameters for a multimodal media search.
+///
+/// At least one of [queryText] or [imageQuery] must be nonblank. Defaults
+/// search common speech, visible-text, and image sources with union semantics.
 class SearchRequest {
+  /// Creates a search request with mobile-oriented defaults.
   const SearchRequest({
     this.queryText = '',
     this.queryMetadata,
@@ -96,12 +111,14 @@ class SearchRequest {
   final double imageEmbScoreMin;
   final int? versionLancedb;
 
+  /// Validates the required query input.
   void validate() {
     if (queryText.trim().isEmpty && (imageQuery?.trim().isEmpty ?? true)) {
       throw const ValidationException('query_text or image_query is required');
     }
   }
 
+  /// Converts this request to its structured transport representation.
   Map<String, Object?> toJson() => _withoutNull(<String, Object?>{
     'query_text': queryText,
     'query_metadata': queryMetadata,
@@ -121,7 +138,9 @@ class SearchRequest {
   });
 }
 
+/// Parameters for previewing or confirming collection deletion.
 class DeleteCollectionRequest {
+  /// Creates a deletion request. [dryRun] and [confirm] default to `false`.
   const DeleteCollectionRequest({
     required this.groupName,
     required this.mode,
@@ -136,11 +155,13 @@ class DeleteCollectionRequest {
   final bool dryRun;
   final bool confirm;
 
+  /// Validates required collection identifiers.
   void validate() {
     strRequired(groupName, 'group_name');
     strRequired(mode, 'mode');
   }
 
+  /// Converts this request to its structured transport representation.
   Map<String, Object?> toJson() => <String, Object?>{
     'group_name': groupName,
     'mode': mode,
@@ -150,7 +171,9 @@ class DeleteCollectionRequest {
   };
 }
 
+/// Parameters for associating existing assets with a collection.
 class CollectionAddAssetsRequest {
+  /// Creates an add-assets request.
   const CollectionAddAssetsRequest({
     required this.collectionId,
     required this.assetIds,
@@ -165,6 +188,7 @@ class CollectionAddAssetsRequest {
   final String groupName;
   final String streamName;
 
+  /// Validates identifiers and requires at least one asset.
   void validate() {
     strRequired(collectionId, 'collection_id');
     if (assetIds.isEmpty) {
@@ -174,6 +198,7 @@ class CollectionAddAssetsRequest {
     strRequired(groupName, 'group_name');
   }
 
+  /// Converts this request to its structured transport representation.
   Map<String, Object?> toJson() => <String, Object?>{
     'collection_id': collectionId,
     'asset_ids': assetIds,
@@ -183,7 +208,9 @@ class CollectionAddAssetsRequest {
   };
 }
 
+/// Parameters for creating an indexation job.
 class IndexationSubmitRequest {
+  /// Creates an indexation request with append and index-creation defaults.
   const IndexationSubmitRequest({
     required this.mode,
     required this.groupName,
@@ -214,11 +241,13 @@ class IndexationSubmitRequest {
   final bool reProcess;
   final bool dryRun;
 
+  /// Validates required collection identifiers.
   void validate() {
     strRequired(mode, 'mode');
     strRequired(groupName, 'group_name');
   }
 
+  /// Converts this request to its structured transport representation.
   Map<String, Object?> toJson() => _withoutNull(<String, Object?>{
     'mode': mode,
     'group_name': groupName,
@@ -236,7 +265,9 @@ class IndexationSubmitRequest {
   });
 }
 
+/// Parameters for previewing or confirming index deletion.
 class IndexationDeleteRequest {
+  /// Creates an index deletion request.
   const IndexationDeleteRequest({
     required this.mode,
     required this.groupName,
@@ -253,12 +284,14 @@ class IndexationDeleteRequest {
   final bool dryRun;
   final bool confirm;
 
+  /// Validates the required collection and version identifiers.
   void validate() {
     strRequired(mode, 'mode');
     strRequired(groupName, 'group_name');
     strRequired(version, 'version');
   }
 
+  /// Converts this request to its structured transport representation.
   Map<String, Object?> toJson() => _withoutNull(<String, Object?>{
     'mode': mode,
     'group_name': groupName,
@@ -269,7 +302,9 @@ class IndexationDeleteRequest {
   });
 }
 
+/// Stored-image selector used by image lookup helpers.
 class ImageRecord {
+  /// Creates an image selector.
   const ImageRecord({
     this.mode = '',
     this.groupName = '',
@@ -286,6 +321,9 @@ class ImageRecord {
   final String frameId;
   final String? userid;
 
+  /// Converts this selector to structured data.
+  ///
+  /// Set [includeIdentity] to `false` outside trusted direct integrations.
   Map<String, Object?> toJson({bool includeIdentity = true}) =>
       _withoutNull(<String, Object?>{
         'mode': mode,
@@ -297,7 +335,9 @@ class ImageRecord {
       });
 }
 
+/// Stored-image selector for temporary URL lookup.
 class ImageUrlRecord {
+  /// Creates an image URL selector.
   const ImageUrlRecord({
     this.mode = '',
     this.groupName = '',
@@ -314,6 +354,7 @@ class ImageUrlRecord {
   final String filename;
   final String? tsUnix13digits;
 
+  /// Converts this selector to structured data.
   Map<String, Object?> toJson() => _withoutNull(<String, Object?>{
     'mode': mode,
     'group_name': groupName,
@@ -324,6 +365,7 @@ class ImageUrlRecord {
   });
 }
 
+/// Service health, version, and dependency summary.
 class HealthResponse extends JsonBackedResponse {
   HealthResponse(super.raw)
     : status = '${raw['status'] ?? ''}',
@@ -339,6 +381,7 @@ class HealthResponse extends JsonBackedResponse {
   final Object? dependencies;
 }
 
+/// Search results, counts, and execution timing.
 class SearchResponse extends JsonBackedResponse {
   SearchResponse(super.raw)
     : data = raw['data'] is List
@@ -354,6 +397,7 @@ class SearchResponse extends JsonBackedResponse {
   final double executionTimeMs;
 }
 
+/// Typed collection-group listing.
 class GroupsResponse extends JsonBackedResponse {
   GroupsResponse(super.raw)
     : data = objectList(raw['data']).map(GroupItem.new).toList(),
@@ -364,6 +408,7 @@ class GroupsResponse extends JsonBackedResponse {
   final int total;
   final double executionTimeMs;
 
+  /// Finds a group by trimmed name and optional mode.
   GroupItem? findGroup(String groupName, {String? mode}) {
     final name = groupName.trim();
     for (final item in data) {
@@ -376,6 +421,7 @@ class GroupsResponse extends JsonBackedResponse {
   }
 }
 
+/// Temporary upload grant returned for a signed upload.
 class ExternalUploadSignedUrlResponse extends JsonBackedResponse {
   ExternalUploadSignedUrlResponse(super.raw)
     : userId = '${raw['user_id'] ?? ''}',
@@ -391,6 +437,7 @@ class ExternalUploadSignedUrlResponse extends JsonBackedResponse {
   final String method;
 }
 
+/// Uploaded multipart part summary.
 class MultipartPart extends JsonBackedResponse {
   MultipartPart(super.raw)
     : partNumber = intValue(raw['part_number']),
@@ -402,6 +449,7 @@ class MultipartPart extends JsonBackedResponse {
   final int sizeBytes;
 }
 
+/// Temporary upload grant for one multipart part.
 class MultipartSignedPart extends JsonBackedResponse {
   MultipartSignedPart(super.raw)
     : partNumber = intValue(raw['part_number']),
@@ -417,6 +465,7 @@ class MultipartSignedPart extends JsonBackedResponse {
   final Map<String, String> headers;
 }
 
+/// Newly created multipart session and its resolved limits.
 class MultipartCreateResponse extends JsonBackedResponse {
   MultipartCreateResponse(super.raw)
     : requestId = '${raw['request_id'] ?? ''}',
@@ -436,6 +485,7 @@ class MultipartCreateResponse extends JsonBackedResponse {
   final String status;
 }
 
+/// Temporary grants for a requested set of multipart parts.
 class MultipartSignResponse extends JsonBackedResponse {
   MultipartSignResponse(super.raw)
     : parts = objectList(raw['parts']).map(MultipartSignedPart.new).toList(),
@@ -445,6 +495,7 @@ class MultipartSignResponse extends JsonBackedResponse {
   final int expiresIn;
 }
 
+/// Current multipart session status and accepted parts.
 class MultipartStatusResponse extends JsonBackedResponse {
   MultipartStatusResponse(super.raw)
     : status = '${raw['status'] ?? 'uploading'}',
@@ -458,6 +509,7 @@ class MultipartStatusResponse extends JsonBackedResponse {
   final int sizeBytes;
 }
 
+/// Completed multipart object metadata.
 class MultipartCompleteResponse extends JsonBackedResponse {
   MultipartCompleteResponse(super.raw)
     : status = '${raw['status'] ?? 'completed'}',
@@ -473,10 +525,12 @@ class MultipartCompleteResponse extends JsonBackedResponse {
   final bool alreadyCompleted;
 }
 
+/// Result of a basic collection upload.
 class UploadResponse extends JsonBackedResponse {
   const UploadResponse(super.raw);
 }
 
+/// Detailed result of one signed video upload.
 class VideoUploadResponse extends JsonBackedResponse {
   VideoUploadResponse(super.raw)
     : userId = '${raw['user_id'] ?? ''}',
@@ -516,6 +570,7 @@ class VideoUploadResponse extends JsonBackedResponse {
   final String destPath;
 }
 
+/// Ordered results for a bulk signed upload.
 class VideoUploadBulkResponse extends JsonBackedResponse {
   VideoUploadBulkResponse(super.raw)
     : data = objectList(raw['data']).map(VideoUploadResponse.new).toList(),
@@ -525,26 +580,32 @@ class VideoUploadBulkResponse extends JsonBackedResponse {
   final int total;
 }
 
+/// Folder-upload compatibility response.
 class FolderUploadResponse extends JsonBackedResponse {
   const FolderUploadResponse(super.raw);
 }
 
+/// Result of a metadata JSON Lines upload.
 class MetadataParquetUploadResponse extends JsonBackedResponse {
   const MetadataParquetUploadResponse(super.raw);
 }
 
+/// Result of updating collection-item metadata.
 class CollectionDescriptionUpdateResponse extends JsonBackedResponse {
   const CollectionDescriptionUpdateResponse(super.raw);
 }
 
+/// Result or preview of collection deletion.
 class DeleteCollectionResponse extends JsonBackedResponse {
   const DeleteCollectionResponse(super.raw);
 }
 
+/// Result of associating assets with a collection.
 class CollectionAddAssetsResponse extends JsonBackedResponse {
   const CollectionAddAssetsResponse(super.raw);
 }
 
+/// Indexation job rows and total count.
 class IndexationJobsListResponse extends JsonBackedResponse {
   IndexationJobsListResponse(super.raw)
     : data = raw['data'] is List
@@ -556,6 +617,7 @@ class IndexationJobsListResponse extends JsonBackedResponse {
   final int total;
 }
 
+/// Identifier and initial state of a new indexation job.
 class IndexationSubmitResponse extends JsonBackedResponse {
   IndexationSubmitResponse(super.raw)
     : jobId = '${raw['job_id'] ?? ''}',
@@ -565,6 +627,7 @@ class IndexationSubmitResponse extends JsonBackedResponse {
   final String status;
 }
 
+/// Identifier and current state of an indexation job.
 class IndexationStatusResponse extends JsonBackedResponse {
   IndexationStatusResponse(super.raw)
     : jobId = '${raw['job_id'] ?? ''}',
@@ -574,12 +637,14 @@ class IndexationStatusResponse extends JsonBackedResponse {
   final String status;
 }
 
+/// Result of deleting index data.
 class IndexationDeleteResponse extends JsonBackedResponse {
   IndexationDeleteResponse(super.raw) : status = '${raw['status'] ?? ''}';
 
   final String status;
 }
 
+/// User-statistics rows and total count.
 class AdminUserStatsResponse extends JsonBackedResponse {
   AdminUserStatsResponse(super.raw)
     : data = raw['data'] is List
@@ -591,6 +656,7 @@ class AdminUserStatsResponse extends JsonBackedResponse {
   final int total;
 }
 
+/// Identity and permissions resolved for the current credential.
 class UserProfile extends JsonBackedResponse {
   UserProfile(super.raw)
     : userId = raw['user_id']?.toString(),
@@ -616,6 +682,7 @@ class UserProfile extends JsonBackedResponse {
   final String type;
 }
 
+/// Usage totals grouped by operation for one date.
 class UsageUserDetail extends JsonBackedResponse {
   UsageUserDetail(super.raw)
     : date = '${raw['date'] ?? ''}',
@@ -631,6 +698,7 @@ class UsageUserDetail extends JsonBackedResponse {
   final Map<String, int> endpoints;
 }
 
+/// Cache, limiter, and related service configuration counters.
 class CacheStats extends JsonBackedResponse {
   CacheStats(super.raw)
     : apikeyCacheSize = intValue(raw['apikey_cache_size']),
@@ -642,6 +710,7 @@ class CacheStats extends JsonBackedResponse {
   final Map<String, Object?> config;
 }
 
+/// Temporary object-upload grant for one file.
 class PresignedUploadResponse extends JsonBackedResponse {
   PresignedUploadResponse(super.raw)
     : userId = '${raw['user_id'] ?? ''}',
@@ -657,6 +726,7 @@ class PresignedUploadResponse extends JsonBackedResponse {
   final String method;
 }
 
+/// One file and its temporary object-upload grant.
 class PresignedFolderItem extends JsonBackedResponse {
   PresignedFolderItem(super.raw)
     : filename = '${raw['filename'] ?? ''}',
@@ -670,6 +740,7 @@ class PresignedFolderItem extends JsonBackedResponse {
   final String method;
 }
 
+/// Batch of temporary object-upload grants.
 class PresignedFolderResponse extends JsonBackedResponse {
   PresignedFolderResponse(super.raw)
     : userId = '${raw['user_id'] ?? ''}',
@@ -681,6 +752,7 @@ class PresignedFolderResponse extends JsonBackedResponse {
   final List<PresignedFolderItem> files;
 }
 
+/// Temporary image location and lookup status.
 class ImageUrlResponse extends JsonBackedResponse {
   ImageUrlResponse(super.raw)
     : found = raw['found'] == true,
@@ -696,18 +768,21 @@ class ImageUrlResponse extends JsonBackedResponse {
   final String error;
 }
 
+/// Raw per-record results for bulk image URL lookup.
 class ImageUrlBulkResponse extends JsonBackedResponse {
   ImageUrlBulkResponse(super.raw) : records = objectList(raw['records']);
 
   final List<Map<String, Object?>> records;
 }
 
+/// Raw per-record results for bulk image download.
 class ImageGetBulkResponse extends JsonBackedResponse {
   ImageGetBulkResponse(super.raw) : records = objectList(raw['records']);
 
   final List<Map<String, Object?>> records;
 }
 
+/// Base64-encoded image result.
 class ImageResponse extends JsonBackedResponse {
   ImageResponse(super.raw)
     : found = raw['found'] == true,
@@ -717,6 +792,7 @@ class ImageResponse extends JsonBackedResponse {
   final String imgBase64;
 }
 
+/// Base64-encoded image result with its stored path.
 class FullPathImageResponse extends JsonBackedResponse {
   FullPathImageResponse(super.raw)
     : found = raw['found'] == true,
@@ -728,6 +804,7 @@ class FullPathImageResponse extends JsonBackedResponse {
   final String fullpath;
 }
 
+/// Raw per-record base64 image results.
 class ImageBulkResponse extends JsonBackedResponse {
   ImageBulkResponse(super.raw) : records = objectList(raw['records']);
 

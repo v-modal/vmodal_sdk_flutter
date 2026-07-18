@@ -3,12 +3,23 @@ import 'dart:convert';
 import 'api_key_provider.dart';
 import 'errors.dart';
 
+/// @nodoc
 const String publicGatewayUrlHash =
     'aHR0cHM6Ly9zZWFyY2hhcGktdGVzdC52LW1vZGFsLmNvbQ==';
+
+/// @nodoc
 final String publicGatewayUrl = utf8.decode(base64Decode(publicGatewayUrlHash));
+
+/// @nodoc
 const String devGatewayUrl = 'http://127.0.0.1:3099';
 
+/// Immutable client configuration and credential-provider binding.
+///
+/// The constructor validates timeout, retry, mode, and base-address values.
+/// Supply either [token] or an [apiKeyProvider]; a provider is preferred when
+/// credentials can rotate during a mobile session.
 class SdkConfig {
+  /// Creates and validates configuration with mobile-safe defaults.
   SdkConfig({
     String? baseUrl,
     this.userId = '',
@@ -32,14 +43,31 @@ class SdkConfig {
     _validateBase(normalizedBaseUrl);
   }
 
+  /// Configured service origin. It is normalized internally before use.
   final String baseUrl;
+
+  /// Optional known user identifier.
   final String userId;
+
+  /// Optional tenant identifier supplied with direct integrations.
   final String tenantId;
+
+  /// Optional user email supplied with direct integrations.
   final String email;
+
+  /// Static API key used when [apiKeyProvider] is absent.
   final String token;
+
+  /// Maximum duration for an SDK request.
   final Duration timeout;
+
+  /// Connection mode, either `gateway` or `direct`.
   final String mode;
+
+  /// Number of retries allowed for retryable SDK operations.
   final int maxRetries;
+
+  /// Optional rotating credential source.
   final ApiKeyProvider? apiKeyProvider;
 
   String get normalizedMode {
@@ -53,11 +81,13 @@ class SdkConfig {
   String get normalizedEmail => email.trim();
   int get normalizedMaxRetries => maxRetries;
 
+  /// Returns the current validated API key without storing provider output.
   String currentApiKey() {
     final value = apiKeyProvider?.current() ?? token;
     return value.trim().isEmpty ? '' : strApiKey(value);
   }
 
+  /// Returns a new validated configuration with selected values replaced.
   SdkConfig copyWith({
     String? baseUrl,
     String? userId,
@@ -80,6 +110,10 @@ class SdkConfig {
     apiKeyProvider: apiKeyProvider ?? this.apiKeyProvider,
   );
 
+  /// Builds configuration from the supported environment keys and overrides.
+  ///
+  /// A missing credential throws [ValidationException] unless
+  /// [apiKeyProvider] is supplied.
   factory SdkConfig.fromEnvironment(
     Map<String, String> env, {
     String? baseUrl,
@@ -148,6 +182,7 @@ class SdkConfig {
       'apiKeyProviderConfigured=${apiKeyProvider != null})';
 }
 
+/// @nodoc
 String strGatewayBaseUrl(String baseUrl, [String mode = '']) {
   final base = baseUrl.trim().replaceFirst(RegExp(r'/+$'), '');
   if (base.isEmpty || mode.trim().toLowerCase() != 'gateway') return base;
@@ -155,6 +190,7 @@ String strGatewayBaseUrl(String baseUrl, [String mode = '']) {
   return base.endsWith(suffix) ? base : '$base$suffix';
 }
 
+/// @nodoc
 String strUsersBaseUrl(String baseUrl) {
   final base = baseUrl.trim().replaceFirst(RegExp(r'/+$'), '');
   const suffix = '/api/v1/proxy/search_api';

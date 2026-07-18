@@ -8,11 +8,15 @@ import 'transport.dart';
 import 'upload.dart';
 import 'utils.dart';
 
+/// Authentication, identity, and service-health operations.
 class AuthResource {
+  /// @nodoc
   AuthResource(this.http);
 
+  /// @nodoc
   final VmodalHttp http;
 
+  /// Returns service health metadata.
   Future<HealthResponse> health({CancellationToken? cancellation}) async =>
       HealthResponse(
         await http.request(
@@ -22,11 +26,13 @@ class AuthResource {
         ),
       );
 
+  /// Returns `true` when the authenticated health check completes.
   Future<bool> authCheck({CancellationToken? cancellation}) async {
     await health(cancellation: cancellation);
     return true;
   }
 
+  /// Resolves the profile associated with the current API key.
   Future<UserProfile> me({CancellationToken? cancellation}) async =>
       UserProfile(
         await http.requestUsers(
@@ -37,11 +43,18 @@ class AuthResource {
       );
 }
 
+/// Multimodal media-search operations.
 class SearchesResource {
+  /// @nodoc
   SearchesResource(this.http);
 
+  /// @nodoc
   final VmodalHttp http;
 
+  /// Validates [request] and returns matching media results.
+  ///
+  /// Use [CancellationToken.cancel] when the owning screen is disposed or a
+  /// newer query supersedes this one.
   Future<SearchResponse> searchVideo(
     SearchRequest request, {
     CancellationToken? cancellation,
@@ -58,12 +71,18 @@ class SearchesResource {
   }
 }
 
+/// Collection discovery, mutation, and media-upload operations.
 class CollectionsResource {
+  /// @nodoc
   CollectionsResource(this.http, this.signedUploads);
 
+  /// @nodoc
   final VmodalHttp http;
+
+  /// @nodoc
   final SignedUploadTransport signedUploads;
 
+  /// Lists collections, optionally filtered by [mode].
   Future<GroupsResponse> listGroups({
     String? mode,
     CancellationToken? cancellation,
@@ -76,6 +95,10 @@ class CollectionsResource {
     ),
   );
 
+  /// Uploads a small file as one SDK request.
+  ///
+  /// Prefer [CollectionUploads.videoUpload] for signed uploads with progress
+  /// and cancellation.
   Future<UploadResponse> uploadFile(
     VmodalFilePart part, {
     String groupName = '',
@@ -100,10 +123,12 @@ class CollectionsResource {
     ),
   );
 
+  /// Always throws [FeatureDisabled] before any transport call.
   Never uploadFolder() => throw const FeatureDisabled(
     'folder upload is disabled on server (cannot scan remote PC/laptop)',
   );
 
+  /// Uploads JSON Lines metadata and returns the accepted metadata result.
   Future<MetadataParquetUploadResponse> uploadMetadataJsonl(
     VmodalFilePart part, {
     String mode = 'img_file',
@@ -144,6 +169,7 @@ class CollectionsResource {
     return MetadataParquetUploadResponse(raw);
   }
 
+  /// Adds existing [assetIds] to a collection after local validation.
   Future<CollectionAddAssetsResponse> addAssets({
     required String collectionId,
     required List<String> assetIds,
@@ -174,6 +200,7 @@ class CollectionsResource {
     );
   }
 
+  /// Updates the description and/or tags for one collection item.
   Future<CollectionDescriptionUpdateResponse> updateDescription({
     required String groupName,
     required String mode,
@@ -198,6 +225,10 @@ class CollectionsResource {
     ),
   );
 
+  /// Deletes collection data according to [scope].
+  ///
+  /// Use [dryRun] to inspect the operation before setting [confirm] for a
+  /// destructive deletion.
   Future<DeleteCollectionResponse> delete({
     required String groupName,
     required String mode,
@@ -224,25 +255,38 @@ class CollectionsResource {
     );
   }
 
+  /// Always throws [FeatureDisabled]; uploads create collections implicitly.
   Never create() => throw const FeatureDisabled(
     'no server endpoint; upload creates collection implicitly',
   );
+
+  /// Always throws [FeatureDisabled]; collection editing is not available.
   Never edit() => throw const FeatureDisabled(
     'no server endpoint; upload creates collection implicitly',
   );
+
+  /// Always throws [FeatureDisabled] before any transport call.
   Never autoIndexGet() => throw const FeatureDisabled(
     'collection auto_index is disabled on server',
   );
+
+  /// Always throws [FeatureDisabled] before any transport call.
   Never autoIndexSet() => throw const FeatureDisabled(
     'collection auto_index is disabled on server',
   );
 }
 
+/// Index lifecycle operations for searchable collections.
 class IndexesResource {
+  /// @nodoc
   IndexesResource(this.http);
 
+  /// @nodoc
   final VmodalHttp http;
 
+  /// Lists index jobs with optional filters.
+  ///
+  /// [limit] must be between 1 and 1000.
   Future<IndexationJobsListResponse> jobsList({
     String? status,
     String? mode,
@@ -268,6 +312,7 @@ class IndexesResource {
     );
   }
 
+  /// Validates and starts an indexation job.
   Future<IndexationSubmitResponse> createIndex(
     IndexationSubmitRequest request, {
     CancellationToken? cancellation,
@@ -283,6 +328,7 @@ class IndexesResource {
     );
   }
 
+  /// Returns the latest known state for [jobId].
   Future<IndexationStatusResponse> indexStatus(
     String jobId, {
     CancellationToken? cancellation,
@@ -311,6 +357,7 @@ class IndexesResource {
     }
   }
 
+  /// Validates and deletes the selected index data.
   Future<IndexationDeleteResponse> deleteIndex(
     IndexationDeleteRequest request, {
     CancellationToken? cancellation,
@@ -326,16 +373,21 @@ class IndexesResource {
     );
   }
 
+  /// Always throws [FeatureDisabled] before any transport call.
   Never embeddingModels() => throw const FeatureDisabled(
     'embedding models endpoint is disabled on server',
   );
 }
 
+/// Usage and operational-statistics queries for the active identity.
 class AdminResource {
+  /// @nodoc
   AdminResource(this.http);
 
+  /// @nodoc
   final VmodalHttp http;
 
+  /// Returns user-level search statistics.
   Future<AdminUserStatsResponse> userStats({
     CancellationToken? cancellation,
   }) async => AdminUserStatsResponse(
@@ -346,6 +398,7 @@ class AdminResource {
     ),
   );
 
+  /// Returns usage for [date], or the service default period when blank.
   Future<UsageUserDetail> usage({
     String date = '',
     CancellationToken? cancellation,
@@ -360,6 +413,7 @@ class AdminResource {
     ),
   );
 
+  /// Returns current cache and limiter statistics.
   Future<CacheStats> cacheStats({CancellationToken? cancellation}) async =>
       CacheStats(
         await http.requestUsers(
@@ -370,11 +424,15 @@ class AdminResource {
       );
 }
 
+/// Advanced signed object-upload preparation operations.
 class R2Resource {
+  /// @nodoc
   R2Resource(this.http);
 
+  /// @nodoc
   final VmodalHttp http;
 
+  /// Creates a temporary upload grant for one file.
   Future<PresignedUploadResponse> presignUploadFile({
     required String mode,
     required String groupName,
@@ -399,6 +457,7 @@ class R2Resource {
     ),
   );
 
+  /// Creates temporary upload grants for all [filenames].
   Future<PresignedFolderResponse> presignUploadFolderVideo({
     required String mode,
     required String groupName,
@@ -422,11 +481,15 @@ class R2Resource {
   );
 }
 
+/// Image-location and image-download operations.
 class ImagesResource {
+  /// @nodoc
   ImagesResource(this.http);
 
+  /// @nodoc
   final VmodalHttp http;
 
+  /// Resolves a temporary URL for one stored image.
   Future<ImageUrlResponse> getUrl({
     required String mode,
     required String groupName,
@@ -455,6 +518,9 @@ class ImagesResource {
     ),
   );
 
+  /// Resolves image URLs for [records] in one call.
+  ///
+  /// Identity fields in records are ignored outside direct mode.
   Future<ImageUrlBulkResponse> getUrlBulk(
     List<Map<String, Object?>> records, {
     String? userid,
@@ -484,6 +550,7 @@ class ImagesResource {
     );
   }
 
+  /// Downloads image bytes from a previously returned temporary URL.
   Future<Uint8List> getImageFromUrl(
     String urlPreSigned, {
     String? userid,
@@ -500,6 +567,7 @@ class ImagesResource {
     cancellation: cancellation,
   );
 
+  /// Downloads several images represented by [urls].
   Future<ImageGetBulkResponse> getImageBulkFromUrls(
     List<String> urls, {
     String? userid,
@@ -519,16 +587,22 @@ class ImagesResource {
   );
 }
 
+/// Disabled Google Drive compatibility surface.
 class GDriveResource {
+  /// Always throws [FeatureDisabled] before any transport call.
   Never privateAuthUrl() => throw const FeatureDisabled(
     'private google drive auth endpoint is disabled on server',
   );
+
+  /// Always throws [FeatureDisabled] before any transport call.
   Never privateDownload() => throw const FeatureDisabled(
     'private google drive download endpoint is disabled on server',
   );
 }
 
+/// Disabled SQL compatibility surface.
 class SqlResource {
+  /// Always throws [FeatureDisabled] before any transport call.
   Never query() =>
       throw const FeatureDisabled('sql query endpoint is disabled on server');
 }

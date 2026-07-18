@@ -1,5 +1,13 @@
 # SDK guide
 
+The generated class and method reference is published at
+`https://v-modal.github.io/vmodal_sdk_flutter/` and is built from the public
+Dart declarations in `lib/vmodal_sdk_flutter.dart`. The monorepo release
+pipeline builds the Pages artifact in `docs_sdk/`; that generated tree is not
+part of the standalone package. Backend hosts, wire paths, and implementation
+bodies are intentionally excluded; mobile applications should use the typed
+resources described there.
+
 Construct `VmodalClient` with an explicit `SdkConfig` and an app-owned
 `ApiKeyProvider`. All ordinary operations are asynchronous. Gateway mode is the
 default and sends only `Authorization: Bearer <key>` as caller identity.
@@ -20,4 +28,3 @@ and per-task cancellation. Multipart requires explicit opt-in and is experimenta
 Flutter Web, login UI, key persistence, file picking, widget state management,
 and background scheduling are outside the package. The first release supports
 Flutter applications on Android and iOS.
-

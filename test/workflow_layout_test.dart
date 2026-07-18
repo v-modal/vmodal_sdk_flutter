@@ -22,16 +22,16 @@ final examplePubspec = File('example/pubspec.yaml').readAsStringSync();
 
 void checkWorkflow(String main, String tagged) {
   const releaseOnly =
-      "if: \${{ github.event_name == 'workflow_dispatch' && !inputs.publish_docs_swagger_only && (inputs.publish_sdk_flutter || inputs.publish_pub_dev) }}";
+      "if: \${{ github.event_name == 'workflow_dispatch' && !inputs.publish_sdk_docs_only && (inputs.publish_sdk_flutter || inputs.publish_pub_dev) }}";
   const publishDocs =
-      "if: \${{ github.event_name == 'workflow_dispatch' && (inputs.publish_sdk_flutter || inputs.publish_pub_dev || inputs.publish_docs_swagger_only) }}";
+      "if: \${{ github.event_name == 'workflow_dispatch' && (inputs.publish_sdk_flutter || inputs.publish_pub_dev || inputs.publish_sdk_docs_only) }}";
   const buildDocs =
-      "if: \${{ always() && github.event_name == 'workflow_dispatch' && (inputs.publish_sdk_flutter || inputs.publish_pub_dev || inputs.publish_docs_swagger_only) && needs.secret_detection.result == 'success' && (inputs.publish_docs_swagger_only || needs.publish_sdk_flutter.result == 'success') }}";
+      "if: \${{ always() && github.event_name == 'workflow_dispatch' && (inputs.publish_sdk_flutter || inputs.publish_pub_dev || inputs.publish_sdk_docs_only) && needs.secret_detection.result == 'success' && (inputs.publish_sdk_docs_only || needs.publish_sdk_flutter.result == 'success') }}";
   expect(main, contains('name: sdk_flutter_test_release'));
   expect(main, contains('publish_sdk_flutter:'));
   expect(main, contains('publish_pub_dev:'));
-  expect(main, contains('publish_docs_swagger_only:'));
-  expect(main, contains('description: Publish only the doc swagger'));
+  expect(main, contains('publish_sdk_docs_only:'));
+  expect(main, contains('description: Publish only the Flutter SDK reference'));
   expect(main, contains('default: true'));
   expect(main, contains('group: sdk_flutter_release_\${{ github.ref }}'));
   expect(main, contains('WORKDIR: uinterface/sdk_flutter'));
@@ -51,7 +51,7 @@ void checkWorkflow(String main, String tagged) {
   expect(
     main,
     contains(
-      'offline_test:\n    if: \${{ !inputs.publish_docs_swagger_only }}\n    runs-on: ubuntu-latest',
+      'offline_test:\n    if: \${{ !inputs.publish_sdk_docs_only }}\n    runs-on: ubuntu-latest',
     ),
   );
   expect(
@@ -75,7 +75,7 @@ void checkWorkflow(String main, String tagged) {
   expect(
     main,
     contains(
-      'if: \${{ !inputs.publish_docs_swagger_only && inputs.publish_pub_dev }}',
+      'if: \${{ !inputs.publish_sdk_docs_only && inputs.publish_pub_dev }}',
     ),
   );
   expect(main, contains('environment: sdk-flutter-production'));
@@ -99,28 +99,42 @@ void checkWorkflow(String main, String tagged) {
   expect(
     main,
     contains(
-      'if: \${{ !inputs.publish_docs_swagger_only && (inputs.publish_sdk_flutter || inputs.publish_pub_dev) }}',
+      'if: \${{ !inputs.publish_sdk_docs_only && (inputs.publish_sdk_flutter || inputs.publish_pub_dev) }}',
     ),
   );
   expect(
     main,
     contains(
-      'swagger_docs_artifact:\n    needs: [secret_detection, publish_sdk_flutter]\n    $buildDocs',
+      'sdk_docs_artifact:\n    needs: [secret_detection, publish_sdk_flutter]\n    $buildDocs',
     ),
   );
   expect(
     main,
     contains(
-      'publish_swagger_docs:\n    needs: swagger_docs_artifact\n    $publishDocs',
+      'publish_sdk_docs:\n    needs: sdk_docs_artifact\n    $publishDocs',
     ),
   );
   expect(main, contains('python "\$WORKDIR/docs.py" generate'));
   expect(main, contains('python "\$WORKDIR/docs.py" check'));
+  expect(main, contains('bash "\$WORKDIR/install.sh" install'));
   expect(
     main,
-    contains('openapi-spec-validator "\$WORKDIR/docs_swagger/swagger.yaml"'),
+    contains('python -m pip install --disable-pip-version-check fire==0.7.1'),
   );
-  expect(main, contains('path: \${{ env.WORKDIR }}/docs_swagger'));
+  expect(main, contains('path: \${{ env.WORKDIR }}/docs_sdk'));
+  expect(
+    main,
+    contains('sdk-flutter-docs-\${{ github.run_id }}-\${{ github.sha }}'),
+  );
+  expect(main, contains('"\$WORKDIR/docs_sdk/index.html"'));
+  expect(main, contains('"\$WORKDIR/docs_sdk/index.json"'));
+  expect(
+    main,
+    contains('"\$WORKDIR/docs_sdk/vmodal_sdk_flutter/VmodalClient-class.html"'),
+  );
+  expect(main, isNot(contains('PyYAML')));
+  expect(main, isNot(contains('openapi-spec-validator')));
+  expect(main.toLowerCase(), isNot(contains('swagger')));
   expect(main, contains('include-hidden-files: true'));
   expect(main, contains('DOCS_REPOSITORY: v-modal/vmodal_sdk_flutter'));
   expect(
@@ -134,6 +148,8 @@ void checkWorkflow(String main, String tagged) {
   expect(main, contains('"\$DOCS_URL/RELEASE_SHA"'));
   expect(main, contains('for attempt in {1..30}'));
   expect(main, contains('https://pub.dev/api/packages/vmodal_sdk_flutter'));
+  expect(main, contains('dartdoc_options.yaml'));
+  expect(main, contains("--exclude='todo'"));
 
   final actions = RegExp(
     r'uses:\s+[^\s]+@([^\s]+)',

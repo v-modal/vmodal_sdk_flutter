@@ -44,6 +44,7 @@ void main() {
 
   test('required implementation and release artifacts exist', () {
     const files = <String>[
+      'dartdoc_options.yaml',
       'lib/vmodal_sdk_flutter.dart',
       'lib/src/client.dart',
       'lib/src/transport.dart',
@@ -73,6 +74,39 @@ void main() {
     );
   });
 
+  test('dartdoc exposes only the public library', () {
+    final text = File('dartdoc_options.yaml').readAsStringSync();
+    expect(text, contains('include:'));
+    expect(text, contains('- vmodal_sdk_flutter'));
+    expect(text, contains('nodoc:'));
+    expect(text, contains('- lib/src/http.dart'));
+    expect(text, contains('- lib/src/routes.dart'));
+    expect(text, contains('- ambiguous-doc-reference'));
+    expect(text, contains('- broken-link'));
+    expect(text, contains('- unresolved-doc-reference'));
+    final api = File('lib/vmodal_sdk_flutter.dart').readAsStringSync();
+    expect(
+      api,
+      contains(
+        "export 'src/routes.dart' show RouteCategory, RouteSpec, Routes;",
+      ),
+      reason: 'documentation exclusions must not remove runtime exports',
+    );
+  });
+
+  test('package publication excludes internal documentation artifacts', () {
+    final text = File('.pubignore').readAsStringSync();
+    for (final path in <String>[
+      'docs/todo/',
+      'docs_sdk/',
+      'docs.py',
+      'utils.py',
+    ]) {
+      expect(text, contains(path), reason: path);
+    }
+    expect(text, isNot(contains('dartdoc_options.yaml')));
+  });
+
   test('default all suite remains offline', () {
     final text = File('test.sh').readAsStringSync();
     final body = RegExp(
@@ -99,6 +133,7 @@ void main() {
       ]);
       expect(result.exitCode, 0, reason: '${result.stderr}');
       expect(File('${dir.path}/pubspec.lock').existsSync(), isTrue);
+      expect(File('${dir.path}/dartdoc_options.yaml').existsSync(), isTrue);
       for (final path in <String>[
         'install.sh',
         'build.sh',
@@ -120,6 +155,10 @@ void main() {
         'example/ios/Flutter/ephemeral',
         'example/ios/Runner/GeneratedPluginRegistrant.h',
         'example/ios/Runner/GeneratedPluginRegistrant.m',
+        'doc/todo/sdk_doc.md',
+        'docs_sdk',
+        'docs.py',
+        'utils.py',
       ]) {
         expect(
           FileSystemEntity.typeSync('${dir.path}/$path'),

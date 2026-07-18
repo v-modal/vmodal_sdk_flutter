@@ -4,10 +4,13 @@
 .idea/
 build/
 coverage/
+docs/todo/
 docs/dev_plan.md
 docs/dev_plan_step.md
+docs_sdk/
+docs.py
 release/
 tool/live_test.dart
+utils.py
 SOURCE_MANIFEST.sha256
 *.iml
-

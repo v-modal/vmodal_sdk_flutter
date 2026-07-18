@@ -10,24 +10,41 @@ import 'config.dart';
 import 'errors.dart';
 import 'utils.dart';
 
-enum VmodalResponseMode { json, bytes }
+/// Expected response representation for a [VmodalRequest].
+enum VmodalResponseMode {
+  /// Decode a bounded structured response.
+  json,
 
+  /// Return bounded binary bytes.
+  bytes,
+}
+
+/// Cooperative cancellation signal shared with an in-flight operation.
 class CancellationToken {
   final Completer<void> _abort = Completer<void>();
 
+  /// Whether [cancel] has been called.
   bool get isCanceled => _abort.isCompleted;
+
+  /// Completes once cancellation is requested.
   Future<void> get whenCanceled => _abort.future;
 
+  /// Requests cancellation. Repeated calls have no effect.
   void cancel() {
     if (!_abort.isCompleted) _abort.complete();
   }
 
+  /// Throws [OperationCanceled] after cancellation has been requested.
   void throwIfCanceled() {
     if (isCanceled) throw const OperationCanceled();
   }
 }
 
+/// Replayable file part used by multipart SDK operations.
 class VmodalFilePart {
+  /// Creates a part backed by [opener].
+  ///
+  /// Names, content type, and non-negative [contentLength] are validated.
   VmodalFilePart({
     required this.fieldName,
     required this.fileName,
@@ -43,6 +60,7 @@ class VmodalFilePart {
     }
   }
 
+  /// Creates a replayable part from an in-memory byte list.
   factory VmodalFilePart.bytes({
     required String fieldName,
     required String fileName,
@@ -59,15 +77,26 @@ class VmodalFilePart {
     );
   }
 
+  /// Form field associated with the file.
   final String fieldName;
+
+  /// File name reported to the service.
   final String fileName;
+
+  /// Exact number of bytes produced by [open].
   final int contentLength;
+
+  /// Media type for the part.
   final String contentType;
   final Stream<List<int>> Function() _opener;
 
+  /// Opens a fresh byte stream for this part.
   Stream<List<int>> open() => _opener();
 }
 
+/// Creates a replayable part from [file].
+///
+/// Throws [ValidationException] when the file does not exist.
 VmodalFilePart filePart(String fieldName, File file, {String? contentType}) {
   if (!file.existsSync()) {
     throw const ValidationException('file must exist');
@@ -81,6 +110,7 @@ VmodalFilePart filePart(String fieldName, File file, {String? contentType}) {
   );
 }
 
+/// Creates a replayable part from a caller-provided stream factory.
 VmodalFilePart streamPart({
   required String fieldName,
   required String fileName,
@@ -95,6 +125,7 @@ VmodalFilePart streamPart({
   opener: opener,
 );
 
+/// Infers a conservative media type from [name].
 String guessContentType(String name) {
   final ext = name.contains('.') ? name.split('.').last.toLowerCase() : '';
   return switch (ext) {
@@ -107,7 +138,12 @@ String guessContentType(String name) {
   };
 }
 
+/// Transport-neutral request supplied to [VmodalTransport].
+///
+/// Applications normally use resource methods instead of constructing this
+/// type. Custom transport implementations can inspect its immutable fields.
 class VmodalRequest {
+  /// Creates a request, assigning a fresh cancellation token when omitted.
   VmodalRequest({
     required this.method,
     required this.uri,
@@ -140,7 +176,9 @@ class VmodalRequest {
       'fileCount=${files.length})';
 }
 
+/// Streaming transport response consumed by the SDK.
 class VmodalResponse {
+  /// Creates a response with immutable status and metadata.
   const VmodalResponse({
     required this.statusCode,
     required this.body,
@@ -160,9 +198,12 @@ class VmodalResponse {
       'contentLength=$contentLength)';
 }
 
+/// Pluggable request transport owned by [VmodalClient].
 abstract interface class VmodalTransport {
+  /// Sends [request] and returns its streaming response.
   Future<VmodalResponse> send(VmodalRequest request);
 
+  /// Releases transport resources. Implementations should be idempotent.
   Future<void> close();
 }
 

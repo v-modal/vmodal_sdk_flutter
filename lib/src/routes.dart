@@ -1,5 +1,6 @@
 import 'errors.dart';
 
+/// @nodoc
 enum RouteCategory {
   active,
   usersApi,
@@ -10,6 +11,7 @@ enum RouteCategory {
   disabled,
 }
 
+/// @nodoc
 class RouteSpec {
   const RouteSpec(
     this.name,
@@ -26,6 +28,7 @@ class RouteSpec {
   final String source;
 }
 
+/// @nodoc
 abstract final class Routes {
   static const String prefix = '/api/external/v1';
   static const String usersApiPrefix = '/api/v1';

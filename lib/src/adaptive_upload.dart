@@ -2,13 +2,18 @@ import 'dart:math';
 
 import 'errors.dart';
 
+/// Network family observed when choosing multipart settings.
 enum UploadNetworkType { wifi, cellular, unknown }
 
+/// Approximate throughput category observed by the app.
 enum UploadNetworkSpeed { slow, standard, fast, unknown }
 
+/// Memory capacity category supplied by the app.
 enum UploadDeviceMemory { low, standard, high }
 
+/// Device and network conditions used by [AdaptiveUploadPolicy].
 class UploadConditions {
+  /// Creates a conditions snapshot with conservative unknown-network defaults.
   const UploadConditions({
     this.networkType = UploadNetworkType.unknown,
     this.networkSpeed = UploadNetworkSpeed.unknown,
@@ -20,7 +25,9 @@ class UploadConditions {
   final UploadDeviceMemory deviceMemory;
 }
 
+/// Resolved multipart settings for the current source and conditions.
 class AdaptiveUploadPreset {
+  /// Creates an immutable preset.
   const AdaptiveUploadPreset({
     required this.name,
     required this.partSizeBytes,
@@ -36,7 +43,11 @@ class AdaptiveUploadPreset {
   final Duration partTimeout;
 }
 
+/// Selects bounded multipart settings from source size and app observations.
 abstract final class AdaptiveUploadPolicy {
+  /// Returns a deterministic preset for [sizeBytes] and [conditions].
+  ///
+  /// Throws [ValidationException] when [sizeBytes] is negative.
   static AdaptiveUploadPreset select(
     int sizeBytes,
     UploadConditions conditions,

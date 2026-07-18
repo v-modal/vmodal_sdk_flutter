@@ -101,31 +101,34 @@ class VmodalClient {
     DelayStrategy? delay,
   }) async {
     final config = SdkConfig.fromEnvironment(env);
-    var client = VmodalClient(
+    final client = VmodalClient(
       config: config,
       transport: transport,
       signedUploadTransport: signedUploadTransport,
       delay: delay,
     );
     if (!resolveIdentity || config.normalizedUserId.isNotEmpty) return client;
-    final profile = await client.auth.me();
-    final userId = profile.userId?.trim() ?? '';
-    if (userId.isEmpty) {
+    try {
+      final profile = await client.auth.me();
+      final userId = profile.userId?.trim() ?? '';
+      if (userId.isEmpty) {
+        throw const AuthException('auth/me returned no user_id');
+      }
+      final resolved = config.copyWith(
+        userId: userId,
+        tenantId: profile.tenantId ?? '',
+        email: profile.email ?? '',
+      );
+      return VmodalClient(
+        config: resolved,
+        transport: client.transport,
+        signedUploadTransport: client.signedUploadTransport,
+        delay: delay,
+      );
+    } on Object {
       await client.close();
-      throw const AuthException('auth/me returned no user_id');
+      rethrow;
     }
-    final resolved = config.copyWith(
-      userId: userId,
-      tenantId: profile.tenantId ?? '',
-      email: profile.email ?? '',
-    );
-    client = VmodalClient(
-      config: resolved,
-      transport: transport,
-      signedUploadTransport: signedUploadTransport,
-      delay: delay,
-    );
-    return client;
   }
 
   /// Creates a direct-mode client for controlled development integrations.

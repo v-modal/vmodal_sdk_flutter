@@ -7,6 +7,7 @@ class FakeTransport implements VmodalTransport {
   final List<VmodalRequest> requests = <VmodalRequest>[];
   final List<Object> queued = <Object>[];
   bool closed = false;
+  int closeCalls = 0;
 
   void addJson(
     Map<String, Object?> value, {
@@ -48,6 +49,7 @@ class FakeTransport implements VmodalTransport {
   @override
   Future<void> close() async {
     closed = true;
+    closeCalls++;
   }
 }
 
@@ -102,6 +104,7 @@ class FakeSignedUploadTransport implements SignedUploadTransport {
   int active = 0;
   int maxActive = 0;
   bool closed = false;
+  int closeCalls = 0;
 
   @override
   Future<SignedUploadResult> upload({
@@ -147,6 +150,7 @@ class FakeSignedUploadTransport implements SignedUploadTransport {
   @override
   Future<void> close() async {
     closed = true;
+    closeCalls++;
   }
 }
 

@@ -7,6 +7,7 @@ final docsRoot = Directory('docs_sdk');
 final internalDocs = docsRoot.existsSync() && File('docs.py').existsSync();
 
 final requiredDocs = <String>[
+  'README.md',
   'index.html',
   'index.json',
   'vmodal_sdk_flutter/index.html',

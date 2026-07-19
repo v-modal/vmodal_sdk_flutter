@@ -10,7 +10,10 @@ docs/dev_plan_step.md
 docs_sdk/
 docs.py
 release/
+test/routes_gen_test.dart
+tool/gen_routes.dart
 tool/live_test.dart
+tool/routes_manifest.dart
 utils.py
 SOURCE_MANIFEST.sha256
 *.iml

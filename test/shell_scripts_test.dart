@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 const scripts = <String>[
+  'cli.sh',
   'install.sh',
   'build.sh',
   'run.sh',
@@ -74,6 +75,7 @@ void main() {
       'toolchain',
       'version',
       'license',
+      'routes',
       'package',
       'secrets',
       'all',
@@ -89,6 +91,7 @@ void main() {
       'sdk_security_toolchain',
       'sdk_security_version',
       'sdk_security_license',
+      'sdk_security_routes',
       'sdk_security_package',
       'sdk_security_secrets',
     ]) {
@@ -106,5 +109,15 @@ void main() {
     expect(live, contains('.findGroup(group, mode: \'vid_file\')'));
     expect(live, contains('?.latestLancedbVersion'));
     expect(live, contains('versionLancedb: version'));
+  });
+
+  test('pre-commit regenerates the SDK reference for Flutter changes', () {
+    final config = File('../../.pre-commit-config.yaml').readAsStringSync();
+    final cli = File('cli.sh').readAsStringSync();
+    expect(config, contains('files: ^uinterface/sdk_flutter/'));
+    expect(config, contains('cli.sh docs_precommit'));
+    expect(cli, contains('docs.py" generate'));
+    expect(cli, contains('docs.py" check'));
+    expect(cli, contains('diff --cached --name-only'));
   });
 }

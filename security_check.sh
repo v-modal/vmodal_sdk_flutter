@@ -4,6 +4,7 @@ help='
 
   Examples:
     bash security_check.sh workflow
+    bash security_check.sh routes
     bash security_check.sh all
 '
 set -euo pipefail
@@ -68,6 +69,60 @@ sdk_security_license() {
   grep -q '^license: MIT$' pubspec.yaml
 }
 
+sdk_security_routes() {
+  local help='
+    ## Usage:
+      bash security_check.sh routes
+  '
+  local dart literal temp status=0
+  dart="$(bash install.sh dart_bin)"
+  for literal in \
+      '/api/external/v1' \
+      '/api/internal/v1' \
+      '/api/v1/proxy/search_api' \
+      'http://127.0.0.1:3099' \
+      'searchapi-test.v-modal.com'; do
+    if grep -R -F -n --include='*.dart' "$literal" lib; then
+      echo "Plaintext SDK endpoint found in lib/: $literal" >&2
+      status=3
+    fi
+  done
+  while IFS= read -r literal; do
+    [[ -n "$literal" ]] || continue
+    if grep -R -F -n --include='*.dart' "$literal" lib; then
+      echo "Plaintext route found in lib/: $literal" >&2
+      status=3
+    fi
+  done < <(
+    grep -o '"path":"[^"]*"' test/fixtures/routes_contract.json |
+      sed -e 's/^"path":"//' -e 's/"$//' |
+      sort -u
+  )
+  if [[ -f tool/routes_manifest.dart && -f tool/gen_routes.dart ]]; then
+    while IFS= read -r literal; do
+      [[ -n "$literal" ]] || continue
+      if grep -R -F -n --include='*.dart' "$literal" lib; then
+        echo "Plaintext route found in lib/: $literal" >&2
+        status=3
+      fi
+    done < <("$dart" run tool/gen_routes.dart literals)
+    temp="$(mktemp "${TMPDIR:-/tmp}/vmodal-routes.XXXXXX.dart")"
+    trap 'rm -f "${temp:-}"' RETURN
+    "$dart" run tool/gen_routes.dart "$temp"
+    if ! cmp -s lib/src/routes.g.dart "$temp"; then
+      echo 'Generated route table is stale. Run dart run tool/gen_routes.dart.' >&2
+      diff -u lib/src/routes.g.dart "$temp" || true
+      status=3
+    fi
+  elif [[ -f tool/routes_manifest.dart || -f tool/gen_routes.dart ]]; then
+    echo 'Route generator and manifest must exist together.' >&2
+    status=3
+  else
+    echo 'Route freshness check skipped in the public source export.'
+  fi
+  return "$status"
+}
+
 sdk_security_package() {
   local help='
     ## Usage:
@@ -128,6 +183,7 @@ sdk_security_all() {
   sdk_security_toolchain
   sdk_security_version
   sdk_security_license
+  sdk_security_routes
   sdk_security_package
   sdk_security_secrets
 }
@@ -145,6 +201,7 @@ case "${1:-help}" in
   toolchain) sdk_security_toolchain ;;
   version) sdk_security_version ;;
   license) sdk_security_license ;;
+  routes) sdk_security_routes ;;
   package) sdk_security_package ;;
   secrets) sdk_security_secrets ;;
   all) sdk_security_all ;;

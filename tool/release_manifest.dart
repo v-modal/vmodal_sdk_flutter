@@ -113,6 +113,9 @@ Future<void> _export(Directory root, Directory destination) async {
       await _copyDirectory(
         Directory('${root.path}/$name'),
         Directory('${destination.path}/$name'),
+        excluded: name == 'test'
+            ? const <String>{'routes_gen_test.dart'}
+            : const <String>{},
       );
     } else {
       throw StateError('export source missing: $name');

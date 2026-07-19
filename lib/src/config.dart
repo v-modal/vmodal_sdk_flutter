@@ -11,7 +11,15 @@ const String publicGatewayUrlHash =
 final String publicGatewayUrl = utf8.decode(base64Decode(publicGatewayUrlHash));
 
 /// @nodoc
-const String devGatewayUrl = 'http://127.0.0.1:3099';
+const String devGatewayUrlHash = 'aHR0cDovLzEyNy4wLjAuMTozMDk5';
+
+/// @nodoc
+final String devGatewayUrl = utf8.decode(base64Decode(devGatewayUrlHash));
+
+const String _gatewayProxyPathHash = 'L2FwaS92MS9wcm94eS9zZWFyY2hfYXBp';
+final String _gatewayProxyPath = utf8.decode(
+  base64Decode(_gatewayProxyPathHash),
+);
 
 /// Immutable client configuration and credential-provider binding.
 ///
@@ -186,14 +194,14 @@ class SdkConfig {
 String strGatewayBaseUrl(String baseUrl, [String mode = '']) {
   final base = baseUrl.trim().replaceFirst(RegExp(r'/+$'), '');
   if (base.isEmpty || mode.trim().toLowerCase() != 'gateway') return base;
-  const suffix = '/api/v1/proxy/search_api';
+  final suffix = _gatewayProxyPath;
   return base.endsWith(suffix) ? base : '$base$suffix';
 }
 
 /// @nodoc
 String strUsersBaseUrl(String baseUrl) {
   final base = baseUrl.trim().replaceFirst(RegExp(r'/+$'), '');
-  const suffix = '/api/v1/proxy/search_api';
+  final suffix = _gatewayProxyPath;
   return base.endsWith(suffix)
       ? base.substring(0, base.length - suffix.length)
       : base;

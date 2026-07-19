@@ -50,8 +50,11 @@ void main() {
       'lib/src/transport.dart',
       'lib/src/upload.dart',
       'lib/src/adaptive_upload.dart',
+      'lib/src/routes.g.dart',
       'tool/check_route_sync.dart',
+      'tool/gen_routes.dart',
       'tool/release_manifest.dart',
+      'tool/routes_manifest.dart',
       'example/lib/main.dart',
     ];
     for (final path in files) {
@@ -101,6 +104,9 @@ void main() {
       'docs_sdk/',
       'docs.py',
       'utils.py',
+      'test/routes_gen_test.dart',
+      'tool/gen_routes.dart',
+      'tool/routes_manifest.dart',
     ]) {
       expect(text, contains(path), reason: path);
     }
@@ -159,6 +165,9 @@ void main() {
         'docs_sdk',
         'docs.py',
         'utils.py',
+        'test/routes_gen_test.dart',
+        'tool/gen_routes.dart',
+        'tool/routes_manifest.dart',
       ]) {
         expect(
           FileSystemEntity.typeSync('${dir.path}/$path'),

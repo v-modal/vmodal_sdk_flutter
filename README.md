@@ -45,12 +45,24 @@ successful until the `publish_sdk_docs` job passes its deployed SHA check.
 From the monorepo root:
 
 ```bash
-source ./isetup_env.sh
-export PYTHONPATH=$(pwd)
-python uinterface/sdk_flutter/docs.py generate
-python uinterface/sdk_flutter/docs.py check
+./cli.sh flutter docs_generate
+./cli.sh flutter docs_check
 python -m http.server 8000 --directory uinterface/sdk_flutter/docs_sdk
 ```
 
 Then open `http://localhost:8000/`. Commit public API comments, generator
 changes, this README, and regenerated `docs_sdk/` output together.
+
+## Pre-commit regeneration
+
+Install the repository's pre-commit hook once:
+
+```bash
+pre-commit install
+```
+
+The local hook in `.pre-commit-config.yaml` runs
+`./cli.sh flutter docs_precommit` whenever staged files under
+`uinterface/sdk_flutter/` change. It regenerates and verifies the reference. If
+the generated tree changes, the hook stops the commit so you can stage
+`uinterface/sdk_flutter/docs_sdk/` and commit again.

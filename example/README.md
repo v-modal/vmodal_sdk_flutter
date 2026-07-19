@@ -8,7 +8,7 @@ iOS:
 3. List the existing index jobs for the selected collection.
 4. Reuse ready data, or upload the bundled 10-frame sample or another video.
 5. Create an image index when needed and wait until it is ready.
-6. Search the indexed collection and inspect result fields.
+6. Search the indexed collection and inspect its responsive image grid.
 
 The runnable example is intentionally simple. It keeps its UI and SDK calls in
 [`lib/main.dart`](lib/main.dart), so a beginner can follow the main flow in one
@@ -341,8 +341,9 @@ was accepted, not that search data is ready. Use the visible refresh action or
 1. Leave the default query, `red`, for the bundled colored sample or enter a
    visual description for your chosen video.
 2. Tap **Search** after indexing succeeds.
-3. Inspect up to five result cards showing the best available title/item ID,
-   source modality, timestamp, and normalized score.
+3. Inspect the responsive result grid. Each card shows a square frame, the best
+   available title, filename, stream, timestamp, and score. The summary keeps
+   total search matches separate from images that could be resolved.
 
 Search and upload use the same **Collection** and **Stream** fields. The example
 refreshes the authenticated key's collection list before every search and
@@ -364,13 +365,40 @@ final result = await client.searches.searchVideo(
     versionLancedb: version,
   ),
 );
+
+final candidates = exampleSearchCandidates(
+  result,
+  collectionName,
+  streamName,
+);
+final resolved = candidates.isEmpty
+    ? null
+    : await client.images.getUrlBulk(
+        candidates.map((candidate) => candidate.record).toList(),
+      );
+final images = resolved == null
+    ? const <ExampleSearchImage>[]
+    : exampleSearchImages(candidates, resolved);
+
+for (final image in images) {
+  // The real grid uses the same URL without attaching VModal auth headers.
+  Image(image: NetworkImage(image.url), semanticLabel: image.title);
+}
 ```
+
+The application code accepts the documented filename aliases, normalizes path
+basenames and timestamps, omits unusable hits, and validates `input_index`
+before joining a URL to a ranked hit. It sends all usable lookup records in one
+`getUrlBulk` call; it does not issue one image request per result. An omitted or
+failed image record reduces the displayed-image count without changing the
+backend match count or hiding successfully resolved siblings.
 
 A zero result count is still successful. Search is blocked locally when the
 Collection value is not returned for the current key. If the collection exists
 but has no advertised LanceDB version, the example asks the user to create or
 finish its image index instead of omitting `version_lancedb` and accidentally
-requesting the backend's `v0` default.
+requesting the backend's `v0` default. Resolved URLs are temporary: the example
+keeps them only in widget state and requests fresh URLs on every search.
 
 ## 12. Stop and clean up
 
@@ -410,10 +438,12 @@ The main learning points in [`lib/main.dart`](lib/main.dart) are:
 - `VmodalClient` provides typed SDK resources.
 - `client.auth.me()` resolves the current identity.
 - `client.searches.searchVideo()` performs natural-language video search.
+- `client.images.getUrlBulk()` resolves all usable search hits in one request.
 - `client.collections.videoUpload()` creates a cancellable upload task.
 - `openFile()` supplies an app-readable video path through `file_selector`.
 - `client.indexes.createIndex()` and `indexStatus()` expose background work.
-- Raw search rows are rendered as compact result cards.
+- Validated `input_index` values couple ranked hits to temporary image URLs.
+- Search images render in a responsive grid with local loading/error states.
 - `rootBundle.load()` copies the bundled sample into a temporary `File`.
 - `SdkException` provides SDK and API error details.
 
@@ -478,6 +508,22 @@ Check the status text at the bottom of the application. Confirm that:
 - the key belongs to the correct backend environment; and
 - the VModal service is reachable from the device.
 
+### Matches exist but no image-backed matches are shown
+
+The search service can return a match that has no usable filename or whose
+stored image cannot be resolved. The summary still reports the backend match
+count while the app displays **No image-backed matches were found.** Confirm
+the collection's image index is complete and that the hit contains a supported
+video filename/path field.
+
+### `Image unavailable`
+
+A temporary image URL may have expired, the device may be offline, or the
+source frame may no longer exist. The failure stays inside that card so other
+results remain visible. Restore connectivity and run the search again to obtain
+fresh URLs. Do not log or persist presigned URLs, and do not attach the VModal
+Bearer header when Flutter downloads them.
+
 ### `Select an app-accessible file first`
 
 The path is empty, the file does not exist on the mobile device, or the app
@@ -501,7 +547,7 @@ bash build.sh pub_get
 
 ## Next steps
 
-- Read the [SDK guide](../docs/sdk_doc.md).
-- Learn how to [manage API keys](../docs/manage_api_key.md).
-- Follow the [search application guide](../docs/search_app.md).
-- Review the [SDK contract](../docs/sdk_contract.md).
+- Read the [SDK guide](../doc/sdk_doc.md).
+- Learn how to [manage API keys](../doc/manage_api_key.md).
+- Follow the [search application guide](../doc/search_app.md).
+- Review the [SDK contract](../doc/sdk_contract.md).

@@ -146,9 +146,26 @@ void main() {
         'run.sh',
         'test.sh',
         'tool/live_test.dart',
+        'example/README.md',
+        'example/lib/main.dart',
+        'example/asset/video_10frames.mp4',
+        'doc/search_app.md',
+        'doc/sdk_doc.md',
+        'doc/manage_api_key.md',
+        'doc/sdk_contract.md',
       ]) {
         expect(File('${dir.path}/$path').existsSync(), isTrue, reason: path);
       }
+      final exampleReadme = File(
+        '${dir.path}/example/README.md',
+      ).readAsStringSync();
+      final searchGuide = File(
+        '${dir.path}/doc/search_app.md',
+      ).readAsStringSync();
+      expect(exampleReadme, contains('client.images.getUrlBulk'));
+      expect(exampleReadme, contains('responsive result grid'));
+      expect(searchGuide, contains('input_index'));
+      expect(searchGuide, contains('NetworkImage'));
       for (final path in <String>[
         'example/android/local.properties',
         'example/android/gradle/wrapper/gradle-wrapper.jar',

@@ -61,31 +61,177 @@ List<Map<String, Object?>> exampleSearchRows(SearchResponse response) =>
           (Map<Object?, Object?> row) =>
               row.map((Object? key, Object? value) => MapEntry('$key', value)),
         )
-        .take(5)
         .toList();
 
-String exampleResultTitle(Map<String, Object?> row) {
-  for (final key in <String>[
-    'effective_title',
-    'title',
-    'item_id',
-    'text_agg_tok',
-  ]) {
+String exampleFirstText(Map<String, Object?> row, List<String> keys) {
+  for (final key in keys) {
     final value = '${row[key] ?? ''}'.trim();
     if (value.isNotEmpty) return value;
   }
-  return 'Untitled result';
+  return '';
 }
 
-String exampleResultDetails(Map<String, Object?> row) {
-  final values = <String>[];
-  final source = '${row['source'] ?? ''}'.trim();
-  final timestamp = '${row['ts_unix'] ?? ''}'.trim();
-  final score = row['score_ui'];
-  if (source.isNotEmpty) values.add(source.toUpperCase());
-  if (timestamp.isNotEmpty) values.add('timestamp $timestamp');
-  if (score is num) values.add('score ${(score * 100).toStringAsFixed(1)}%');
-  return values.isEmpty ? 'Search result' : values.join(' • ');
+String exampleFilename(String value) {
+  final clean = value.trim().replaceAll('\\', '/');
+  return clean.split('/').last.trim();
+}
+
+String exampleTimestamp13(Object? value) {
+  final digits = '${value ?? ''}'.replaceAll(RegExp(r'[^0-9]'), '');
+  if (digits.length >= 13) return digits.substring(0, 13);
+  if (digits.length == 10) return '${int.parse(digits) * 1000}';
+  if (digits.isNotEmpty) return digits.padLeft(13, '0');
+  return '';
+}
+
+String exampleScore(Map<String, Object?> row) {
+  final scoreUi = row['score_ui'];
+  if (scoreUi is num && scoreUi.isFinite && scoreUi >= 0 && scoreUi <= 1) {
+    return '${(scoreUi * 100).toStringAsFixed(1)}%';
+  }
+  for (final key in <String>[
+    'score_ui',
+    'score',
+    'similarity',
+    'image_score',
+    'text_score',
+  ]) {
+    final value = row[key];
+    if (value is num && !value.isFinite) continue;
+    final clean = '${value ?? ''}'.trim();
+    if (clean.isNotEmpty) return clean;
+  }
+  return '';
+}
+
+class ExampleSearchCandidate {
+  const ExampleSearchCandidate({
+    required this.searchIndex,
+    required this.row,
+    required this.record,
+  });
+
+  final int searchIndex;
+  final Map<String, Object?> row;
+  final Map<String, Object?> record;
+}
+
+class ExampleSearchImage {
+  const ExampleSearchImage({
+    required this.id,
+    required this.url,
+    required this.title,
+    required this.filename,
+    required this.stream,
+    required this.timestamp,
+    required this.score,
+  });
+
+  final String id;
+  final String url;
+  final String title;
+  final String filename;
+  final String stream;
+  final String timestamp;
+  final String score;
+}
+
+List<ExampleSearchCandidate> exampleSearchCandidates(
+  SearchResponse response,
+  String collectionName,
+  String streamName,
+) {
+  final rows = exampleSearchRows(response);
+  final candidates = <ExampleSearchCandidate>[];
+  for (var index = 0; index < rows.length; index++) {
+    final row = rows[index];
+    final rawName = exampleFirstText(row, const <String>[
+      'filename',
+      'filename_sanitized',
+      'video_filename',
+      'video',
+      'source_path',
+      'path',
+    ]);
+    final filename = exampleFilename(rawName);
+    if (filename.isEmpty) continue;
+    final stream = exampleFirstText(row, const <String>['stream_name']);
+    final timestamp = exampleTimestamp13(
+      exampleFirstText(row, const <String>[
+        'ts_unix_13digits',
+        'ts_unix',
+        'timestamp_ms',
+      ]),
+    );
+    final record = <String, Object?>{
+      'mode': 'vid_file',
+      'group_name': collectionName.trim(),
+      'modality': 'image',
+      'stream_name': stream.isEmpty ? streamName.trim() : stream,
+      'filename': filename,
+      if (timestamp.isNotEmpty) 'ts_unix_13digits': timestamp,
+    };
+    candidates.add(
+      ExampleSearchCandidate(searchIndex: index, row: row, record: record),
+    );
+  }
+  return candidates;
+}
+
+int? _exampleInputIndex(Object? value) {
+  if (value is num && value.isFinite) return value.toInt();
+  if (value is String) return int.tryParse(value.trim());
+  return null;
+}
+
+List<ExampleSearchImage> exampleSearchImages(
+  List<ExampleSearchCandidate> candidates,
+  ImageUrlBulkResponse response,
+) {
+  final resolved = <int, ExampleSearchImage>{};
+  for (var rowIndex = 0; rowIndex < response.records.length; rowIndex++) {
+    final row = response.records[rowIndex];
+    final rawIndex = row['input_index'];
+    final inputIndex = rawIndex == null
+        ? rowIndex
+        : _exampleInputIndex(rawIndex);
+    if (inputIndex == null ||
+        inputIndex < 0 ||
+        inputIndex >= candidates.length ||
+        resolved.containsKey(inputIndex) ||
+        row['found'] == false) {
+      continue;
+    }
+    final url = '${row['url_pre_signed'] ?? ''}'.trim();
+    if (url.isEmpty) continue;
+    final candidate = candidates[inputIndex];
+    final hit = candidate.row;
+    final filename = '${candidate.record['filename'] ?? ''}'.trim();
+    final timestamp = '${candidate.record['ts_unix_13digits'] ?? ''}'.trim();
+    final stream = '${candidate.record['stream_name'] ?? ''}'.trim();
+    final title = exampleFirstText(hit, const <String>[
+      'effective_title',
+      'title',
+      'text',
+      'caption',
+      'ocr',
+      'asr',
+      'description',
+      'item_id',
+      'text_agg_tok',
+    ]);
+    resolved[inputIndex] = ExampleSearchImage(
+      id: '$inputIndex-$filename-$timestamp',
+      url: url,
+      title: title.isEmpty ? filename : title,
+      filename: filename,
+      stream: stream,
+      timestamp: timestamp,
+      score: exampleScore(hit),
+    );
+  }
+  final indexes = resolved.keys.toList()..sort();
+  return indexes.map((int index) => resolved[index]!).toList();
 }
 
 String exampleSearchNotFound(ApiException error, String collectionName) {
@@ -95,6 +241,204 @@ String exampleSearchNotFound(ApiException error, String collectionName) {
         'Upload the video and create its index before searching.';
   }
   return 'The configured gateway does not expose the search route.';
+}
+
+typedef ExampleImageProviderFactory =
+    ImageProvider<Object> Function(String url);
+
+ImageProvider<Object> exampleNetworkImageProvider(String url) =>
+    NetworkImage(url);
+
+class ExampleSearchResults extends StatelessWidget {
+  const ExampleSearchResults({
+    required this.images,
+    required this.total,
+    required this.returned,
+    required this.elapsedMs,
+    required this.hasSearched,
+    required this.searching,
+    this.imageProviderFactory = exampleNetworkImageProvider,
+    super.key,
+  });
+
+  final List<ExampleSearchImage> images;
+  final int total;
+  final int returned;
+  final double elapsedMs;
+  final bool hasSearched;
+  final bool searching;
+  final ExampleImageProviderFactory imageProviderFactory;
+
+  @override
+  Widget build(BuildContext context) {
+    if (searching) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 8),
+        child: Text('Searching and resolving images...'),
+      );
+    }
+    if (!hasSearched) return const SizedBox.shrink();
+    final elapsed = elapsedMs > 0 ? ' • ${elapsedMs.round()} ms' : '';
+    final returnedText = returned < total ? ' ($returned returned)' : '';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.only(top: 8, bottom: 8),
+          child: Text(
+            'Showing ${images.length} images from $total matches'
+            '$returnedText$elapsed',
+            key: const Key('search-summary'),
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+        ),
+        if (total == 0)
+          const Text('No matching results.')
+        else if (images.isEmpty)
+          const Text('No image-backed matches were found.')
+        else
+          GridView.builder(
+            key: const Key('search-image-grid'),
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 300,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.58,
+            ),
+            itemCount: images.length,
+            itemBuilder: (BuildContext context, int index) =>
+                ExampleSearchImageCard(
+                  image: images[index],
+                  imageProviderFactory: imageProviderFactory,
+                ),
+          ),
+      ],
+    );
+  }
+}
+
+class ExampleSearchImageCard extends StatelessWidget {
+  const ExampleSearchImageCard({
+    required this.image,
+    this.imageProviderFactory = exampleNetworkImageProvider,
+    super.key,
+  });
+
+  final ExampleSearchImage image;
+  final ExampleImageProviderFactory imageProviderFactory;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final meta = <String>[
+      if (image.stream.isNotEmpty) image.stream,
+      if (image.timestamp.isNotEmpty) image.timestamp,
+      if (image.score.isNotEmpty) image.score,
+    ].join(' • ');
+    return Card(
+      key: Key('search-image-${image.id}'),
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          AspectRatio(
+            aspectRatio: 1,
+            child: Image(
+              image: imageProviderFactory(image.url),
+              fit: BoxFit.cover,
+              semanticLabel: 'Search result image: ${image.title}',
+              loadingBuilder:
+                  (
+                    BuildContext context,
+                    Widget child,
+                    ImageChunkEvent? progress,
+                  ) => progress == null
+                  ? child
+                  : ColoredBox(
+                      color: colors.surfaceContainerHighest,
+                      child: const Center(child: CircularProgressIndicator()),
+                    ),
+              errorBuilder:
+                  (BuildContext context, Object error, StackTrace? stack) =>
+                      Semantics(
+                        label: 'Image unavailable for ${image.title}',
+                        child: ColoredBox(
+                          color: colors.errorContainer,
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                Icon(
+                                  Icons.broken_image_outlined,
+                                  color: colors.onErrorContainer,
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Image unavailable',
+                                  style: TextStyle(
+                                    color: colors.onErrorContainer,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Flexible(
+                    flex: 2,
+                    child: Text(
+                      image.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                  if (image.filename.isNotEmpty &&
+                      image.filename != image.title) ...<Widget>[
+                    const SizedBox(height: 4),
+                    Flexible(
+                      child: Text(
+                        image.filename,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (meta.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: 4),
+                    Flexible(
+                      child: Text(
+                        meta,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 void main() => runApp(const VmodalExampleApp());
@@ -117,13 +461,18 @@ class _VmodalExampleAppState extends State<VmodalExampleApp> {
   VmodalClient? _client;
   UploadTask<VideoUploadResponse>? _upload;
   StreamSubscription<UploadProgress>? _progressSub;
-  List<Map<String, Object?>> _results = <Map<String, Object?>>[];
+  List<ExampleSearchImage> _images = <ExampleSearchImage>[];
   String _jobId = '';
   String _indexStatus = 'not started';
   String _status =
       'Enter a runtime API key supplied by your authenticated app.';
   int _progress = 0;
+  int _searchGeneration = 0;
+  int _searchTotal = 0;
+  int _searchReturned = 0;
+  double _searchElapsedMs = 0;
   bool _busy = false;
+  bool _searching = false;
   bool _hasSearched = false;
   bool _collectionsLoaded = false;
   List<String> _collections = <String>[];
@@ -154,6 +503,7 @@ class _VmodalExampleAppState extends State<VmodalExampleApp> {
       _safeState(() => _status = 'A runtime API key is required.');
       return;
     }
+    _safeState(_clearSearchState);
     _keys?.clear();
     await _client?.close();
     final keys = MutableApiKeyProvider(value);
@@ -161,6 +511,7 @@ class _VmodalExampleAppState extends State<VmodalExampleApp> {
     _keys = keys;
     _client = client;
     _safeState(() {
+      _clearSearchState();
       _key.clear();
       _collectionsLoaded = false;
       _collections = <String>[];
@@ -274,48 +625,92 @@ class _VmodalExampleAppState extends State<VmodalExampleApp> {
   Future<void> _search() async {
     final client = _client;
     if (client == null) return _needClient();
+    final query = _query.text.trim();
+    final collection = _collection.text.trim();
+    final stream = _stream.text.trim();
+    _safeState(() {
+      _clearSearchState();
+      _searching = true;
+      _status = 'Searching and resolving images...';
+    });
+    final generation = _searchGeneration;
     await _run(() async {
-      final groups = await client.collections.listGroups(mode: 'vid_file');
-      final names = exampleCollectionNames(groups);
-      final collection = _collection.text.trim();
-      final stream = _stream.text.trim();
-      _setCollections(names, '', selectFirst: false);
-      if (collection.isEmpty || stream.isEmpty) {
-        _needCollection();
-        return;
-      }
-      if (!names.contains(collection)) {
-        _safeState(
-          () => _status =
-              'Collection $collection is not available for this '
-              'API key. Choose a loaded collection or upload it first.',
-        );
-        return;
-      }
-      final version = groups
-          .findGroup(collection, mode: 'vid_file')
-          ?.latestLancedbVersion;
-      if (version == null) {
-        _safeState(
-          () => _status =
-              'Collection $collection has no advertised LanceDB index '
-              'version. Create or finish its image index before searching.',
-        );
-        return;
-      }
       try {
-        final result = await client.searches.searchVideo(
-          exampleSearchRequest(_query.text, collection, stream, version),
-        );
+        final groups = await client.collections.listGroups(mode: 'vid_file');
+        if (!_currentSearch(generation, query, collection, stream)) return;
+        final names = exampleCollectionNames(groups);
+        _setCollections(names, '', selectFirst: false);
+        if (collection.isEmpty || stream.isEmpty) {
+          _safeState(() {
+            _searching = false;
+            _status = 'Collection and stream are required.';
+          });
+          return;
+        }
+        if (!names.contains(collection)) {
+          _safeState(() {
+            _searching = false;
+            _status =
+                'Collection $collection is not available for this '
+                'API key. Choose a loaded collection or upload it first.';
+          });
+          return;
+        }
+        final version = groups
+            .findGroup(collection, mode: 'vid_file')
+            ?.latestLancedbVersion;
+        if (version == null) {
+          _safeState(() {
+            _searching = false;
+            _status =
+                'Collection $collection has no advertised LanceDB index '
+                'version. Create or finish its image index before searching.';
+          });
+          return;
+        }
+        late SearchResponse result;
+        try {
+          result = await client.searches.searchVideo(
+            exampleSearchRequest(query, collection, stream, version),
+          );
+        } on ApiException catch (error) {
+          if (error.statusCode != 404) rethrow;
+          if (_currentSearch(generation, query, collection, stream)) {
+            _safeState(() {
+              _clearSearchState();
+              _status = exampleSearchNotFound(error, collection);
+            });
+          }
+          return;
+        }
+        if (!_currentSearch(generation, query, collection, stream)) return;
+        final candidates = exampleSearchCandidates(result, collection, stream);
+        var images = <ExampleSearchImage>[];
+        if (candidates.isNotEmpty) {
+          final urls = await client.images.getUrlBulk(
+            candidates
+                .map((ExampleSearchCandidate item) => item.record)
+                .toList(),
+          );
+          if (!_currentSearch(generation, query, collection, stream)) return;
+          images = exampleSearchImages(candidates, urls);
+        }
         _safeState(() {
-          _results = exampleSearchRows(result);
+          _images = images;
+          _searchTotal = result.cntTotal;
+          _searchReturned = result.cntActual;
+          _searchElapsedMs = result.executionTimeMs;
           _hasSearched = true;
+          _searching = false;
           _status =
-              'Search returned ${result.cntActual} items from $collection/$stream.';
+              'Search resolved ${images.length} images from '
+              '${result.cntTotal} matches in $collection/$stream.';
         });
-      } on ApiException catch (error) {
-        if (error.statusCode != 404) rethrow;
-        _safeState(() => _status = exampleSearchNotFound(error, collection));
+      } on SdkException {
+        if (_currentSearch(generation, query, collection, stream)) {
+          _safeState(_clearSearchState);
+        }
+        rethrow;
       }
     });
   }
@@ -342,6 +737,7 @@ class _VmodalExampleAppState extends State<VmodalExampleApp> {
       _safeState(() => _progress = value.percent);
     });
     _safeState(() {
+      _clearSearchState();
       _busy = true;
       _progress = 0;
       _status = 'Uploading with signed single upload...';
@@ -352,8 +748,7 @@ class _VmodalExampleAppState extends State<VmodalExampleApp> {
         _progress = 100;
         _jobId = '';
         _indexStatus = 'not started';
-        _results = <Map<String, Object?>>[];
-        _hasSearched = false;
+        _clearSearchState();
         _status = 'Upload complete: ${result.fileName}. Create its index next.';
       });
     } on OperationCanceled {
@@ -402,22 +797,52 @@ class _VmodalExampleAppState extends State<VmodalExampleApp> {
         _collection.text = selected;
         _jobId = '';
         _indexStatus = 'not started';
-        _results = <Map<String, Object?>>[];
-        _hasSearched = false;
+        _clearSearchState();
       }
       if (status.isNotEmpty) _status = status;
     });
   }
 
   void _scopeChanged(String _) {
-    if (_jobId.isEmpty && _results.isEmpty) return;
+    if (_jobId.isEmpty && _images.isEmpty && !_hasSearched && !_searching) {
+      return;
+    }
     _safeState(() {
       _jobId = '';
       _indexStatus = 'not started';
-      _results = <Map<String, Object?>>[];
-      _hasSearched = false;
+      _clearSearchState();
       _status = 'Collection changed. Upload or index this collection next.';
     });
+  }
+
+  void _searchChanged(String _) {
+    if (_images.isEmpty && !_hasSearched && !_searching) return;
+    _safeState(() {
+      _clearSearchState();
+      _status = 'Search scope changed. Run the search again.';
+    });
+  }
+
+  bool _currentSearch(
+    int generation,
+    String query,
+    String collection,
+    String stream,
+  ) =>
+      mounted &&
+      generation == _searchGeneration &&
+      query == _query.text.trim() &&
+      collection == _collection.text.trim() &&
+      stream == _stream.text.trim();
+
+  void _clearSearchState() {
+    _searchGeneration++;
+    _images = <ExampleSearchImage>[];
+    _searchTotal = 0;
+    _searchReturned = 0;
+    _searchElapsedMs = 0;
+    _hasSearched = false;
+    _searching = false;
   }
 
   void _safeState(VoidCallback change) {
@@ -426,6 +851,7 @@ class _VmodalExampleAppState extends State<VmodalExampleApp> {
 
   @override
   void dispose() {
+    _searchGeneration++;
     _upload?.cancel();
     unawaited(_progressSub?.cancel());
     _keys?.clear();
@@ -540,21 +966,23 @@ class _VmodalExampleAppState extends State<VmodalExampleApp> {
           const Divider(),
           TextField(
             controller: _query,
+            onChanged: _searchChanged,
+            textInputAction: TextInputAction.search,
+            onSubmitted: _busy ? null : (_) => _search(),
             decoration: const InputDecoration(labelText: 'Search query'),
           ),
           FilledButton(
             onPressed: _busy ? null : _search,
             child: const Text('Search'),
           ),
-          if (_hasSearched && _results.isEmpty)
-            const Text('No matching results.'),
-          for (final row in _results)
-            Card(
-              child: ListTile(
-                title: Text(exampleResultTitle(row)),
-                subtitle: Text(exampleResultDetails(row)),
-              ),
-            ),
+          ExampleSearchResults(
+            images: _images,
+            total: _searchTotal,
+            returned: _searchReturned,
+            elapsedMs: _searchElapsedMs,
+            hasSearched: _hasSearched,
+            searching: _searching,
+          ),
           const SizedBox(height: 16),
           Text(_status, key: const Key('status')),
         ],

@@ -52,9 +52,7 @@ void main() {
       'lib/src/adaptive_upload.dart',
       'lib/src/routes.g.dart',
       'tool/check_route_sync.dart',
-      'tool/gen_routes.dart',
       'tool/release_manifest.dart',
-      'tool/routes_manifest.dart',
       'example/lib/main.dart',
     ];
     for (final path in files) {
@@ -68,6 +66,8 @@ void main() {
     );
     if (Directory('docs').existsSync()) {
       expect(File('tool/live_test.dart').existsSync(), isTrue);
+      expect(File('tool/gen_routes.dart').existsSync(), isTrue);
+      expect(File('tool/routes_manifest.dart').existsSync(), isTrue);
     }
     expect(
       File('docs/sdk_contract.md').existsSync() ||

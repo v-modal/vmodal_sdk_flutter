@@ -18,6 +18,10 @@
 
 <p align="center"><em>Turn every video library into an experience your users can explore.</em></p>
 
+## API Key available:
+   www.v-modal.com
+   
+
 ## Build the feature people remember
 
 VModal brings multimodal video search and mobile-friendly uploads to Dart with a small, typed API. Your app owns the interface; the SDK handles the VModal gateway, request models, responses, upload streams, progress, and cancellation.

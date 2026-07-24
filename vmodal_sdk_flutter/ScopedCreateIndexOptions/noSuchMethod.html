@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the noSuchMethod method from the ScopedCreateIndexOptions class, for the Dart programming language.">
+  <title>noSuchMethod method - ScopedCreateIndexOptions class - vmodal_sdk_flutter library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">vmodal_sdk_flutter</a></li>
+    <li><a href="../../vmodal_sdk_flutter/">vmodal_sdk_flutter.dart</a></li>
+    <li><a href="../../vmodal_sdk_flutter/ScopedCreateIndexOptions-class.html">ScopedCreateIndexOptions</a></li>
+    <li class="self-crumb">noSuchMethod method</li>
+  </ol>
+  <div class="self-name">noSuchMethod</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="vmodal_sdk_flutter&#47;ScopedCreateIndexOptions-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">noSuchMethod</span> method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+<span class="returntype">dynamic</span>
+<span class="name ">noSuchMethod</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="noSuchMethod-param-invocation"><span class="type-annotation">Invocation</span> <span class="parameter-name">invocation</span></span></li>
+</ol>)
+
+      <div class="features"><span class="feature">inherited</span></div>
+
+    </section>
+    
+<section class="desc markdown">
+  <p>Invoked when a nonexistent method or property is accessed.</p>
+<p>A dynamic member invocation can attempt to call a member which
+doesn't exist on the receiving object. Example:</p>
+<pre class="language-dart"><code class="language-dart">dynamic object = 1;
+object.add(42); // Statically allowed, run-time error
+</code></pre>
+<p>This invalid code will invoke the <code>noSuchMethod</code> method
+of the integer <code>1</code> with an <code>Invocation</code> representing the
+<code>.add(42)</code> call and arguments (which then throws).</p>
+<p>Classes can override <code>noSuchMethod</code> to provide custom behavior
+for such invalid dynamic invocations.</p>
+<p>A class with a non-default <code>noSuchMethod</code> invocation can also
+omit implementations for members of its interface.
+Example:</p>
+<pre class="language-dart"><code class="language-dart">class MockList&lt;T&gt; implements List&lt;T&gt; {
+  noSuchMethod(Invocation invocation) {
+    log(invocation);
+    super.noSuchMethod(invocation); // Will throw.
+  }
+}
+void main() {
+  MockList().add(42);
+}
+</code></pre>
+<p>This code has no compile-time warnings or errors even though
+the <code>MockList</code> class has no concrete implementation of
+any of the <code>List</code> interface methods.
+Calls to <code>List</code> methods are forwarded to <code>noSuchMethod</code>,
+so this code will <code>log</code> an invocation similar to
+<code>Invocation.method(#add, [42])</code> and then throw.</p>
+<p>If a value is returned from <code>noSuchMethod</code>,
+it becomes the result of the original invocation.
+If the value is not of a type that can be returned by the original
+invocation, a type error occurs at the invocation.</p>
+<p>The default behavior is to throw a <code>NoSuchMethodError</code>.</p>
+</section>
+
+
+    
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">vmodal_sdk_flutter</a></li>
+    <li><a href="../../vmodal_sdk_flutter/">vmodal_sdk_flutter</a></li>
+    <li><a href="../../vmodal_sdk_flutter/ScopedCreateIndexOptions-class.html">ScopedCreateIndexOptions</a></li>
+    <li class="self-crumb">noSuchMethod method</li>
+</ol>
+
+    <h5>ScopedCreateIndexOptions class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    vmodal_sdk_flutter
+      1.0.0
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

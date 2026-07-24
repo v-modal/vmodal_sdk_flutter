@@ -43,7 +43,45 @@
   <div id="dartdoc-main-content" class="main-content">
       
 <section class="desc markdown">
-  <div align="center">
+  <h2 id="prompt-to-start">Prompt to start</h2>
+<pre class="language-text"><code class="language-text">Set up and validate the Flutter application in `uinterface/sdk_flutter/example/`
+as a complete Android and iOS example for the local VModal Flutter SDK.
+
+Before editing, inspect the existing SDK, example app, scripts, tests, and
+documentation. Reuse the current implementation and improve it in place; do
+not replace working components or duplicate SDK logic inside the example.
+
+Requirements:
+- Keep `vmodal_sdk_flutter: path: ..` as the SDK dependency.
+- Provide a simple runnable flow for an API key supplied at runtime: configure
+  the client, call `auth.me()`, list video collections, upload a selected or
+  bundled sample video with progress and cancellation, create/check an image
+  index, search the selected collection, resolve result images in bulk, and
+  display the results.
+- Keep credentials in memory only. Never hard-code, persist, print, or commit
+  API keys, bearer tokens, or presigned URLs.
+- Support Android and iOS only; do not add Flutter Web behavior.
+- Keep the example beginner-friendly and small. Use the public typed SDK API,
+  preserve request/response contracts, handle loading, empty, error, and
+  cleanup states, and close/cancel SDK resources when the widget is disposed.
+- Update `example/README.md` when setup steps or behavior change.
+- Use the repository scripts and pinned Flutter version. Do not create another
+  environment or install an unrelated global Flutter version.
+
+From `uinterface/sdk_flutter`, verify the completed work with:
+
+  bash install.sh check
+  bash build.sh pub_get
+  bash build.sh analyze
+  bash build.sh test
+  bash build.sh example_android
+
+If macOS and Xcode are available, also run `bash build.sh example_ios`. Report
+the files changed, validation results, and any platform build that could not be
+run with the exact blocker. Do not claim a live API flow passed unless it was
+tested with a valid runtime key.
+</code></pre>
+<div align="center">
   <img src="readme_assets/logo_vmodal_owl.jpeg" alt="VModal owl" width="96">
   <h1>VModal for Flutter</h1>
   <p><strong>Give your Android and iOS apps a multimodal memory.</strong></p>
@@ -96,6 +134,7 @@
 </tbody>
 </table>
 <h2 id="start-in-minutes">Start in minutes</h2>
+<p><a href="https://v-modal.github.io/vmodal_sdk_flutter/">SDK docs: v-modal.github.io/vmodal_sdk_flutter/</a></p>
 <p>The public package source is available on GitHub. Add it to your app:</p>
 <pre class="language-yaml"><code class="language-yaml">dependencies:
   vmodal_sdk_flutter:
@@ -106,34 +145,38 @@
 <p>Then run:</p>
 <pre class="language-bash"><code class="language-bash">flutter pub get
 </code></pre>
-<p>Create one client from the API key already loaded by your authenticated app:</p>
+<p>Create one project from the API key already loaded by your authenticated app,
+then retain immutable scopes wherever your app performs content operations:</p>
 <pre class="language-dart"><code class="language-dart">import 'package:vmodal_sdk_flutter/vmodal_sdk_flutter.dart';
 
 final keys = MutableApiKeyProvider(runtimeApiKey);
-final vmodal = VmodalClient(
-  config: SdkConfig(apiKeyProvider: keys),
+final project = VModal.configure(
+  projectId: 'food_app',
+  apiKeyProvider: keys,
+);
+final favorites = project.scope(
+  collectionName: 'user_123',
+  streamName: 'favorites',
 );
 </code></pre>
+<p><code>projectId</code>, <code>collectionName</code>, and <code>streamName</code> accept only letters, digits,
+and underscore. Each is trimmed and limited to 80 characters. Project and
+collection names cannot contain the reserved <code>__</code> separator, and their encoded
+backend value is also limited to 80 characters. The SDK performs that encoding
+internally.</p>
 <blockquote>
-<p>The SDK never owns your login screen or persists your API key. It receives an in-memory credential from your application at runtime.</p>
+<p>The SDK never owns your login screen or persists your API key. Authentication identity is separate from project, collection, and stream organization.</p>
 </blockquote>
 <h2 id="search-video-with-natural-language">Search video with natural language</h2>
-<pre class="language-dart"><code class="language-dart">final groups = await vmodal.collections.listGroups(mode: 'vid_file');
-if (groups.data.isEmpty) {
+<pre class="language-dart"><code class="language-dart">final collections = await project.listCollections(mode: 'vid_file');
+if (!collections.contains('user_123')) {
   throw StateError('No video collection exists for this API key');
 }
-final group = groups.data.first;
-final version = group.latestLancedbVersion;
-if (version == null) {
-  throw StateError('The collection has no searchable LanceDB version');
-}
 
-final results = await vmodal.searches.searchVideo(
-  SearchRequest(
-    queryText: 'the cyclist crossing the bridge at sunset',
-    groupName: group.groupName,
-    searchSources: const ['image'],
-    versionLancedb: version,
+final results = await favorites.search(
+  'the cyclist crossing the bridge at sunset',
+  options: const ScopedSearchOptions(
+    searchSources: ['image'],
     limit: 20,
   ),
 );
@@ -143,23 +186,17 @@ for (final moment in results.data) {
   print(moment);
 }
 </code></pre>
-<p>The collection must be a <code>vid_file</code> <code>GroupItem</code> returned
-for the current runtime API key. Collection access is key-scoped; a name copied
-from another account or environment can return HTTP 404 even when the search
-route is healthy. The example name <code>flutter_example</code> is valid only after that
-key has uploaded or otherwise created the collection and a refreshed
-<code>listGroups()</code> response contains it. Search must also send an advertised
-<code>lancedbVersions</code> value; <code>latestLancedbVersion</code> converts values such as <code>v1</code>
-to the numeric request field <code>version_lancedb: 1</code>.</p>
+<p>Collection access is key-scoped. A logical name copied from another account or
+environment can return HTTP 404 even when the search route is healthy. Use
+<code>ScopedSearchOptions(versionLancedb: version)</code> when your application tracks a
+specific index version.</p>
 <p>The response stays typed where the contract is stable and preserves the raw JSON so new server fields remain available immediately.</p>
 <h2 id="upload-with-progress-and-cancellation">Upload with progress and cancellation</h2>
 <p>The SDK reads an app-accessible <code>File</code> as a stream. It does not load the entire video into memory.</p>
 <pre class="language-dart"><code class="language-dart">import 'dart:io';
 
-final task = vmodal.collections.videoUpload(
+final task = favorites.upload(
   UploadSource.fromFile(File(videoPath)),
-  collectionName: 'travel_diaries',
-  subCollectionName: 'mobile_uploads',
 );
 
 final progress = task.progress.listen((value) {
@@ -180,19 +217,44 @@ print('Ready: ${uploaded.fileName}');
 <li>Cancel search or upload work when a screen closes.</li>
 <li>Show upload progress from a broadcast Dart stream.</li>
 <li>Keep file picking, secure storage, background scheduling, and lifecycle UI in the parent app.</li>
-<li>Close network resources deterministically with <code>await vmodal.close()</code>.</li>
+<li>Close network resources deterministically with <code>await project.close()</code>.</li>
 </ul>
-<p>For logout or account switching, cancel active work, clear upload persistence, call <code>keys.clear()</code>, close the client, and create a new client for the next identity. Key rotation alone is not an identity switch.</p>
-<h2 id="one-client-focused-resources">One client, focused resources</h2>
-<pre class="language-text"><code class="language-text">vmodal.auth          identity and health
-vmodal.searches      multimodal video search
-vmodal.collections   upload and collection lifecycle
-vmodal.indexes       create, inspect, and delete indexes
-vmodal.admin         usage and cache statistics
-vmodal.r2            presigned object-storage operations
-vmodal.images        image retrieval
+<p>For logout or account switching, cancel active work, clear upload persistence,
+call <code>keys.clear()</code>, close the project, and create a new project and scopes for
+the next identity. Key rotation alone is not an identity, project, collection,
+or stream switch.</p>
+<h2 id="common-organization-flows">Common organization flows</h2>
+<pre class="language-text"><code class="language-text">global index       project=video_search  collection=global           stream=uploads
+per-user index     project=food_app      collection=user_123         stream=personal_videos
+multiple streams  project=food_app      collection=user_123         stream=camera/favorites
+catalog            project=shopping_app  collection=product_catalog  stream=merchant_uploads
 </code></pre>
-<p>Gateway mode is the safe default and sends caller identity only as a bearer credential. <code>VmodalClient.unsafeDirect</code> is reserved for trusted private networks.</p>
+<p>Create a separate <code>VModalProject</code> for each developer project. On account
+switch, create fresh project/client state; an already running task retains the
+immutable scope with which it started.</p>
+<h2 id="advanced-low-level-resources">Advanced low-level resources</h2>
+<p><code>VmodalClient</code> remains supported for auth, usage, image lookup, and advanced
+wire-level integration. To combine it with scopes, construct the client first
+and transfer lifecycle ownership to the project:</p>
+<pre class="language-dart"><code class="language-dart">final client = VmodalClient(
+  config: SdkConfig(apiKeyProvider: keys),
+);
+final project = VModal.fromClient(
+  projectId: 'food_app',
+  client: client,
+);
+
+final profile = await client.auth.me();
+final scope = project.scope(
+  collectionName: 'user_123',
+  streamName: 'favorites',
+);
+
+await project.close(); // closes the transferred client
+</code></pre>
+<p>Gateway mode is the default and sends caller identity only as a bearer
+credential. <code>VmodalClient.unsafeDirect</code> is reserved for trusted private
+networks.</p>
 <h2 id="platform-support">Platform support</h2>
 <table>
 <thead>

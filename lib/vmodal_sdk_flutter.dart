@@ -1,26 +1,31 @@
 /// Typed Flutter client for uploading, indexing, and searching VModal media.
 ///
-/// Create one [VmodalClient] for the active signed-in session and share its
-/// resource objects across the app. The SDK does not own login UI or persist
-/// credentials; supply the current key through [MutableApiKeyProvider] and
-/// close the client when the session ends.
+/// Configure one [VModalProject], create immutable [VModalScope] values, and
+/// close the project when the app session ends. Authentication remains
+/// separate from project, collection, and stream organization.
 ///
 /// ```dart
 /// final keys = MutableApiKeyProvider(runtimeApiKey);
-/// final vmodal = VmodalClient(config: SdkConfig(apiKeyProvider: keys));
-///
-/// final groups = await vmodal.collections.listGroups();
-/// final results = await vmodal.searches.searchVideo(
-///   const SearchRequest(queryText: 'a person entering the room'),
+/// final project = VModal.configure(
+///   projectId: 'food_app',
+///   apiKeyProvider: keys,
+/// );
+/// final favorites = project.scope(
+///   collectionName: 'user_123',
+///   streamName: 'favorites',
 /// );
 ///
-/// await vmodal.close();
+/// final groups = await project.listCollections();
+/// final results = await favorites.search('a person entering the room');
+///
+/// await project.close();
 /// keys.close();
 /// ```
 ///
 /// Long-running calls accept a [CancellationToken]. Media uploads return an
 /// [UploadTask], whose [UploadTask.progress] stream is suitable for progress
 /// indicators and whose [UploadTask.cancel] method stops pending work.
+/// [VmodalClient] remains available as the advanced compatibility API.
 // ignore: unnecessary_library_name
 library vmodal_sdk_flutter;
 
@@ -45,3 +50,4 @@ export 'src/transport.dart'
         guessContentType,
         streamPart;
 export 'src/upload.dart';
+export 'src/vmodal.dart';

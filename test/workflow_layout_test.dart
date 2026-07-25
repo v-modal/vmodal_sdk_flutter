@@ -13,12 +13,14 @@ final publicFile = File('release/public_publish.yml').existsSync()
     : File('.github/workflows/publish.yml');
 final public = publicFile.readAsStringSync();
 final androidProperties = File(
-  'example/android/gradle.properties',
+  'example/01_full_app/android/gradle.properties',
 ).readAsStringSync();
 final androidSettings = File(
-  'example/android/settings.gradle.kts',
+  'example/01_full_app/android/settings.gradle.kts',
 ).readAsStringSync();
-final examplePubspec = File('example/pubspec.yaml').readAsStringSync();
+final examplePubspec = File(
+  'example/01_full_app/pubspec.yaml',
+).readAsStringSync();
 
 void checkWorkflow(String main, String tagged) {
   const releaseOnly =
@@ -27,6 +29,8 @@ void checkWorkflow(String main, String tagged) {
       "if: \${{ github.event_name == 'workflow_dispatch' && (inputs.publish_sdk_flutter || inputs.publish_pub_dev || inputs.publish_sdk_docs_only) }}";
   const buildDocs =
       "if: \${{ always() && github.event_name == 'workflow_dispatch' && (inputs.publish_sdk_flutter || inputs.publish_pub_dev || inputs.publish_sdk_docs_only) && needs.secret_detection.result == 'success' && (inputs.publish_sdk_docs_only || needs.publish_sdk_flutter.result == 'success') }}";
+  const publishBuiltDocs =
+      "if: \${{ always() && github.event_name == 'workflow_dispatch' && (inputs.publish_sdk_flutter || inputs.publish_pub_dev || inputs.publish_sdk_docs_only) && needs.sdk_docs_artifact.result == 'success' }}";
   expect(main, contains('name: sdk_flutter_test_release'));
   expect(main, contains('publish_sdk_flutter:'));
   expect(main, contains('publish_pub_dev:'));
@@ -93,6 +97,18 @@ void checkWorkflow(String main, String tagged) {
     main,
     contains('git ls-files --error-unmatch install.sh build.sh run.sh test.sh'),
   );
+  expect(
+    main,
+    contains(
+      'sha256sum example/01_full_app/build/app/outputs/flutter-apk/app-debug.apk',
+    ),
+  );
+  expect(
+    main,
+    contains("find example/01_full_app/build/ios -name '*.app'"),
+  );
+  expect(main, isNot(contains('sha256sum example/build/')));
+  expect(main, isNot(contains('find example/build/ios')));
   expect(main, contains('RELEASE_TOKEN: \${{ secrets.GH_TOKEN }}'));
   expect(main, isNot(contains('FLUTTER_SDK_APP_')));
   expect(main, contains('git push --atomic'));
@@ -111,7 +127,7 @@ void checkWorkflow(String main, String tagged) {
   expect(
     main,
     contains(
-      'publish_sdk_docs:\n    needs: sdk_docs_artifact\n    $publishDocs',
+      'publish_sdk_docs:\n    needs: sdk_docs_artifact\n    $publishBuiltDocs',
     ),
   );
   expect(main, contains('python "\$WORKDIR/docs.py" generate'));
@@ -132,6 +148,18 @@ void checkWorkflow(String main, String tagged) {
     main,
     contains('"\$WORKDIR/docs_sdk/vmodal_sdk_flutter/VmodalClient-class.html"'),
   );
+  for (final name in <String>['VModal', 'VModalProject', 'VModalScope']) {
+    expect(
+      main,
+      contains('"\$WORKDIR/docs_sdk/vmodal_sdk_flutter/$name-class.html"'),
+    );
+    expect(
+      main,
+      contains(
+        '"\$RUNNER_TEMP/sdk-docs-site/vmodal_sdk_flutter/$name-class.html"',
+      ),
+    );
+  }
   expect(main, isNot(contains('PyYAML')));
   expect(main, isNot(contains('openapi-spec-validator')));
   expect(main.toLowerCase(), isNot(contains('swagger')));

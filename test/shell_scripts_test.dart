@@ -63,7 +63,8 @@ void main() {
 
       final build = File('build.sh').readAsStringSync();
       expect(build, contains('name: vmodal_sdk_flutter'));
-      expect(build, contains('example/pubspec.yaml'));
+      expect(build, contains('example/01_full_app/pubspec.yaml'));
+      expect(build, contains('example/02_users/pubspec.yaml'));
       expect(build, isNot(contains('*/uinterface/sdk_flutter')));
     },
   );

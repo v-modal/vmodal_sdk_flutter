@@ -88,6 +88,7 @@ Future<void> _export(Directory root, Directory destination) async {
     'readme_assets',
     'CHANGELOG.md',
     '.flutter-version',
+    '.gitleaks.toml',
     '.pubignore',
     'lib',
     'test',

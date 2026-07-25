@@ -1,0 +1,15 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Internal implementation plans contain documented credential-pattern examples"
+paths = ['''(^|/)uinterface/sdk_flutter/docs/dev_plan(_step)?\.md$''', '''^docs/dev_plan(_step)?\.md$''']
+
+[[allowlists]]
+description = "Generated Flutter build outputs are excluded from source secret detection"
+paths = ['''(^|/)build/''']
+
+[[allowlists]]
+description = "Reviewed generated route names are not credentials"
+targetRules = ["generic-api-key"]
+paths = ['''(^|/)uinterface/sdk_flutter/lib/src/routes\.g\.dart$''', '''^lib/src/routes\.g\.dart$''']

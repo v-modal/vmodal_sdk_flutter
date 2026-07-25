@@ -52,7 +52,7 @@ sdk_run_example() {
     esac
   done
   [[ -n "$device" ]] || { echo '--device DEVICE_ID is required.' >&2; return 2; }
-  (cd example && sdk_flutter run --device-id "$device")
+  (cd example/01_full_app && sdk_flutter run --device-id "$device")
 }
 
 sdk_help() {

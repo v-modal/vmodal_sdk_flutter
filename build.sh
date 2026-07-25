@@ -39,7 +39,8 @@ sdk_pub_get() {
   '
   bash install.sh check
   sdk_flutter pub get
-  (cd example && sdk_flutter pub get)
+  (cd example/01_full_app && sdk_flutter pub get)
+  (cd example/02_users && sdk_flutter pub get)
 }
 
 sdk_format() {
@@ -47,7 +48,7 @@ sdk_format() {
     ## Usage:
       bash build.sh format
   '
-  sdk_dart format --output=none --set-exit-if-changed lib test tool example/lib example/test
+  sdk_dart format --output=none --set-exit-if-changed lib test tool example/01_full_app/lib example/01_full_app/test example/02_users/lib example/02_users/test
 }
 
 sdk_analyze() {
@@ -56,7 +57,8 @@ sdk_analyze() {
       bash build.sh analyze
   '
   sdk_flutter analyze
-  (cd example && sdk_flutter analyze)
+  (cd example/01_full_app && sdk_flutter analyze)
+  (cd example/02_users && sdk_flutter analyze)
 }
 
 sdk_test() {
@@ -65,7 +67,8 @@ sdk_test() {
       bash build.sh test
   '
   sdk_flutter test
-  (cd example && sdk_flutter test)
+  (cd example/01_full_app && sdk_flutter test)
+  (cd example/02_users && sdk_flutter test)
 }
 
 sdk_example_android() {
@@ -73,7 +76,7 @@ sdk_example_android() {
     ## Usage:
       bash build.sh example_android
   '
-  (cd example && sdk_flutter build apk --debug)
+  (cd example/01_full_app && sdk_flutter build apk --debug)
 }
 
 sdk_example_ios() {
@@ -82,7 +85,7 @@ sdk_example_ios() {
       bash build.sh example_ios
   '
   [[ "$(uname -s)" == 'Darwin' ]] || { echo 'iOS builds require a configured macOS runner.' >&2; return 2; }
-  (cd example && sdk_flutter build ios --simulator --debug --no-codesign)
+  (cd example/01_full_app && sdk_flutter build ios --simulator --debug --no-codesign)
 }
 
 sdk_package() {
@@ -115,7 +118,7 @@ sdk_clean() {
     ## Usage:
       bash build.sh clean
   '
-  [[ -f "$sdk_dir/pubspec.yaml" && -f "$sdk_dir/example/pubspec.yaml" ]] || {
+  [[ -f "$sdk_dir/pubspec.yaml" && -f "$sdk_dir/example/01_full_app/pubspec.yaml" && -f "$sdk_dir/example/02_users/pubspec.yaml" ]] || {
     echo 'Refusing to clean outside the VModal Flutter SDK.' >&2
     return 2
   }
@@ -124,7 +127,8 @@ sdk_clean() {
     return 2
   }
   sdk_flutter clean
-  (cd example && sdk_flutter clean)
+  (cd example/01_full_app && sdk_flutter clean)
+  (cd example/02_users && sdk_flutter clean)
 }
 
 sdk_help() {

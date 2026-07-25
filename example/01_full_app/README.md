@@ -1,5 +1,13 @@
 # VModal Flutter example
 
+This application intentionally remains the advanced `VmodalClient`
+compatibility example for this release. It exercises auth, raw collection
+index-version metadata, image URL resolution, and content operations in one
+progressive UI. Migrating it fully to `VModalScope` is deferred until the
+high-level facade exposes a typed index-version/image-selector flow; the
+example must not reconstruct or parse backend project/collection names in the
+meantime. `VmodalClient` remains a supported public API.
+
 This application shows a complete VModal SDK evaluation workflow on Android or
 iOS:
 
@@ -54,7 +62,7 @@ use its reviewed Flutter version (`3.44.6`) from a user-owned cache.
 ## 1. Open the SDK directory
 
 Run the following commands from the Flutter SDK directory—the directory that
-contains `install.sh`, `run.sh`, and this `example/` folder.
+contains `install.sh`, `run.sh`, and this `example/01_full_app/` folder.
 
 From the VModal monorepo root:
 
@@ -419,13 +427,13 @@ the next identity.
 
 ## How the example is connected to the SDK
 
-The example uses the SDK source from the parent directory rather than a
+The example uses the SDK source from two directories above rather than a
 published package:
 
 ```yaml
 dependencies:
   vmodal_sdk_flutter:
-    path: ..
+    path: ../..
 ```
 
 This line in [`pubspec.yaml`](pubspec.yaml) means changes made to the SDK's
@@ -547,7 +555,7 @@ bash build.sh pub_get
 
 ## Next steps
 
-- Read the [SDK guide](../doc/sdk_doc.md).
-- Learn how to [manage API keys](../doc/manage_api_key.md).
-- Follow the [search application guide](../doc/search_app.md).
-- Review the [SDK contract](../doc/sdk_contract.md).
+- Read the [SDK guide](../../doc/sdk_doc.md).
+- Learn how to [manage API keys](../../doc/manage_api_key.md).
+- Follow the [search application guide](../../doc/search_app.md).
+- Review the [SDK contract](../../doc/sdk_contract.md).

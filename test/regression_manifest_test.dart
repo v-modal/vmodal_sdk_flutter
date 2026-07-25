@@ -47,13 +47,19 @@ void main() {
       'dartdoc_options.yaml',
       'lib/vmodal_sdk_flutter.dart',
       'lib/src/client.dart',
+      'lib/src/content_scope.dart',
       'lib/src/transport.dart',
       'lib/src/upload.dart',
       'lib/src/adaptive_upload.dart',
+      'lib/src/vmodal.dart',
       'lib/src/routes.g.dart',
       'tool/check_route_sync.dart',
       'tool/release_manifest.dart',
-      'example/lib/main.dart',
+      'example/01_full_app/lib/main.dart',
+      'example/02_users/README.md',
+      'example/02_users/lib/user_examples.dart',
+      'example/02_users/test/user_examples_test.dart',
+      'test/new_api_surface_test.dart',
     ];
     for (final path in files) {
       expect(File(path).existsSync(), isTrue, reason: path);
@@ -140,15 +146,22 @@ void main() {
       expect(result.exitCode, 0, reason: '${result.stderr}');
       expect(File('${dir.path}/pubspec.lock').existsSync(), isTrue);
       expect(File('${dir.path}/dartdoc_options.yaml').existsSync(), isTrue);
+      expect(File('${dir.path}/.gitleaks.toml').existsSync(), isTrue);
       for (final path in <String>[
         'install.sh',
         'build.sh',
         'run.sh',
         'test.sh',
         'tool/live_test.dart',
-        'example/README.md',
-        'example/lib/main.dart',
-        'example/asset/video_10frames.mp4',
+        'example/01_full_app/README.md',
+        'example/01_full_app/lib/main.dart',
+        'example/01_full_app/asset/video_10frames.mp4',
+        'example/02_users/README.md',
+        'example/02_users/lib/global_search_index.dart',
+        'example/02_users/lib/private_user_index.dart',
+        'example/02_users/lib/user_streams.dart',
+        'example/02_users/lib/product_catalog.dart',
+        'example/02_users/test/user_examples_test.dart',
         'doc/search_app.md',
         'doc/sdk_doc.md',
         'doc/manage_api_key.md',
@@ -157,7 +170,7 @@ void main() {
         expect(File('${dir.path}/$path').existsSync(), isTrue, reason: path);
       }
       final exampleReadme = File(
-        '${dir.path}/example/README.md',
+        '${dir.path}/example/01_full_app/README.md',
       ).readAsStringSync();
       final searchGuide = File(
         '${dir.path}/doc/search_app.md',
@@ -167,17 +180,19 @@ void main() {
       expect(searchGuide, contains('input_index'));
       expect(searchGuide, contains('NetworkImage'));
       for (final path in <String>[
-        'example/android/local.properties',
-        'example/android/gradle/wrapper/gradle-wrapper.jar',
-        'example/android/gradlew',
-        'example/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java',
-        'example/.idea',
-        'example/vmodal_example.iml',
-        'example/ios/Flutter/Generated.xcconfig',
-        'example/ios/Flutter/flutter_export_environment.sh',
-        'example/ios/Flutter/ephemeral',
-        'example/ios/Runner/GeneratedPluginRegistrant.h',
-        'example/ios/Runner/GeneratedPluginRegistrant.m',
+        'example/01_full_app/android/local.properties',
+        'example/01_full_app/android/gradle/wrapper/gradle-wrapper.jar',
+        'example/01_full_app/android/gradlew',
+        'example/01_full_app/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java',
+        'example/01_full_app/.idea',
+        'example/01_full_app/vmodal_example.iml',
+        'example/01_full_app/ios/Flutter/Generated.xcconfig',
+        'example/01_full_app/ios/Flutter/flutter_export_environment.sh',
+        'example/01_full_app/ios/Flutter/ephemeral',
+        'example/01_full_app/ios/Runner/GeneratedPluginRegistrant.h',
+        'example/01_full_app/ios/Runner/GeneratedPluginRegistrant.m',
+        'example/02_users/.dart_tool',
+        'example/02_users/build',
         'doc/todo/sdk_doc.md',
         'docs_sdk',
         'docs.py',

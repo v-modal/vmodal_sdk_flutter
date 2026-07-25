@@ -1,26 +1,29 @@
 # Search application integration
 
-Keep the client above individual pages so navigation does not close shared
-network state. Before searching, confirm that the selected authenticated video
-collection exists and use its latest advertised LanceDB version.
+Keep the project above individual pages so navigation does not close shared
+network state. Retain an immutable scope in the page controller, provider,
+BLoC, or notifier:
 
 ```dart
-final groups = await client.collections.listGroups(mode: 'vid_file');
-final group = groups.findGroup('agroup', mode: 'vid_file');
-final version = group?.latestLancedbVersion;
-if (version == null) throw StateError('Finish the image index first');
-
-final result = await client.searches.searchVideo(
-  SearchRequest(
-    queryText: 'red bicycle',
-    mode: 'vid_file',
-    groupName: 'agroup',
-    streamName: 'astream',
-    searchSources: const ['image'],
-    versionLancedb: version,
+final project = VModal.configure(
+  projectId: 'video_search',
+  apiKeyProvider: keys,
+);
+final scope = project.scope(
+  collectionName: 'global',
+  streamName: 'uploads',
+);
+final result = await scope.search(
+  'red bicycle',
+  options: const ScopedSearchOptions(
+    searchSources: ['image'],
   ),
 );
 ```
+
+Use `versionLancedb` in `ScopedSearchOptions` when your application tracks a
+specific index version. Collection and stream cannot be overridden per search,
+so overlapping searches retain the organization with which they started.
 
 Search hits contain stored image coordinates, not public image URLs. Convert
 each usable hit into one bulk lookup record with these fields:
@@ -39,6 +42,12 @@ The supported filename fields, in order, are `filename`,
 Normalize timestamps from `ts_unix_13digits`, `ts_unix`, or `timestamp_ms`:
 truncate values longer than 13 digits, multiply 10-digit seconds by 1000, and
 left-pad other nonblank numeric values to 13 digits.
+
+Image URL resolution remains an advanced low-level resource. When a result
+flow needs it, create `VmodalClient` first, pass it to `VModal.fromClient`, and
+use `client.images` while the project is alive. Obtain raw image selectors from
+trusted result data or a low-level collection response; never manually compose
+a backend project/collection name.
 
 Send all candidate records in one request:
 

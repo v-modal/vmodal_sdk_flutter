@@ -30,6 +30,7 @@ sdk_regression() {
     S04|S05|S06|S07|S08|S09|S10|S11_1|S11_2|S11_3|S11_4|S11_5|S11_6|S11|S12|S13|S14|S15|S16|S17|S18|S19) ;;
     *) echo "Unknown regression step: $step" >&2; return 2 ;;
   esac
+  bash build.sh pub_get
   bash build.sh format
   bash build.sh analyze
   flutter="$(bash install.sh flutter_bin)"

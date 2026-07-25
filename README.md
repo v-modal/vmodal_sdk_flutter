@@ -310,7 +310,7 @@ Minimum toolchain: Flutter `3.44.0` and Dart `3.12.0`.
 
 - [Browse the public SDK reference](https://v-modal.github.io/vmodal_sdk_flutter/)
 - [Run the complete example app](https://github.com/v-modal/vmodal_sdk_flutter/tree/main/example/01_full_app)
-- [Organize global, per-user, multi-stream, and catalog indexes](example/02_users/README.md)
+- [Organize global, per-user, multi-stream, and catalog indexes](https://github.com/v-modal/vmodal_sdk_flutter/tree/main/example/02_users)
 - [Read the SDK guide](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/sdk_doc.md)
 - [Manage API keys safely](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/manage_api_key.md)
 - [Build a search experience](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/search_app.md)

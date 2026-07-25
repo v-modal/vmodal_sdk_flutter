@@ -103,10 +103,7 @@ void checkWorkflow(String main, String tagged) {
       'sha256sum example/01_full_app/build/app/outputs/flutter-apk/app-debug.apk',
     ),
   );
-  expect(
-    main,
-    contains("find example/01_full_app/build/ios -name '*.app'"),
-  );
+  expect(main, contains("find example/01_full_app/build/ios -name '*.app'"));
   expect(main, isNot(contains('sha256sum example/build/')));
   expect(main, isNot(contains('find example/build/ios')));
   expect(main, contains('RELEASE_TOKEN: \${{ secrets.GH_TOKEN }}'));

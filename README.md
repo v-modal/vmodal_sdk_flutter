@@ -291,6 +291,42 @@ The offline gate analyzes the package, runs the SDK and example tests, checks ro
 
 <p align="center"><strong>Build video experiences people can search, not just scroll.</strong></p>
 
+The vmodal_sdk_flutter repository provides the official Flutter SDK for integrating V-Modal AI’s advanced multimodal video and image search technology into cross-platform applications. Developed as an open-source tool, the SDK abstracts complex machine learning infrastructure into simple, developer-friendly methods. This allows mobile developers to incorporate deep visual intelligence into their apps without managing raw vector databases or heavy AI pipelines. During its current public beta phase, the SDK enables fast, semantic querying across media libraries using natural language text or visual references.
+The framework supports unified cross-platform logic, ensuring identical integration paths for both iOS and Android deployment. By optimizing communication with V-Modal AI’s backend, the SDK minimizes network latency and processing overhead on user devices. This makes it ideal for apps requiring real-time asset tracking, e-commerce visual discovery, or intelligent media organization.
+------------------------------
+## Understand Core Features
+
+* Multimodal Search: Query media asset databases using text prompts or reference images simultaneously.
+* Video Analytics: Extract actionable data and contextual timestamps from raw video files during processing.
+* Image Recognition: Identify object patterns, text elements, and spatial relationships within static images.
+* Vector Indexing: Convert unstructured multimedia content into searchable mathematical representations.
+* Secure Authorization: Protect developer access tokens through integrated, secure API headers.
+* Asynchronous Execution: Run complex indexing tasks in background threads to maintain app performance.
+
+
+Developers can quickly query their indexed catalog by passing strings or files to the search client. The SDK processes these inputs, communicates with V-Modal's specialized embedding models, and returns structured data objects. These response objects contain relevance confidence scores, metadata tags, and specific timestamps for video matches, allowing apps to jump directly to relevant frames.
+
+------------------------------
+## Evaluate Technical Architecture
+
+* Dart Native: Built natively on Dart to ensure seamless compatibility with Flutter 3.x engines.
+* Lightweight Footprint: Avoids heavy local binary files by offloading heavy ML math to cloud APIs.
+* Reactive Model: Emits search states using streams, simplifying UI updates during long-running network requests.
+* Error Resilience: Features built-in handling for network dropouts, rate limiting, and invalid API keys.
+
+------------------------------
+## Review Use Cases
+
+* E-Commerce Apps: Allow users to snap photos of physical products to find identical online listings.
+* Security Surveillance: Search hours of recorded footage instantly using simple text descriptions of events.
+* Digital Asset Management: Automate the tagging, categorization, and sorting of large corporate media files.
+* Content Creation: Enable video editors to locate specific scenes or actions within massive B-roll libraries.
+
+
+  
+</p>
+
+
 <sub>Flutter and the related logo are trademarks of Google LLC. VModal is not endorsed by or affiliated with Google LLC.</sub>
 
 

@@ -38,6 +38,7 @@ export 'src/errors.dart';
 export 'src/models.dart';
 export 'src/resources.dart';
 export 'src/routes.dart' show RouteCategory, RouteSpec, Routes;
+export 'src/transcode.dart';
 export 'src/transport.dart'
     show
         CancellationToken,

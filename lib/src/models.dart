@@ -549,7 +549,13 @@ class VideoUploadResponse extends JsonBackedResponse {
       partsUploaded = intValue(raw['parts_uploaded']),
       resumed = raw['resumed'] == true,
       attemptCount = intValue(raw['attempt_count']),
-      destPath = '${raw['dest_path'] ?? ''}';
+      destPath = '${raw['dest_path'] ?? ''}',
+      reduceSize = raw['reduce_size'] == true,
+      filePath = '${raw['filepath_local'] ?? ''}',
+      sourceFilePath = '${raw['source_filepath_local'] ?? ''}',
+      sourceSizeBytes = intValue(raw['source_size_bytes']),
+      temporaryFileDeleted = raw['temporary_file_deleted'] == true,
+      temporaryFileReused = raw['temporary_file_reused'] == true;
 
   final String userId;
   final String key;
@@ -568,6 +574,24 @@ class VideoUploadResponse extends JsonBackedResponse {
   final bool resumed;
   final int attemptCount;
   final String destPath;
+
+  /// Whether the file was transcoded to a smaller temp before upload.
+  final bool reduceSize;
+
+  /// Original local file path (equals [sourceFilePath] when [reduceSize]).
+  final String filePath;
+
+  /// Path of the caller's original file before reduction.
+  final String sourceFilePath;
+
+  /// Size in bytes of the original file before reduction.
+  final int sourceSizeBytes;
+
+  /// Whether the produced temp was deleted after a successful upload.
+  final bool temporaryFileDeleted;
+
+  /// Whether the reduced file came from the transcoder's reuse cache.
+  final bool temporaryFileReused;
 }
 
 /// Ordered results for a bulk signed upload.

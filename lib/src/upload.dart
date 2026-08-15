@@ -22,6 +22,7 @@ class UploadSource {
     this.contentType = 'application/octet-stream',
     String? sourceId,
     this.versionTag = '',
+    this.localFile,
     Stream<List<int>> Function(int offset)? rangeOpener,
   }) : sourceId = sourceId ?? fileName,
        _opener = opener,
@@ -49,6 +50,7 @@ class UploadSource {
       contentType: contentType ?? guessContentType(name),
       sourceId: file.absolute.path,
       versionTag: '${stat.size}:${stat.modified.millisecondsSinceEpoch}',
+      localFile: file,
       opener: file.openRead,
       rangeOpener: (int offset) => file.openRead(offset),
     );
@@ -68,6 +70,11 @@ class UploadSource {
 
   /// Version marker used to reject stale resume checkpoints.
   final String versionTag;
+
+  /// Backing file when this source was created by [UploadSource.fromFile].
+  ///
+  /// Required for pre-upload transcoding; `null` for stream-only sources.
+  final File? localFile;
   final Stream<List<int>> Function() _opener;
   final Stream<List<int>> Function(int offset)? _rangeOpener;
 

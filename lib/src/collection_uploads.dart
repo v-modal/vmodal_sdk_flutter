@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
@@ -9,6 +10,7 @@ import 'errors.dart';
 import 'models.dart';
 import 'resources.dart';
 import 'routes.dart';
+import 'transcode.dart';
 import 'transport.dart';
 import 'upload.dart';
 import 'utils.dart';
@@ -29,6 +31,7 @@ class VideoUploadOptions {
     this.resume = true,
     this.sessionStore,
     this.adaptiveConditions,
+    this.transcoder = const PassthroughVideoTranscoder(),
   });
 
   /// Enables experimental multipart upload behavior.
@@ -58,6 +61,13 @@ class VideoUploadOptions {
   /// Optional device/network snapshot for adaptive preset selection.
   final UploadConditions? adaptiveConditions;
 
+  /// Pre-upload reducer; defaults to [PassthroughVideoTranscoder] (no transcode).
+  ///
+  /// A non-passthrough transcoder requires a file-backed source
+  /// ([UploadSource.fromFile]) and produces the parity fields on
+  /// [VideoUploadResponse] mirroring the Python `video_upload(reduce_size=...)`.
+  final VideoTranscoder transcoder;
+
   /// Effective checkpoint store.
   UploadSessionStore get store => sessionStore ?? UploadSessionStores.memory;
 
@@ -84,6 +94,7 @@ class VideoUploadOptions {
     bool? resume,
     UploadSessionStore? sessionStore,
     UploadConditions? adaptiveConditions,
+    VideoTranscoder? transcoder,
   }) => VideoUploadOptions(
     multipart: multipart ?? this.multipart,
     multipartThresholdBytes:
@@ -95,10 +106,20 @@ class VideoUploadOptions {
     resume: resume ?? this.resume,
     sessionStore: sessionStore ?? this.sessionStore,
     adaptiveConditions: adaptiveConditions ?? this.adaptiveConditions,
+    transcoder: transcoder ?? this.transcoder,
   );
 
-  /// Validates multipart constraints for a source of [size] bytes.
+  /// Max size for a single video upload (100 MB). Larger files are rejected.
+  static const int maxVideoUploadBytes = 100 * 1024 * 1024;
+
+  /// Validates the source [size] and multipart constraints.
   void validate(int size) {
+    if (size > maxVideoUploadBytes) {
+      throw ValidationException(
+        'video file too large: $size bytes exceeds the '
+        '$maxVideoUploadBytes bytes (100 MB) limit',
+      );
+    }
     if (!multipart) return;
     if (partSizeBytes < 5 * 1024 * 1024) {
       throw const ValidationException('part_size_bytes must be at least 5 MiB');
@@ -254,6 +275,19 @@ extension CollectionUploads on CollectionsResource {
     CancellationToken cancellation,
     void Function(UploadProgress) emit,
   ) async {
+    if (!options.transcoder.isPassthrough) {
+      return _transcodeUploadRun(
+        source,
+        collection,
+        stream,
+        mode,
+        modality,
+        ttl,
+        options,
+        cancellation,
+        emit,
+      );
+    }
     if (!options.multipart) {
       return _singleUpload(
         source,
@@ -285,6 +319,69 @@ extension CollectionUploads on CollectionsResource {
         'retry with VideoUploadOptions(multipart: false)',
       );
     }
+  }
+
+  /// Reduces the source with [options.transcoder], uploads the produced temp,
+  /// deletes it, and augments the response with Python-parity reduce fields.
+  Future<VideoUploadResponse> _transcodeUploadRun(
+    UploadSource source,
+    String collection,
+    String stream,
+    String mode,
+    String modality,
+    int ttl,
+    VideoUploadOptions options,
+    CancellationToken cancellation,
+    void Function(UploadProgress) emit,
+  ) async {
+    final input = source.localFile;
+    if (input == null) {
+      throw const ValidationException(
+        'transcoding requires a file-backed source (UploadSource.fromFile)',
+      );
+    }
+    final sourceSize = source.contentLength;
+    final result = await options.transcoder.reduce(input);
+    final produced = result.output.absolute.path != input.absolute.path;
+    final temp = UploadSource.fromFile(
+      result.output,
+      contentType: source.contentType,
+    );
+    if (produced && temp.contentLength <= 0) {
+      throw const ValidationException('transcoder produced an empty file');
+    }
+    final pass = options
+        .copyWith(transcoder: const PassthroughVideoTranscoder())
+        .resolvedFor(temp.contentLength);
+    pass.validate(temp.contentLength);
+    final res = await _videoUploadRun(
+      temp,
+      collection,
+      stream,
+      mode,
+      modality,
+      ttl,
+      pass,
+      cancellation,
+      emit,
+    );
+    if (produced) {
+      if (await result.output.exists()) await result.output.delete();
+      if (await result.output.exists()) {
+        throw const ApiException(
+          'upload completed but reduced temporary video still exists',
+        );
+      }
+    }
+    return VideoUploadResponse(<String, Object?>{
+      ...res.raw,
+      'reduce_size': true,
+      'filepath_local': input.path,
+      'source_filepath_local': input.path,
+      'source_size_bytes': sourceSize,
+      'temporary_file_deleted': produced,
+      'temporary_file_reused': result.reused,
+    });
   }
 
   Future<VideoUploadResponse> _singleUpload(

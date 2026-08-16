@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
-  <meta name="description" content="API docs for the validate method from the VideoUploadOptions class, for the Dart programming language.">
-  <title>validate method - VideoUploadOptions class - vmodal_sdk_flutter library - Dart API</title>
+  <meta name="description" content="API docs for the noSuchMethod method from the TranscodeResult class, for the Dart programming language.">
+  <title>noSuchMethod method - TranscodeResult class - vmodal_sdk_flutter library - Dart API</title>
 
 
   
@@ -26,10 +26,10 @@
   <ol class="breadcrumbs gt-separated dark hidden-xs">
     <li><a href="../../index.html">vmodal_sdk_flutter</a></li>
     <li><a href="../../vmodal_sdk_flutter/">vmodal_sdk_flutter.dart</a></li>
-    <li><a href="../../vmodal_sdk_flutter/VideoUploadOptions-class.html">VideoUploadOptions</a></li>
-    <li class="self-crumb">validate method</li>
+    <li><a href="../../vmodal_sdk_flutter/TranscodeResult-class.html">TranscodeResult</a></li>
+    <li class="self-crumb">noSuchMethod method</li>
   </ol>
-  <div class="self-name">validate</div>
+  <div class="self-name">noSuchMethod</div>
   <form class="search navbar-right" role="search">
     <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
   </form>
@@ -46,24 +46,58 @@
 <div
     id="dartdoc-main-content"
     class="main-content"
-    data-above-sidebar="vmodal_sdk_flutter&#47;VideoUploadOptions-class-sidebar.html"
+    data-above-sidebar="vmodal_sdk_flutter&#47;TranscodeResult-class-sidebar.html"
     data-below-sidebar="">
     <div>
-<h1><span class="kind-method">validate</span> method 
+<h1><span class="kind-method">noSuchMethod</span> method 
 </h1></div>
 
     <section class="multi-line-signature">
       
-<span class="returntype">void</span>
-<span class="name ">validate</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="validate-param-size"><span class="type-annotation">int</span> <span class="parameter-name">size</span></span></li>
+<span class="returntype">dynamic</span>
+<span class="name ">noSuchMethod</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="noSuchMethod-param-invocation"><span class="type-annotation">Invocation</span> <span class="parameter-name">invocation</span></span></li>
 </ol>)
 
-      
+      <div class="features"><span class="feature">inherited</span></div>
 
     </section>
     
 <section class="desc markdown">
-  <p>Validates the source <code>size</code> and multipart constraints.</p>
+  <p>Invoked when a nonexistent method or property is accessed.</p>
+<p>A dynamic member invocation can attempt to call a member which
+doesn't exist on the receiving object. Example:</p>
+<pre class="language-dart"><code class="language-dart">dynamic object = 1;
+object.add(42); // Statically allowed, run-time error
+</code></pre>
+<p>This invalid code will invoke the <code>noSuchMethod</code> method
+of the integer <code>1</code> with an <code>Invocation</code> representing the
+<code>.add(42)</code> call and arguments (which then throws).</p>
+<p>Classes can override <code>noSuchMethod</code> to provide custom behavior
+for such invalid dynamic invocations.</p>
+<p>A class with a non-default <code>noSuchMethod</code> invocation can also
+omit implementations for members of its interface.
+Example:</p>
+<pre class="language-dart"><code class="language-dart">class MockList&lt;T&gt; implements List&lt;T&gt; {
+  noSuchMethod(Invocation invocation) {
+    log(invocation);
+    super.noSuchMethod(invocation); // Will throw.
+  }
+}
+void main() {
+  MockList().add(42);
+}
+</code></pre>
+<p>This code has no compile-time warnings or errors even though
+the <code>MockList</code> class has no concrete implementation of
+any of the <code>List</code> interface methods.
+Calls to <code>List</code> methods are forwarded to <code>noSuchMethod</code>,
+so this code will <code>log</code> an invocation similar to
+<code>Invocation.method(#add, [42])</code> and then throw.</p>
+<p>If a value is returned from <code>noSuchMethod</code>,
+it becomes the result of the original invocation.
+If the value is not of a type that can be returned by the original
+invocation, a type error occurs at the invocation.</p>
+<p>The default behavior is to throw a <code>NoSuchMethodError</code>.</p>
 </section>
 
 
@@ -81,11 +115,11 @@
 <ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
     <li><a href="../../index.html">vmodal_sdk_flutter</a></li>
     <li><a href="../../vmodal_sdk_flutter/">vmodal_sdk_flutter</a></li>
-    <li><a href="../../vmodal_sdk_flutter/VideoUploadOptions-class.html">VideoUploadOptions</a></li>
-    <li class="self-crumb">validate method</li>
+    <li><a href="../../vmodal_sdk_flutter/TranscodeResult-class.html">TranscodeResult</a></li>
+    <li class="self-crumb">noSuchMethod method</li>
 </ol>
 
-    <h5>VideoUploadOptions class</h5>
+    <h5>TranscodeResult class</h5>
     <div id="dartdoc-sidebar-left-content"></div>
   </div><!--/.sidebar-offcanvas-->
   <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">

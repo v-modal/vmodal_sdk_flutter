@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
-  <meta name="description" content="API docs for the validate method from the VideoUploadOptions class, for the Dart programming language.">
-  <title>validate method - VideoUploadOptions class - vmodal_sdk_flutter library - Dart API</title>
+  <meta name="description" content="API docs for the transcoder property from the VideoUploadOptions class, for the Dart programming language.">
+  <title>transcoder property - VideoUploadOptions class - vmodal_sdk_flutter library - Dart API</title>
 
 
   
@@ -27,9 +27,9 @@
     <li><a href="../../index.html">vmodal_sdk_flutter</a></li>
     <li><a href="../../vmodal_sdk_flutter/">vmodal_sdk_flutter.dart</a></li>
     <li><a href="../../vmodal_sdk_flutter/VideoUploadOptions-class.html">VideoUploadOptions</a></li>
-    <li class="self-crumb">validate method</li>
+    <li class="self-crumb">transcoder property</li>
   </ol>
-  <div class="self-name">validate</div>
+  <div class="self-name">transcoder</div>
   <form class="search navbar-right" role="search">
     <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
   </form>
@@ -49,30 +49,32 @@
     data-above-sidebar="vmodal_sdk_flutter&#47;VideoUploadOptions-class-sidebar.html"
     data-below-sidebar="">
     <div>
-<h1><span class="kind-method">validate</span> method 
+<h1><span class="kind-property">transcoder</span> property 
 </h1></div>
 
-    <section class="multi-line-signature">
-      
-<span class="returntype">void</span>
-<span class="name ">validate</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="validate-param-size"><span class="type-annotation">int</span> <span class="parameter-name">size</span></span></li>
-</ol>)
-
-      
-
-    </section>
     
+      <section class="multi-line-signature">
+        
+        <a href="../../vmodal_sdk_flutter/VideoTranscoder-class.html">VideoTranscoder</a>
+        <span class="name ">transcoder</span>
+        <div class="features"><span class="feature">final</span></div>
+
+      </section>
+      
 <section class="desc markdown">
-  <p>Validates the source <code>size</code> and multipart constraints.</p>
+  <p>Pre-upload reducer; defaults to <a href="../../vmodal_sdk_flutter/PassthroughVideoTranscoder-class.html">PassthroughVideoTranscoder</a> (no transcode).</p>
+<p>A non-passthrough transcoder requires a file-backed source
+(<a href="../../vmodal_sdk_flutter/UploadSource/UploadSource.fromFile.html">UploadSource.fromFile</a>) and produces the parity fields on
+<a href="../../vmodal_sdk_flutter/VideoUploadResponse-class.html">VideoUploadResponse</a> mirroring the Python <code>video_upload(reduce_size=...)</code>.</p>
 </section>
 
+      
+
 
     
-
-
-  </div> <!-- /.main-content -->
-  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
-    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+</div> <!-- /.main-content -->
+<div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+  <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
 <header id="header-search-sidebar" class="hidden-l">
   <form class="search-sidebar" role="search">
     <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
@@ -82,13 +84,13 @@
     <li><a href="../../index.html">vmodal_sdk_flutter</a></li>
     <li><a href="../../vmodal_sdk_flutter/">vmodal_sdk_flutter</a></li>
     <li><a href="../../vmodal_sdk_flutter/VideoUploadOptions-class.html">VideoUploadOptions</a></li>
-    <li class="self-crumb">validate method</li>
+    <li class="self-crumb">transcoder property</li>
 </ol>
 
-    <h5>VideoUploadOptions class</h5>
-    <div id="dartdoc-sidebar-left-content"></div>
-  </div><!--/.sidebar-offcanvas-->
-  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  <h5>VideoUploadOptions class</h5>
+  <div id="dartdoc-sidebar-left-content"></div>
+</div><!--/.sidebar-offcanvas-->
+<div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
 </div><!--/.sidebar-offcanvas-->
 </main>
 <footer>

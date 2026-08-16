@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
-  <meta name="description" content="API docs for the validate method from the VideoUploadOptions class, for the Dart programming language.">
-  <title>validate method - VideoUploadOptions class - vmodal_sdk_flutter library - Dart API</title>
+  <meta name="description" content="API docs for the reduce method from the PassthroughVideoTranscoder class, for the Dart programming language.">
+  <title>reduce method - PassthroughVideoTranscoder class - vmodal_sdk_flutter library - Dart API</title>
 
 
   
@@ -26,10 +26,10 @@
   <ol class="breadcrumbs gt-separated dark hidden-xs">
     <li><a href="../../index.html">vmodal_sdk_flutter</a></li>
     <li><a href="../../vmodal_sdk_flutter/">vmodal_sdk_flutter.dart</a></li>
-    <li><a href="../../vmodal_sdk_flutter/VideoUploadOptions-class.html">VideoUploadOptions</a></li>
-    <li class="self-crumb">validate method</li>
+    <li><a href="../../vmodal_sdk_flutter/PassthroughVideoTranscoder-class.html">PassthroughVideoTranscoder</a></li>
+    <li class="self-crumb">reduce method</li>
   </ol>
-  <div class="self-name">validate</div>
+  <div class="self-name">reduce</div>
   <form class="search navbar-right" role="search">
     <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
   </form>
@@ -46,24 +46,32 @@
 <div
     id="dartdoc-main-content"
     class="main-content"
-    data-above-sidebar="vmodal_sdk_flutter&#47;VideoUploadOptions-class-sidebar.html"
+    data-above-sidebar="vmodal_sdk_flutter&#47;PassthroughVideoTranscoder-class-sidebar.html"
     data-below-sidebar="">
     <div>
-<h1><span class="kind-method">validate</span> method 
+<h1><span class="kind-method">reduce</span> method 
 </h1></div>
 
     <section class="multi-line-signature">
       
-<span class="returntype">void</span>
-<span class="name ">validate</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="validate-param-size"><span class="type-annotation">int</span> <span class="parameter-name">size</span></span></li>
+  <div>
+    <ol class="annotation-list">
+        <li>@override</li>
+    </ol>
+  </div>
+<span class="returntype">Future<span class="signature">&lt;<wbr><span class="type-parameter"><a href="../../vmodal_sdk_flutter/TranscodeResult-class.html">TranscodeResult</a></span>&gt;</span></span>
+<span class="name ">reduce</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="reduce-param-input"><span class="type-annotation">File</span> <span class="parameter-name">input</span></span></li>
 </ol>)
 
-      
+      <div class="features"><span class="feature">override</span></div>
 
     </section>
     
 <section class="desc markdown">
-  <p>Validates the source <code>size</code> and multipart constraints.</p>
+  <p>Returns the file to upload, reducing <code>input</code> when applicable.</p>
+<p>Returning a file whose path differs from <code>input</code> marks it a produced temp
+that the SDK deletes after a successful upload. Returning <code>input</code> itself is
+an identity passthrough.</p>
 </section>
 
 
@@ -81,11 +89,11 @@
 <ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
     <li><a href="../../index.html">vmodal_sdk_flutter</a></li>
     <li><a href="../../vmodal_sdk_flutter/">vmodal_sdk_flutter</a></li>
-    <li><a href="../../vmodal_sdk_flutter/VideoUploadOptions-class.html">VideoUploadOptions</a></li>
-    <li class="self-crumb">validate method</li>
+    <li><a href="../../vmodal_sdk_flutter/PassthroughVideoTranscoder-class.html">PassthroughVideoTranscoder</a></li>
+    <li class="self-crumb">reduce method</li>
 </ol>
 
-    <h5>VideoUploadOptions class</h5>
+    <h5>PassthroughVideoTranscoder class</h5>
     <div id="dartdoc-sidebar-left-content"></div>
   </div><!--/.sidebar-offcanvas-->
   <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">

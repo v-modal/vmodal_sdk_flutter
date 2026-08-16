@@ -66,7 +66,7 @@ source that can reopen the requested ranges.</p>
     <h2>Constructors</h2>
     <dl class="constructor-summary-list">
         <dt id="UploadSource.new" class="callable">
-          <span class="name"><a href="../vmodal_sdk_flutter/UploadSource/UploadSource.html">UploadSource</a></span><span class="signature">({<span class="parameter" id="param-fileName"><span>required</span> <span class="type-annotation">String</span> <span class="parameter-name">fileName</span>, </span><span class="parameter" id="param-contentLength"><span>required</span> <span class="type-annotation">int</span> <span class="parameter-name">contentLength</span>, </span><span class="parameter" id="param-opener"><span>required</span> <span class="type-annotation">Stream<span class="signature">&lt;<wbr><span class="type-parameter">List<span class="signature">&lt;<wbr><span class="type-parameter">int</span>&gt;</span></span>&gt;</span></span> <span class="parameter-name">opener</span>(), </span><span class="parameter" id="param-contentType"><span class="type-annotation">String</span> <span class="parameter-name">contentType</span> = <span class="default-value">&#39;application&#47;octet-stream&#39;</span>, </span><span class="parameter" id="param-sourceId"><span class="type-annotation">String?</span> <span class="parameter-name">sourceId</span>, </span><span class="parameter" id="param-versionTag"><span class="type-annotation">String</span> <span class="parameter-name">versionTag</span> = <span class="default-value">&#39;&#39;</span>, </span><span class="parameter" id="param-rangeOpener"><span class="type-annotation">Stream<span class="signature">&lt;<wbr><span class="type-parameter">List<span class="signature">&lt;<wbr><span class="type-parameter">int</span>&gt;</span></span>&gt;</span></span> <span class="parameter-name">rangeOpener</span>(<span class="parameter" id="param-offset"><span class="type-annotation">int</span> <span class="parameter-name">offset</span></span>)?</span>})</span>
+          <span class="name"><a href="../vmodal_sdk_flutter/UploadSource/UploadSource.html">UploadSource</a></span><span class="signature">({<span class="parameter" id="param-fileName"><span>required</span> <span class="type-annotation">String</span> <span class="parameter-name">fileName</span>, </span><span class="parameter" id="param-contentLength"><span>required</span> <span class="type-annotation">int</span> <span class="parameter-name">contentLength</span>, </span><span class="parameter" id="param-opener"><span>required</span> <span class="type-annotation">Stream<span class="signature">&lt;<wbr><span class="type-parameter">List<span class="signature">&lt;<wbr><span class="type-parameter">int</span>&gt;</span></span>&gt;</span></span> <span class="parameter-name">opener</span>(), </span><span class="parameter" id="param-contentType"><span class="type-annotation">String</span> <span class="parameter-name">contentType</span> = <span class="default-value">&#39;application&#47;octet-stream&#39;</span>, </span><span class="parameter" id="param-sourceId"><span class="type-annotation">String?</span> <span class="parameter-name">sourceId</span>, </span><span class="parameter" id="param-versionTag"><span class="type-annotation">String</span> <span class="parameter-name">versionTag</span> = <span class="default-value">&#39;&#39;</span>, </span><span class="parameter" id="param-localFile"><span class="type-annotation">File?</span> <span class="parameter-name">localFile</span>, </span><span class="parameter" id="param-rangeOpener"><span class="type-annotation">Stream<span class="signature">&lt;<wbr><span class="type-parameter">List<span class="signature">&lt;<wbr><span class="type-parameter">int</span>&gt;</span></span>&gt;</span></span> <span class="parameter-name">rangeOpener</span>(<span class="parameter" id="param-offset"><span class="type-annotation">int</span> <span class="parameter-name">offset</span></span>)?</span>})</span>
         </dt>
         <dd>
           Creates a source from stream factories.
@@ -131,6 +131,18 @@ source that can reopen the requested ranges.</p>
 <dd class="inherited">
   The hash code for this object.
   <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="localFile" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/UploadSource/localFile.html">localFile</a></span>
+  <span class="signature">&#8594; File?</span>
+  
+
+</dt>
+<dd>
+  Backing file when this source was created by <a href="../vmodal_sdk_flutter/UploadSource/UploadSource.fromFile.html">UploadSource.fromFile</a>.
+  <div class="features"><span class="feature">final</span></div>
 
 </dd>
 

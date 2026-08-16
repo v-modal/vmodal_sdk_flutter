@@ -66,7 +66,7 @@ derives bounded part and concurrency settings before validating the upload.</p>
     <h2>Constructors</h2>
     <dl class="constructor-summary-list">
         <dt id="VideoUploadOptions.new" class="callable">
-          <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadOptions/VideoUploadOptions.html">VideoUploadOptions</a></span><span class="signature">({<span class="parameter" id="param-multipart"><span class="type-annotation">bool</span> <span class="parameter-name">multipart</span> = <span class="default-value">false</span>, </span><span class="parameter" id="param-multipartThresholdBytes"><span class="type-annotation">int</span> <span class="parameter-name">multipartThresholdBytes</span> = <span class="default-value">100 * 1024 * 1024</span>, </span><span class="parameter" id="param-partSizeBytes"><span class="type-annotation">int</span> <span class="parameter-name">partSizeBytes</span> = <span class="default-value">64 * 1024 * 1024</span>, </span><span class="parameter" id="param-maxConcurrency"><span class="type-annotation">int</span> <span class="parameter-name">maxConcurrency</span> = <span class="default-value">4</span>, </span><span class="parameter" id="param-maxPartAttempts"><span class="type-annotation">int</span> <span class="parameter-name">maxPartAttempts</span> = <span class="default-value">5</span>, </span><span class="parameter" id="param-partTimeout"><span class="type-annotation">Duration</span> <span class="parameter-name">partTimeout</span> = <span class="default-value">const Duration(seconds: 300)</span>, </span><span class="parameter" id="param-resume"><span class="type-annotation">bool</span> <span class="parameter-name">resume</span> = <span class="default-value">true</span>, </span><span class="parameter" id="param-sessionStore"><span class="type-annotation"><a href="../vmodal_sdk_flutter/UploadSessionStore-class.html">UploadSessionStore</a>?</span> <span class="parameter-name">sessionStore</span>, </span><span class="parameter" id="param-adaptiveConditions"><span class="type-annotation"><a href="../vmodal_sdk_flutter/UploadConditions-class.html">UploadConditions</a>?</span> <span class="parameter-name">adaptiveConditions</span></span>})</span>
+          <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadOptions/VideoUploadOptions.html">VideoUploadOptions</a></span><span class="signature">({<span class="parameter" id="param-multipart"><span class="type-annotation">bool</span> <span class="parameter-name">multipart</span> = <span class="default-value">false</span>, </span><span class="parameter" id="param-multipartThresholdBytes"><span class="type-annotation">int</span> <span class="parameter-name">multipartThresholdBytes</span> = <span class="default-value">100 * 1024 * 1024</span>, </span><span class="parameter" id="param-partSizeBytes"><span class="type-annotation">int</span> <span class="parameter-name">partSizeBytes</span> = <span class="default-value">64 * 1024 * 1024</span>, </span><span class="parameter" id="param-maxConcurrency"><span class="type-annotation">int</span> <span class="parameter-name">maxConcurrency</span> = <span class="default-value">4</span>, </span><span class="parameter" id="param-maxPartAttempts"><span class="type-annotation">int</span> <span class="parameter-name">maxPartAttempts</span> = <span class="default-value">5</span>, </span><span class="parameter" id="param-partTimeout"><span class="type-annotation">Duration</span> <span class="parameter-name">partTimeout</span> = <span class="default-value">const Duration(seconds: 300)</span>, </span><span class="parameter" id="param-resume"><span class="type-annotation">bool</span> <span class="parameter-name">resume</span> = <span class="default-value">true</span>, </span><span class="parameter" id="param-sessionStore"><span class="type-annotation"><a href="../vmodal_sdk_flutter/UploadSessionStore-class.html">UploadSessionStore</a>?</span> <span class="parameter-name">sessionStore</span>, </span><span class="parameter" id="param-adaptiveConditions"><span class="type-annotation"><a href="../vmodal_sdk_flutter/UploadConditions-class.html">UploadConditions</a>?</span> <span class="parameter-name">adaptiveConditions</span>, </span><span class="parameter" id="param-transcoder"><span class="type-annotation"><a href="../vmodal_sdk_flutter/VideoTranscoder-class.html">VideoTranscoder</a></span> <span class="parameter-name">transcoder</span> = <span class="default-value">const PassthroughVideoTranscoder()</span></span>})</span>
         </dt>
         <dd>
           Creates upload options with single-upload behavior by default.
@@ -224,6 +224,18 @@ derives bounded part and concurrency settings before validating the upload.</p>
 
 </dd>
 
+        <dt id="transcoder" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadOptions/transcoder.html">transcoder</a></span>
+  <span class="signature">&#8594; <a href="../vmodal_sdk_flutter/VideoTranscoder-class.html">VideoTranscoder</a></span>
+  
+
+</dt>
+<dd>
+  Pre-upload reducer; defaults to <a href="../vmodal_sdk_flutter/PassthroughVideoTranscoder-class.html">PassthroughVideoTranscoder</a> (no transcode).
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
     </dl>
   </section>
 
@@ -234,7 +246,7 @@ derives bounded part and concurrency settings before validating the upload.</p>
     <h2>Methods</h2>
     <dl class="callables">
         <dt id="copyWith" class="callable">
-  <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadOptions/copyWith.html">copyWith</a></span><span class="signature">(<wbr>{<span class="parameter" id="copyWith-param-multipart"><span class="type-annotation">bool?</span> <span class="parameter-name">multipart</span>, </span><span class="parameter" id="copyWith-param-multipartThresholdBytes"><span class="type-annotation">int?</span> <span class="parameter-name">multipartThresholdBytes</span>, </span><span class="parameter" id="copyWith-param-partSizeBytes"><span class="type-annotation">int?</span> <span class="parameter-name">partSizeBytes</span>, </span><span class="parameter" id="copyWith-param-maxConcurrency"><span class="type-annotation">int?</span> <span class="parameter-name">maxConcurrency</span>, </span><span class="parameter" id="copyWith-param-maxPartAttempts"><span class="type-annotation">int?</span> <span class="parameter-name">maxPartAttempts</span>, </span><span class="parameter" id="copyWith-param-partTimeout"><span class="type-annotation">Duration?</span> <span class="parameter-name">partTimeout</span>, </span><span class="parameter" id="copyWith-param-resume"><span class="type-annotation">bool?</span> <span class="parameter-name">resume</span>, </span><span class="parameter" id="copyWith-param-sessionStore"><span class="type-annotation"><a href="../vmodal_sdk_flutter/UploadSessionStore-class.html">UploadSessionStore</a>?</span> <span class="parameter-name">sessionStore</span>, </span><span class="parameter" id="copyWith-param-adaptiveConditions"><span class="type-annotation"><a href="../vmodal_sdk_flutter/UploadConditions-class.html">UploadConditions</a>?</span> <span class="parameter-name">adaptiveConditions</span></span>})
+  <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadOptions/copyWith.html">copyWith</a></span><span class="signature">(<wbr>{<span class="parameter" id="copyWith-param-multipart"><span class="type-annotation">bool?</span> <span class="parameter-name">multipart</span>, </span><span class="parameter" id="copyWith-param-multipartThresholdBytes"><span class="type-annotation">int?</span> <span class="parameter-name">multipartThresholdBytes</span>, </span><span class="parameter" id="copyWith-param-partSizeBytes"><span class="type-annotation">int?</span> <span class="parameter-name">partSizeBytes</span>, </span><span class="parameter" id="copyWith-param-maxConcurrency"><span class="type-annotation">int?</span> <span class="parameter-name">maxConcurrency</span>, </span><span class="parameter" id="copyWith-param-maxPartAttempts"><span class="type-annotation">int?</span> <span class="parameter-name">maxPartAttempts</span>, </span><span class="parameter" id="copyWith-param-partTimeout"><span class="type-annotation">Duration?</span> <span class="parameter-name">partTimeout</span>, </span><span class="parameter" id="copyWith-param-resume"><span class="type-annotation">bool?</span> <span class="parameter-name">resume</span>, </span><span class="parameter" id="copyWith-param-sessionStore"><span class="type-annotation"><a href="../vmodal_sdk_flutter/UploadSessionStore-class.html">UploadSessionStore</a>?</span> <span class="parameter-name">sessionStore</span>, </span><span class="parameter" id="copyWith-param-adaptiveConditions"><span class="type-annotation"><a href="../vmodal_sdk_flutter/UploadConditions-class.html">UploadConditions</a>?</span> <span class="parameter-name">adaptiveConditions</span>, </span><span class="parameter" id="copyWith-param-transcoder"><span class="type-annotation"><a href="../vmodal_sdk_flutter/VideoTranscoder-class.html">VideoTranscoder</a>?</span> <span class="parameter-name">transcoder</span></span>})
     <span class="returntype parameter">&#8594; <a href="../vmodal_sdk_flutter/VideoUploadOptions-class.html">VideoUploadOptions</a></span>
   </span>
   
@@ -293,7 +305,7 @@ derives bounded part and concurrency settings before validating the upload.</p>
 
 </dt>
 <dd>
-  Validates multipart constraints for a source of <code>size</code> bytes.
+  Validates the source <code>size</code> and multipart constraints.
   
 
 </dd>
@@ -325,6 +337,23 @@ derives bounded part and concurrency settings before validating the upload.</p>
     
     
 
+  <section class="summary offset-anchor" id="constants">
+    <h2>Constants</h2>
+    <dl class="properties">
+        <dt id="maxVideoUploadBytes" class="constant">
+    <span class="name "><a href="../vmodal_sdk_flutter/VideoUploadOptions/maxVideoUploadBytes-constant.html">maxVideoUploadBytes</a></span>
+  <span class="signature">&#8594; const int</span>
+  
+
+</dt>
+<dd>
+  Max size for a single video upload (100 MB). Larger files are rejected.
+  
+
+</dd>
+
+    </dl>
+  </section>
   </div> <!-- /.main-content -->
   <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
     <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->

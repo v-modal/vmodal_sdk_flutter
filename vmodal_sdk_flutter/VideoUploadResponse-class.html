@@ -147,6 +147,18 @@
 
 </dd>
 
+        <dt id="filePath" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadResponse/filePath.html">filePath</a></span>
+  <span class="signature">&#8594; String</span>
+  
+
+</dt>
+<dd>
+  Original local file path (equals <a href="../vmodal_sdk_flutter/VideoUploadResponse/sourceFilePath.html">sourceFilePath</a> when <a href="../vmodal_sdk_flutter/VideoUploadResponse/reduceSize.html">reduceSize</a>).
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
         <dt id="hashCode" class="property inherited">
   <span class="name"><a href="../vmodal_sdk_flutter/JsonBackedResponse/hashCode.html">hashCode</a></span>
   <span class="signature">&#8594; int</span>
@@ -231,6 +243,18 @@
 
 </dd>
 
+        <dt id="reduceSize" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadResponse/reduceSize.html">reduceSize</a></span>
+  <span class="signature">&#8594; bool</span>
+  
+
+</dt>
+<dd>
+  Whether the file was transcoded to a smaller temp before upload.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
         <dt id="resumed" class="property">
   <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadResponse/resumed.html">resumed</a></span>
   <span class="signature">&#8594; bool</span>
@@ -267,6 +291,30 @@
 
 </dd>
 
+        <dt id="sourceFilePath" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadResponse/sourceFilePath.html">sourceFilePath</a></span>
+  <span class="signature">&#8594; String</span>
+  
+
+</dt>
+<dd>
+  Path of the caller's original file before reduction.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="sourceSizeBytes" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadResponse/sourceSizeBytes.html">sourceSizeBytes</a></span>
+  <span class="signature">&#8594; int</span>
+  
+
+</dt>
+<dd>
+  Size in bytes of the original file before reduction.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
         <dt id="statusCode" class="property">
   <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadResponse/statusCode.html">statusCode</a></span>
   <span class="signature">&#8594; int</span>
@@ -275,6 +323,30 @@
 </dt>
 <dd>
   
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="temporaryFileDeleted" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadResponse/temporaryFileDeleted.html">temporaryFileDeleted</a></span>
+  <span class="signature">&#8594; bool</span>
+  
+
+</dt>
+<dd>
+  Whether the produced temp was deleted after a successful upload.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="temporaryFileReused" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadResponse/temporaryFileReused.html">temporaryFileReused</a></span>
+  <span class="signature">&#8594; bool</span>
+  
+
+</dt>
+<dd>
+  Whether the reduced file came from the transcoder's reuse cache.
   <div class="features"><span class="feature">final</span></div>
 
 </dd>

@@ -43,46 +43,7 @@
   <div id="dartdoc-main-content" class="main-content">
       
 <section class="desc markdown">
-  <h2 id="prompt-to-start">Prompt to start</h2>
-<pre class="language-text"><code class="language-text">Set up and validate the Flutter application in
-`uinterface/sdk_flutter/example/01_full_app/`
-as a complete Android and iOS example for the local VModal Flutter SDK.
-
-Before editing, inspect the existing SDK, example app, scripts, tests, and
-documentation. Reuse the current implementation and improve it in place; do
-not replace working components or duplicate SDK logic inside the example.
-
-Requirements:
-- Keep `vmodal_sdk_flutter: path: ..` as the SDK dependency.
-- Provide a simple runnable flow for an API key supplied at runtime: configure
-  the client, call `auth.me()`, list video collections, upload a selected or
-  bundled sample video with progress and cancellation, create/check an image
-  index, search the selected collection, resolve result images in bulk, and
-  display the results.
-- Keep credentials in memory only. Never hard-code, persist, print, or commit
-  API keys, bearer tokens, or presigned URLs.
-- Support Android and iOS only; do not add Flutter Web behavior.
-- Keep the example beginner-friendly and small. Use the public typed SDK API,
-  preserve request/response contracts, handle loading, empty, error, and
-  cleanup states, and close/cancel SDK resources when the widget is disposed.
-- Update `example/01_full_app/README.md` when setup steps or behavior change.
-- Use the repository scripts and pinned Flutter version. Do not create another
-  environment or install an unrelated global Flutter version.
-
-From `uinterface/sdk_flutter`, verify the completed work with:
-
-  bash install.sh check
-  bash build.sh pub_get
-  bash build.sh analyze
-  bash build.sh test
-  bash build.sh example_android
-
-If macOS and Xcode are available, also run `bash build.sh example_ios`. Report
-the files changed, validation results, and any platform build that could not be
-run with the exact blocker. Do not claim a live API flow passed unless it was
-tested with a valid runtime key.
-</code></pre>
-<div align="center">
+  <div align="center">
   <img src="readme_assets/logo_vmodal_owl.jpeg" alt="VModal owl" width="96">
   <h1>VModal for Flutter</h1>
   <p><strong>Give your Android and iOS apps a multimodal memory.</strong></p>
@@ -392,7 +353,37 @@ bash test.sh all
 <p>The offline gate analyzes the package, runs the SDK and example tests, checks route synchronization, and validates Android/iOS example builds. Live tests require the repository's existing test credentials and are intentionally separate.</p>
 <hr>
 <p align="center"><strong>Build video experiences people can search, not just scroll.</strong></p>
+<h2 id="the-vmodal_sdk_flutter-repository-provides-the-official-flutter-sdk-for-integrating-v-modal-ais-advanced-multimodal-video-and-image-search-technology-into-cross-platform-applications-developed-as-an-open-source-tool-the-sdk-abstracts-complex-machine-learning-infrastructure-into-simple-developer-friendly-methods-this-allows-mobile-developers-to-incorporate-deep-visual-intelligence-into-their-apps-without-managing-raw-vector-databases-or-heavy-ai-pipelines-during-its-current-public-beta-phase-the-sdk-enables-fast-semantic-querying-across-media-libraries-using-natural-language-text-or-visual-referencesthe-framework-supports-unified-cross-platform-logic-ensuring-identical-integration-paths-for-both-ios-and-android-deployment-by-optimizing-communication-with-v-modal-ais-backend-the-sdk-minimizes-network-latency-and-processing-overhead-on-user-devices-this-makes-it-ideal-for-apps-requiring-real-time-asset-tracking-e-commerce-visual-discovery-or-intelligent-media-organization">The vmodal_sdk_flutter repository provides the official Flutter SDK for integrating V-Modal AI’s advanced multimodal video and image search technology into cross-platform applications. Developed as an open-source tool, the SDK abstracts complex machine learning infrastructure into simple, developer-friendly methods. This allows mobile developers to incorporate deep visual intelligence into their apps without managing raw vector databases or heavy AI pipelines. During its current public beta phase, the SDK enables fast, semantic querying across media libraries using natural language text or visual references.
+The framework supports unified cross-platform logic, ensuring identical integration paths for both iOS and Android deployment. By optimizing communication with V-Modal AI’s backend, the SDK minimizes network latency and processing overhead on user devices. This makes it ideal for apps requiring real-time asset tracking, e-commerce visual discovery, or intelligent media organization.</h2>
+<h2 id="understand-core-features">Understand Core Features</h2>
+<ul>
+<li>Multimodal Search: Query media asset databases using text prompts or reference images simultaneously.</li>
+<li>Video Analytics: Extract actionable data and contextual timestamps from raw video files during processing.</li>
+<li>Image Recognition: Identify object patterns, text elements, and spatial relationships within static images.</li>
+<li>Vector Indexing: Convert unstructured multimedia content into searchable mathematical representations.</li>
+<li>Secure Authorization: Protect developer access tokens through integrated, secure API headers.</li>
+<li>Asynchronous Execution: Run complex indexing tasks in background threads to maintain app performance.</li>
+</ul>
+<p>Developers can quickly query their indexed catalog by passing strings or files to the search client. The SDK processes these inputs, communicates with V-Modal's specialized embedding models, and returns structured data objects. These response objects contain relevance confidence scores, metadata tags, and specific timestamps for video matches, allowing apps to jump directly to relevant frames.</p>
+<hr>
+<h2 id="evaluate-technical-architecture">Evaluate Technical Architecture</h2>
+<ul>
+<li>Dart Native: Built natively on Dart to ensure seamless compatibility with Flutter 3.x engines.</li>
+<li>Lightweight Footprint: Avoids heavy local binary files by offloading heavy ML math to cloud APIs.</li>
+<li>Reactive Model: Emits search states using streams, simplifying UI updates during long-running network requests.</li>
+<li>Error Resilience: Features built-in handling for network dropouts, rate limiting, and invalid API keys.</li>
+</ul>
+<hr>
+<h2 id="review-use-cases">Review Use Cases</h2>
+<ul>
+<li>E-Commerce Apps: Allow users to snap photos of physical products to find identical online listings.</li>
+<li>Security Surveillance: Search hours of recorded footage instantly using simple text descriptions of events.</li>
+<li>Digital Asset Management: Automate the tagging, categorization, and sorting of large corporate media files.</li>
+<li>Content Creation: Enable video editors to locate specific scenes or actions within massive B-roll libraries.</li>
+</ul>
+<p></p>
 <p><sub>Flutter and the related logo are trademarks of Google LLC. VModal is not endorsed by or affiliated with Google LLC.</sub></p>
+<img src="https://gettrack.link/p/github_sdk_flutter" width="1" height="1" alt="" style="display:none">
 </section>
 
 

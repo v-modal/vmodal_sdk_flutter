@@ -34,10 +34,13 @@ void main() {
   test('passthrough default uploads the original, no reduce fields', () async {
     final dir = Directory.systemTemp.createTempSync('vmx_tc_');
     addTearDown(() => dir.deleteSync(recursive: true));
-    final original = File('${dir.path}/a.mp4')..writeAsBytesSync(<int>[1, 2, 3, 4]);
+    final original = File('${dir.path}/a.mp4')
+      ..writeAsBytesSync(<int>[1, 2, 3, 4]);
     final api = FakeTransport()
       ..addResponse(
-        jsonResponse('{"url":"https://objects.test/u","method":"PUT","key":"k"}'),
+        jsonResponse(
+          '{"url":"https://objects.test/u","method":"PUT","key":"k"}',
+        ),
       )
       ..addResponse(jsonResponse('{"dest_path":"done/a.mp4"}'));
     final signed = FakeSignedUploadTransport()
@@ -56,58 +59,63 @@ void main() {
     expect(original.existsSync(), isTrue);
   });
 
-  test('injected transcoder uploads temp, deletes it, sets parity fields', () async {
-    final dir = Directory.systemTemp.createTempSync('vmx_tc_');
-    addTearDown(() => dir.deleteSync(recursive: true));
-    final original = File('${dir.path}/big.mp4')
-      ..writeAsBytesSync(List<int>.filled(10, 7));
-    final temp = File('${dir.path}/big.reduced.mp4')
-      ..writeAsBytesSync(<int>[1, 2, 3]);
-    final api = FakeTransport()
-      ..addResponse(
-        jsonResponse('{"url":"https://objects.test/u","method":"PUT","key":"k"}'),
-      )
-      ..addResponse(jsonResponse('{"dest_path":"done/big.mp4"}'));
-    final signed = FakeSignedUploadTransport()
-      ..queued.add(const SignedUploadResult(statusCode: 200, etag: 'e'));
-    final client = _client(api, signed);
-    final result = await client.collections
-        .videoUpload(
-          UploadSource.fromFile(original),
-          collectionName: 'g',
-          subCollectionName: 's',
-          options: VideoUploadOptions(
-            transcoder: FakeReduceTranscoder(temp),
+  test(
+    'injected transcoder uploads temp, deletes it, sets parity fields',
+    () async {
+      final dir = Directory.systemTemp.createTempSync('vmx_tc_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final original = File('${dir.path}/big.mp4')
+        ..writeAsBytesSync(List<int>.filled(10, 7));
+      final temp = File('${dir.path}/big.reduced.mp4')
+        ..writeAsBytesSync(<int>[1, 2, 3]);
+      final api = FakeTransport()
+        ..addResponse(
+          jsonResponse(
+            '{"url":"https://objects.test/u","method":"PUT","key":"k"}',
           ),
         )
-        .result;
-    expect(result.reduceSize, isTrue);
-    expect(result.sizeBytes, 3);
-    expect(result.sourceSizeBytes, 10);
-    expect(result.sourceFilePath, original.path);
-    expect(result.filePath, original.path);
-    expect(result.temporaryFileDeleted, isTrue);
-    expect(result.temporaryFileReused, isFalse);
-    expect(signed.calls.single.length, 3);
-    expect(original.existsSync(), isTrue);
-    expect(temp.existsSync(), isFalse);
-  });
+        ..addResponse(jsonResponse('{"dest_path":"done/big.mp4"}'));
+      final signed = FakeSignedUploadTransport()
+        ..queued.add(const SignedUploadResult(statusCode: 200, etag: 'e'));
+      final client = _client(api, signed);
+      final result = await client.collections
+          .videoUpload(
+            UploadSource.fromFile(original),
+            collectionName: 'g',
+            subCollectionName: 's',
+            options: VideoUploadOptions(transcoder: FakeReduceTranscoder(temp)),
+          )
+          .result;
+      expect(result.reduceSize, isTrue);
+      expect(result.sizeBytes, 3);
+      expect(result.sourceSizeBytes, 10);
+      expect(result.sourceFilePath, original.path);
+      expect(result.filePath, original.path);
+      expect(result.temporaryFileDeleted, isTrue);
+      expect(result.temporaryFileReused, isFalse);
+      expect(signed.calls.single.length, 3);
+      expect(original.existsSync(), isTrue);
+      expect(temp.existsSync(), isFalse);
+    },
+  );
 
   test('reused flag propagates from the transcoder', () async {
     final dir = Directory.systemTemp.createTempSync('vmx_tc_');
     addTearDown(() => dir.deleteSync(recursive: true));
     final original = File('${dir.path}/c.mp4')
       ..writeAsBytesSync(List<int>.filled(8, 5));
-    final temp = File('${dir.path}/c.reduced.mp4')..writeAsBytesSync(<int>[9, 9]);
+    final temp = File('${dir.path}/c.reduced.mp4')
+      ..writeAsBytesSync(<int>[9, 9]);
     final api = FakeTransport()
       ..addResponse(
-        jsonResponse('{"url":"https://objects.test/u","method":"PUT","key":"k"}'),
+        jsonResponse(
+          '{"url":"https://objects.test/u","method":"PUT","key":"k"}',
+        ),
       )
       ..addResponse(jsonResponse('{"dest_path":"done/c.mp4"}'));
     final signed = FakeSignedUploadTransport()
       ..queued.add(const SignedUploadResult(statusCode: 200, etag: 'e'));
-    final result = await _client(api, signed)
-        .collections
+    final result = await _client(api, signed).collections
         .videoUpload(
           UploadSource.fromFile(original),
           collectionName: 'g',

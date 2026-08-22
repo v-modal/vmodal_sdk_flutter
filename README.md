@@ -2,7 +2,7 @@
 <div align="center">
   <img src="readme_assets/logo_vmodal_owl.jpeg" alt="VModal owl" width="96">
   <h1><a href="https://www.v-modal.com" >V-Modal AI</a> for Flutter</h1>
-  <p><strong>Give your Android and iOS apps a multimodal memory.</strong></p>
+  <p><strong>Give your Android and iOS apps a MultiModal Visual Memory.</strong></p>
   <p>Upload video. Find moments by meaning, speech, text, or imagery.<br>Keep the experience fast, native, and 100% Flutter.</p>
   <img src="https://flutter.dev/assets/lockup_built-w-flutter.5443036ead976e7afea9249e17cd32b3.svg" alt="Built with Flutter" width="210">
   <br><br>

@@ -164,7 +164,7 @@ void main() {
     expect(candidate.record, <String, Object?>{
       'mode': 'vid_file',
       'group_name': 'videos',
-      'modality': 'image',
+      'modality': 'vid_img',
       'stream_name': 'custom',
       'filename': 'clip.mp4',
       'ts_unix_13digits': '1700000000000',
@@ -181,6 +181,7 @@ void main() {
           },
         ],
       }),
+      const <String, Uint8List>{},
     ).single;
     expect(image.title, 'Red bicycle');
     expect(image.filename, 'clip.mp4');
@@ -190,7 +191,7 @@ void main() {
     expect(image.id, isNot(contains(image.url)));
   });
 
-  test('all filename aliases use basename and blank hits are omitted', () {
+  test('filename aliases use basename and blank names fall back to title', () {
     _log('checking every documented filename alias and both path separators');
     const keys = <String>[
       'filename',
@@ -217,7 +218,9 @@ void main() {
         <String, Object?>{'title': 'No file'},
       ],
     });
-    expect(exampleSearchCandidates(blank, 'group', 'stream'), isEmpty);
+    final candidates = exampleSearchCandidates(blank, 'group', 'stream');
+    expect(candidates, hasLength(1));
+    expect(candidates.single.record, containsPair('filename', 'No file'));
   });
 
   test('timestamps normalize to the 13-digit lookup contract', () {
@@ -282,6 +285,7 @@ void main() {
             <String, Object?>{'input_index': 3, 'url_pre_signed': ' '},
           ],
         }),
+        const <String, Uint8List>{},
       );
       expect(images.map((ExampleSearchImage image) => image.title), <String>[
         'Title 0',
@@ -312,6 +316,7 @@ void main() {
           <String, Object?>{'url_pre_signed': 'https://image.test/outside'},
         ],
       }),
+      const <String, Uint8List>{},
     );
     expect(images.map((ExampleSearchImage image) => image.filename), <String>[
       'zero.mp4',

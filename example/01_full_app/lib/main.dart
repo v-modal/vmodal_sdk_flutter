@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
@@ -125,6 +126,7 @@ class ExampleSearchImage {
     required this.stream,
     required this.timestamp,
     required this.score,
+    this.bytes,
   });
 
   final String id;
@@ -134,6 +136,7 @@ class ExampleSearchImage {
   final String stream;
   final String timestamp;
   final String score;
+  final Uint8List? bytes;
 }
 
 List<ExampleSearchCandidate> exampleSearchCandidates(
@@ -154,7 +157,8 @@ List<ExampleSearchCandidate> exampleSearchCandidates(
       'path',
     ]);
     final filename = exampleFilename(rawName);
-    if (filename.isEmpty) continue;
+    final title = filename.isEmpty ? _candidateFileName(row) : filename;
+    if (title.isEmpty) continue;
     final stream = exampleFirstText(row, const <String>['stream_name']);
     final timestamp = exampleTimestamp13(
       exampleFirstText(row, const <String>[
@@ -166,9 +170,9 @@ List<ExampleSearchCandidate> exampleSearchCandidates(
     final record = <String, Object?>{
       'mode': 'vid_file',
       'group_name': collectionName.trim(),
-      'modality': 'image',
+      'modality': 'vid_img',
       'stream_name': stream.isEmpty ? streamName.trim() : stream,
-      'filename': filename,
+      'filename': title,
       if (timestamp.isNotEmpty) 'ts_unix_13digits': timestamp,
     };
     candidates.add(
@@ -178,15 +182,58 @@ List<ExampleSearchCandidate> exampleSearchCandidates(
   return candidates;
 }
 
+String _candidateFileName(Map<String, Object?> map) {
+  String? text(String key) {
+    final v = map[key];
+    if (v == null) return null;
+    final s = (v is String ? v : v.toString()).trim();
+    return s.isEmpty ? null : s;
+  }
+
+  // 1. Prefer the explicit title, then reconstruct from item_id.
+  final title = text('title');
+  if (title != null) return title;
+
+  final id = text('item_id');
+  final stream = text('stream');
+  final unix = text('ts_unix');
+  if (id == null || stream == null || unix == null) return '';
+  var middle = id;
+  if (middle.startsWith('$stream-')) {
+    middle = middle.substring(stream.length + 1);
+  }
+  if (middle.endsWith('-$unix')) {
+    middle = middle.substring(0, middle.length - unix.length - 1);
+  }
+  middle = middle.trim();
+  return middle.isEmpty ? id : middle;
+}
+
 int? _exampleInputIndex(Object? value) {
   if (value is num && value.isFinite) return value.toInt();
   if (value is String) return int.tryParse(value.trim());
   return null;
 }
 
+Map<String, Uint8List> exampleDecodeImageBytes(ImageGetBulkResponse response) {
+  final decoded = <String, Uint8List>{};
+  for (final raw in response.records) {
+    final url = '${raw['url_pre_signed'] ?? ''}'.trim();
+    final encoded = '${raw['content_base64'] ?? ''}'.trim();
+    if (url.isEmpty || encoded.isEmpty) continue;
+    try {
+      decoded[url] = base64Decode(encoded);
+    } on FormatException {
+      continue;
+    }
+  }
+  return decoded;
+}
+
 List<ExampleSearchImage> exampleSearchImages(
   List<ExampleSearchCandidate> candidates,
   ImageUrlBulkResponse response,
+  Map<String, Uint8List> imageMap,
 ) {
   final resolved = <int, ExampleSearchImage>{};
   for (var rowIndex = 0; rowIndex < response.records.length; rowIndex++) {
@@ -228,6 +275,7 @@ List<ExampleSearchImage> exampleSearchImages(
       stream: stream,
       timestamp: timestamp,
       score: exampleScore(hit),
+      bytes: imageMap[url],
     );
   }
   final indexes = resolved.keys.toList()..sort();
@@ -347,7 +395,9 @@ class ExampleSearchImageCard extends StatelessWidget {
           AspectRatio(
             aspectRatio: 1,
             child: Image(
-              image: imageProviderFactory(image.url),
+              image: image.bytes == null
+                  ? imageProviderFactory(image.url)
+                  : MemoryImage(image.bytes!),
               fit: BoxFit.cover,
               semanticLabel: 'Search result image: ${image.title}',
               loadingBuilder:
@@ -693,7 +743,15 @@ class _VmodalExampleAppState extends State<VmodalExampleApp> {
                 .toList(),
           );
           if (!_currentSearch(generation, query, collection, stream)) return;
-          images = exampleSearchImages(candidates, urls);
+          final urlList = urls.records
+              .where((row) => row['found'] != false)
+              .map((row) => '${row['url_pre_signed'] ?? ''}'.trim())
+              .where((String url) => url.isNotEmpty)
+              .toList();
+          final contents = await client.images.getImageBulkFromUrls(urlList);
+          if (!_currentSearch(generation, query, collection, stream)) return;
+          final imageMap = exampleDecodeImageBytes(contents);
+          images = exampleSearchImages(candidates, urls, imageMap);
         }
         _safeState(() {
           _images = images;

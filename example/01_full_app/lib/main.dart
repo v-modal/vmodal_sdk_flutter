@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
@@ -125,6 +126,7 @@ class ExampleSearchImage {
     required this.stream,
     required this.timestamp,
     required this.score,
+    this.bytes,
   });
 
   final String id;
@@ -134,6 +136,7 @@ class ExampleSearchImage {
   final String stream;
   final String timestamp;
   final String score;
+  final Uint8List? bytes;
 }
 
 List<ExampleSearchCandidate> exampleSearchCandidates(
@@ -212,9 +215,25 @@ int? _exampleInputIndex(Object? value) {
   return null;
 }
 
+Map<String, Uint8List> exampleDecodeImageBytes(ImageGetBulkResponse response) {
+  final decoded = <String, Uint8List>{};
+  for (final raw in response.records) {
+    final url = '${raw['url_pre_signed'] ?? ''}'.trim();
+    final encoded = '${raw['content_base64'] ?? ''}'.trim();
+    if (url.isEmpty || encoded.isEmpty) continue;
+    try {
+      decoded[url] = base64Decode(encoded);
+    } on FormatException {
+      continue;
+    }
+  }
+  return decoded;
+}
+
 List<ExampleSearchImage> exampleSearchImages(
   List<ExampleSearchCandidate> candidates,
   ImageUrlBulkResponse response,
+  Map<String, Uint8List> imageMap,
 ) {
   final resolved = <int, ExampleSearchImage>{};
   for (var rowIndex = 0; rowIndex < response.records.length; rowIndex++) {
@@ -256,6 +275,7 @@ List<ExampleSearchImage> exampleSearchImages(
       stream: stream,
       timestamp: timestamp,
       score: exampleScore(hit),
+      bytes: imageMap[url],
     );
   }
   final indexes = resolved.keys.toList()..sort();
@@ -375,7 +395,9 @@ class ExampleSearchImageCard extends StatelessWidget {
           AspectRatio(
             aspectRatio: 1,
             child: Image(
-              image: imageProviderFactory(image.url),
+              image: image.bytes == null
+                  ? imageProviderFactory(image.url)
+                  : MemoryImage(image.bytes!),
               fit: BoxFit.cover,
               semanticLabel: 'Search result image: ${image.title}',
               loadingBuilder:
@@ -721,7 +743,15 @@ class _VmodalExampleAppState extends State<VmodalExampleApp> {
                 .toList(),
           );
           if (!_currentSearch(generation, query, collection, stream)) return;
-          images = exampleSearchImages(candidates, urls);
+          final urlList = urls.records
+              .where((row) => row['found'] != false)
+              .map((row) => '${row['url_pre_signed'] ?? ''}'.trim())
+              .where((String url) => url.isNotEmpty)
+              .toList();
+          final contents = await client.images.getImageBulkFromUrls(urlList);
+          if (!_currentSearch(generation, query, collection, stream)) return;
+          final imageMap = exampleDecodeImageBytes(contents);
+          images = exampleSearchImages(candidates, urls, imageMap);
         }
         _safeState(() {
           _images = images;

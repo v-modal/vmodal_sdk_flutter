@@ -267,6 +267,9 @@ Minimum toolchain: Flutter `3.44.0` and Dart `3.12.0`.
 
 ## Explore the SDK
 
+- [VModal home](https://www.v-modal.com)
+- [VModal for developers](https://www.v-modal.com/developers)
+- [VModal AI](https://www.v-modal.ai)
 - [Browse the public SDK reference](https://v-modal.github.io/vmodal_sdk_flutter/)
 - [Run the complete example app](https://github.com/v-modal/vmodal_sdk_flutter/tree/main/example/01_full_app)
 - [Organize global, per-user, multi-stream, and catalog indexes](https://github.com/v-modal/vmodal_sdk_flutter/tree/main/example/02_users)
@@ -321,6 +324,17 @@ Developers can quickly query their indexed catalog by passing strings or files t
 * Security Surveillance: Search hours of recorded footage instantly using simple text descriptions of events.
 * Digital Asset Management: Automate the tagging, categorization, and sorting of large corporate media files.
 * Content Creation: Enable video editors to locate specific scenes or actions within massive B-roll libraries.
+
+------------------------------
+## Learn More About VModal
+
+Explore the full platform and developer resources:
+
+* [VModal](https://www.v-modal.com) — the official home of VModal multimodal video and image search.
+* [VModal for Developers](https://www.v-modal.com/developers) — API docs, SDKs, and integration guides for building on VModal.
+* [VModal AI](https://www.v-modal.ai) — learn how VModal AI powers semantic search across video, speech, text, and imagery.
+
+Get started today at [www.v-modal.com](https://www.v-modal.com), read the [developer documentation](https://www.v-modal.com/developers), and discover the technology behind [VModal AI](https://www.v-modal.ai).
 
 
   

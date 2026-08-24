@@ -154,7 +154,8 @@ List<ExampleSearchCandidate> exampleSearchCandidates(
       'path',
     ]);
     final filename = exampleFilename(rawName);
-    if (filename.isEmpty) continue;
+    final title = filename.isEmpty ? _candidateFileName(row) : filename;
+    if (title.isEmpty) continue;
     final stream = exampleFirstText(row, const <String>['stream_name']);
     final timestamp = exampleTimestamp13(
       exampleFirstText(row, const <String>[
@@ -166,9 +167,9 @@ List<ExampleSearchCandidate> exampleSearchCandidates(
     final record = <String, Object?>{
       'mode': 'vid_file',
       'group_name': collectionName.trim(),
-      'modality': 'image',
+      'modality': 'vid_img',
       'stream_name': stream.isEmpty ? streamName.trim() : stream,
-      'filename': filename,
+      'filename': title,
       if (timestamp.isNotEmpty) 'ts_unix_13digits': timestamp,
     };
     candidates.add(
@@ -176,6 +177,33 @@ List<ExampleSearchCandidate> exampleSearchCandidates(
     );
   }
   return candidates;
+}
+
+String _candidateFileName(Map<String, Object?> map) {
+  String? text(String key) {
+    final v = map[key];
+    if (v == null) return null;
+    final s = (v is String ? v : v.toString()).trim();
+    return s.isEmpty ? null : s;
+  }
+
+  // 1. Prefer the explicit title, then reconstruct from item_id.
+  final title = text('title');
+  if (title != null) return title;
+
+  final id = text('item_id');
+  final stream = text('stream');
+  final unix = text('ts_unix');
+  if (id == null || stream == null || unix == null) return '';
+  var middle = id;
+  if (middle.startsWith('$stream-')) {
+    middle = middle.substring(stream.length + 1);
+  }
+  if (middle.endsWith('-$unix')) {
+    middle = middle.substring(0, middle.length - unix.length - 1);
+  }
+  middle = middle.trim();
+  return middle.isEmpty ? id : middle;
 }
 
 int? _exampleInputIndex(Object? value) {

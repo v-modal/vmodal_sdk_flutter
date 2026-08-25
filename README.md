@@ -19,7 +19,7 @@
 
 <p align="center"><em>Turn every video library into an experience your users can explore.</em></p>
 
-## Build the feature people remember
+## Build the feature to remember things
 
 VModal brings multimodal video search and mobile-friendly uploads to Dart with a small, typed API. Your app owns the interface; the SDK handles the VModal gateway, request models, responses, upload streams, progress, and cancellation.
 

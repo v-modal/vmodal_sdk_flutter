@@ -313,7 +313,7 @@ class IoSignedUploadTransport implements SignedUploadTransport {
         throw ApiException(
           'signed upload failed',
           statusCode: response.statusCode,
-          body: utf8.decode(bytes, allowMalformed: true),
+          body: strRedactServerPaths(utf8.decode(bytes, allowMalformed: true)),
         );
       }
       await response.drain<void>();

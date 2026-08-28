@@ -89,3 +89,6 @@ Render only safe `SdkException.toString()` output. It contains classification
 and status metadata, never response bodies, URLs, keys, or identities. Cancel
 an upload task when the user explicitly cancels it; do not close the shared
 application client merely because a page was disposed.
+If application logic inspects a structured error body, server filesystem paths
+are replaced with `****` before the exception reaches the application. Do not
+render the remaining raw server detail as user-facing copy.

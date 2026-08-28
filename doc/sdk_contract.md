@@ -24,6 +24,10 @@ behavior. `test/fixtures/routes_contract.json` is the reviewed normalized mirror
 Every operation uses the centralized `Routes`, `VmodalHttp`, bounded response
 reader, retry classifier, and cancellation token. Gateway payload serializers
 remove caller identity; only unsafe direct mode may emit trusted identity fields.
+Application-visible error bodies and details retain their structured shape, but
+the SDK replaces Unix, Windows, UNC, and `file:` filesystem paths with `****`
+before constructing a server-response exception. Exception strings continue to
+omit response bodies entirely.
 
 The facade's single organization mapping is:
 

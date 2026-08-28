@@ -212,12 +212,12 @@ class VmodalHttp {
           text.trimLeft().startsWith('{') ||
           text.trimLeft().startsWith('[')) {
         try {
-          body = jsonDecode(text);
+          body = objRedactServerDetails(jsonDecode(text));
         } on Object {
           body = null;
         }
       } else {
-        body = text;
+        body = strRedactServerPaths(text);
       }
     }
     if (response.statusCode == 401) {

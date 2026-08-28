@@ -7,6 +7,40 @@ const int errorResponseLimitBytes = 1024 * 1024;
 const int binaryResponseLimitBytes = 64 * 1024 * 1024;
 const int checkpointJsonLimitBytes = 1024 * 1024;
 
+final List<RegExp> _serverPathPatterns = <RegExp>[
+  RegExp(r'file:(?:/{2,3}|\\{2})[^\r\n"<>|,;)}\]]+', caseSensitive: false),
+  RegExp(r'(^|[\s"(\[{:=>])([A-Za-z]:[\\/][^\r\n"<>|,;)}\]]+)'),
+  RegExp(r'(^|[\s"(\[{:=>])(\\{2}[^\r\n"<>|,;)}\]]+)'),
+  RegExp(r'(^|[\s"(\[{:=>])(/(?!/)[^\r\n"<>|,;)}\]]+)'),
+];
+
+String strRedactServerPaths(String value) {
+  var out = value;
+  for (final pattern in _serverPathPatterns) {
+    out = out.replaceAllMapped(
+      pattern,
+      (Match match) =>
+          '${match.groupCount > 1 ? match.group(1) ?? '' : ''}****',
+    );
+  }
+  return out;
+}
+
+Object? objRedactServerDetails(Object? value) {
+  if (value is String) return strRedactServerPaths(value);
+  if (value is List) {
+    return List<Object?>.unmodifiable(value.map(objRedactServerDetails));
+  }
+  if (value is Map) {
+    final out = <String, Object?>{};
+    value.forEach((Object? key, Object? item) {
+      out[strRedactServerPaths('$key')] = objRedactServerDetails(item);
+    });
+    return Map<String, Object?>.unmodifiable(out);
+  }
+  return value;
+}
+
 String strRequired(String value, String fieldName) {
   final clean = value.trim();
   if (clean.isEmpty) {

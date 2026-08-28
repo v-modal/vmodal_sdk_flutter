@@ -22,6 +22,7 @@ enum VmodalResponseMode {
 /// Cooperative cancellation signal shared with an in-flight operation.
 class CancellationToken {
   final Completer<void> _abort = Completer<void>();
+  final Set<void Function()> _callbacks = <void Function()>{};
 
   /// Whether [cancel] has been called.
   bool get isCanceled => _abort.isCompleted;
@@ -31,7 +32,23 @@ class CancellationToken {
 
   /// Requests cancellation. Repeated calls have no effect.
   void cancel() {
-    if (!_abort.isCompleted) _abort.complete();
+    if (_abort.isCompleted) return;
+    _abort.complete();
+    final callbacks = List<void Function()>.from(_callbacks);
+    _callbacks.clear();
+    for (final callback in callbacks) {
+      callback();
+    }
+  }
+
+  /// @nodoc
+  void Function() onCancel(void Function() callback) {
+    if (isCanceled) {
+      callback();
+      return () {};
+    }
+    _callbacks.add(callback);
+    return () => _callbacks.remove(callback);
   }
 
   /// Throws [OperationCanceled] after cancellation has been requested.
@@ -316,6 +333,7 @@ Future<Uint8List> readBounded(
   VmodalResponse response,
   int limitBytes, {
   CancellationToken? cancellation,
+  Duration? idleTimeout,
 }) async {
   if (limitBytes <= 0) {
     throw const ValidationException('response limit is invalid');
@@ -329,7 +347,11 @@ Future<Uint8List> readBounded(
   }
   final builder = BytesBuilder(copy: false);
   var total = 0;
-  await for (final chunk in response.body) {
+  await for (final chunk in _bodyWithIdleTimeout(
+    response.body,
+    cancellation,
+    idleTimeout,
+  )) {
     cancellation?.throwIfCanceled();
     if (chunk.length > limitBytes - total) {
       cancellation?.cancel();
@@ -339,4 +361,115 @@ Future<Uint8List> readBounded(
     total += chunk.length;
   }
   return builder.takeBytes();
+}
+
+Future<Map<String, Object?>> readJsonObjectBounded(
+  VmodalResponse response,
+  int limitBytes, {
+  CancellationToken? cancellation,
+  Duration? idleTimeout,
+}) async {
+  if (limitBytes <= 0) {
+    throw const ValidationException('response limit is invalid');
+  }
+  if (response.contentLength < -1) {
+    throw const MalformedResponse('invalid Content-Length');
+  }
+  if (response.contentLength > limitBytes) {
+    cancellation?.cancel();
+    throw ResponseTooLarge(limitBytes, response.contentLength);
+  }
+  var byteCount = 0;
+  var valueCount = 0;
+  Object? decoded;
+  Stream<List<int>> counted() async* {
+    await for (final chunk in _bodyWithIdleTimeout(
+      response.body,
+      cancellation,
+      idleTimeout,
+    )) {
+      cancellation?.throwIfCanceled();
+      if (chunk.length > limitBytes - byteCount) {
+        cancellation?.cancel();
+        throw ResponseTooLarge(limitBytes, byteCount + chunk.length);
+      }
+      byteCount += chunk.length;
+      yield chunk;
+    }
+  }
+
+  try {
+    final text = utf8.decoder.bind(counted());
+    await for (final value in json.decoder.bind(text)) {
+      valueCount++;
+      decoded = value;
+    }
+  } on FormatException {
+    if (byteCount == 0) return <String, Object?>{};
+    throw const MalformedResponse();
+  }
+  if (byteCount == 0) return <String, Object?>{};
+  if (valueCount != 1 || decoded is! Map<Object?, Object?>) {
+    throw const MalformedResponse('JSON object response required');
+  }
+  final value = decoded;
+  if (value.keys.any((Object? key) => key is! String)) {
+    throw const MalformedResponse('JSON object keys must be strings');
+  }
+  return Map<String, Object?>.from(value);
+}
+
+Future<void> writeBounded(
+  VmodalResponse response,
+  IOSink sink,
+  int limitBytes, {
+  CancellationToken? cancellation,
+  Duration? idleTimeout,
+}) async {
+  if (limitBytes <= 0) {
+    throw const ValidationException('response limit is invalid');
+  }
+  if (response.contentLength < -1) {
+    throw const MalformedResponse('invalid Content-Length');
+  }
+  if (response.contentLength > limitBytes) {
+    cancellation?.cancel();
+    throw ResponseTooLarge(limitBytes, response.contentLength);
+  }
+  var total = 0;
+  Stream<List<int>> bounded() async* {
+    await for (final chunk in _bodyWithIdleTimeout(
+      response.body,
+      cancellation,
+      idleTimeout,
+    )) {
+      cancellation?.throwIfCanceled();
+      if (chunk.length > limitBytes - total) {
+        cancellation?.cancel();
+        throw ResponseTooLarge(limitBytes, total + chunk.length);
+      }
+      total += chunk.length;
+      yield chunk;
+    }
+  }
+
+  await sink.addStream(bounded());
+}
+
+Stream<List<int>> _bodyWithIdleTimeout(
+  Stream<List<int>> body,
+  CancellationToken? cancellation,
+  Duration? idleTimeout,
+) {
+  if (idleTimeout == null) return body;
+  return body.timeout(
+    idleTimeout,
+    onTimeout: (EventSink<List<int>> sink) {
+      sink.addError(
+        TransportException(TimeoutException('response body idle timeout')),
+      );
+      sink.close();
+      cancellation?.cancel();
+    },
+  );
 }

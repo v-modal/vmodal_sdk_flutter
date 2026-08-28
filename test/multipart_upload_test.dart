@@ -143,6 +143,133 @@ void main() {
     expect(statusCalls, 2);
   });
 
+  test(
+    'adaptive bulk multipart shares its conservative signed budget',
+    () async {
+      const mib = 1024 * 1024;
+      final sources = List<UploadSource>.generate(
+        2,
+        (int index) => UploadSource(
+          fileName: '$index.mp4',
+          contentLength: 6 * mib,
+          sourceId: 'source-$index',
+          versionTag: 'v1',
+          opener: () => _bytes(6 * mib, index + 1),
+        ),
+      );
+      final digests = <String, List<String>>{};
+      for (final source in sources) {
+        digests[source.fileName] = <String>[
+          await md5Hex(source, offset: 0, length: 5 * mib),
+          await md5Hex(source, offset: 5 * mib, length: mib),
+        ];
+      }
+      final statusCalls = <String, int>{};
+      final api = HandlerTransport((VmodalRequest request) async {
+        final path = request.uri.path;
+        if (path.endsWith(Routes.externalUploadMultipartCreate)) {
+          final body = request.jsonBody! as Map<String, Object?>;
+          final name = '${body['filename']}';
+          return jsonResponse(
+            '{"request_id":"r-$name","upload_id":"$name","key":"k-$name",'
+            '"part_count":2,"part_size_bytes":${5 * mib}}',
+          );
+        }
+        if (path.endsWith(Routes.externalUploadMultipartStatus)) {
+          final name = request.uri.queryParameters['upload_id']!;
+          final count = (statusCalls[name] ?? 0) + 1;
+          statusCalls[name] = count;
+          if (count == 1) {
+            return jsonResponse('{"status":"uploading","parts":[]}');
+          }
+          final md5s = digests[name]!;
+          return jsonResponse(
+            '{"status":"uploading","parts":['
+            '{"part_number":1,"etag":"${md5s[0]}","size_bytes":${5 * mib}},'
+            '{"part_number":2,"etag":"${md5s[1]}","size_bytes":$mib}]}',
+          );
+        }
+        if (path.endsWith(Routes.externalUploadMultipartSignParts)) {
+          final body = request.jsonBody! as Map<String, Object?>;
+          final name = '${body['upload_id']}';
+          final numbers = body['part_numbers']! as List<Object?>;
+          final parts = numbers
+              .map(
+                (Object? number) =>
+                    '{"part_number":$number,'
+                    '"url":"https://objects.test/$name/$number",'
+                    '"method":"PUT"}',
+              )
+              .join(',');
+          return jsonResponse('{"parts":[$parts]}');
+        }
+        if (path.endsWith(Routes.externalUploadMultipartComplete)) {
+          return jsonResponse('{"etag":"complete-etag"}');
+        }
+        if (path.endsWith(Routes.externalUploadDone)) {
+          return jsonResponse('{"dest_path":"done"}');
+        }
+        throw StateError('unexpected route: $path');
+      });
+      final signed = FakeSignedUploadTransport()
+        ..delay = const Duration(milliseconds: 10)
+        ..sourceMd5 = true;
+      final client = VmodalClient(
+        config: SdkConfig(baseUrl: 'https://gateway.test', token: 'key'),
+        transport: api,
+        signedUploadTransport: signed,
+      );
+      final result = await client.collections
+          .videoUploadBulk(
+            sources,
+            collectionName: 'g',
+            subCollectionName: 's',
+            options: VideoUploadOptions(
+              multipart: true,
+              maxConcurrency: 4,
+              adaptiveConditions: const UploadConditions(
+                deviceMemory: UploadDeviceMemory.low,
+              ),
+              sessionStore: MemoryUploadSessionStore(),
+            ),
+          )
+          .result;
+      expect(
+        result.data.map((VideoUploadResponse item) => item.fileName),
+        <String>['0.mp4', '1.mp4'],
+      );
+      expect(signed.maxActive, 1);
+    },
+  );
+
+  test('bulk multipart rejects duplicate checkpoint contracts', () {
+    const mib = 1024 * 1024;
+    final source = UploadSource(
+      fileName: 'a.mp4',
+      contentLength: 6 * mib,
+      sourceId: 'same-source',
+      versionTag: 'v1',
+      opener: () => _bytes(6 * mib, 1),
+    );
+    final client = VmodalClient(
+      config: SdkConfig(baseUrl: 'https://gateway.test', token: 'key'),
+      transport: FakeTransport(),
+      signedUploadTransport: FakeSignedUploadTransport(),
+    );
+    expect(
+      () => client.collections.videoUploadBulk(
+        <UploadSource>[source, source],
+        collectionName: 'g',
+        subCollectionName: 's',
+        options: const VideoUploadOptions(
+          multipart: true,
+          partSizeBytes: 5 * mib,
+        ),
+      ),
+      throwsA(isA<ValidationException>()),
+    );
+  });
+
   test('file checkpoint rejects oversized and malformed state', () async {
     final dir = await Directory.systemTemp.createTemp('vmodal-checkpoint-');
     addTearDown(() => dir.delete(recursive: true));

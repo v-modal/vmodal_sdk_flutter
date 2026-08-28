@@ -44,7 +44,7 @@ class UploadSource {
     }
     final stat = file.statSync();
     final name = file.uri.pathSegments.last;
-    return UploadSource(
+    final source = UploadSource(
       fileName: name,
       contentLength: stat.size,
       contentType: contentType ?? guessContentType(name),
@@ -52,8 +52,9 @@ class UploadSource {
       versionTag: '${stat.size}:${stat.modified.millisecondsSinceEpoch}',
       localFile: file,
       opener: file.openRead,
-      rangeOpener: (int offset) => file.openRead(offset),
     );
+    source._fileBacked = true;
+    return source;
   }
 
   /// Name associated with the uploaded object.
@@ -77,6 +78,7 @@ class UploadSource {
   final File? localFile;
   final Stream<List<int>> Function() _opener;
   final Stream<List<int>> Function(int offset)? _rangeOpener;
+  bool _fileBacked = false;
 
   /// Opens a validated source range.
   ///
@@ -86,6 +88,29 @@ class UploadSource {
     final wanted = length ?? contentLength - offset;
     if (offset < 0 || wanted < 0 || offset + wanted > contentLength) {
       throw const ValidationException('upload source range is invalid');
+    }
+    if (_fileBacked) {
+      final file = localFile!;
+      await _validateFileVersion(file);
+      var left = wanted;
+      await for (final chunk in file.openRead(offset, offset + wanted)) {
+        if (left == 0) break;
+        final count = left < chunk.length ? left : chunk.length;
+        if (count == chunk.length) {
+          yield chunk;
+        } else if (chunk is Uint8List) {
+          yield Uint8List.sublistView(chunk, 0, count);
+        } else {
+          final copy = Uint8List(count)..setRange(0, count, chunk);
+          yield copy;
+        }
+        left -= count;
+      }
+      await _validateFileVersion(file);
+      if (left != 0) {
+        throw const TransportException('upload source ended early');
+      }
+      return;
     }
     final direct = _rangeOpener;
     var skip = direct == null ? offset : 0;
@@ -104,13 +129,22 @@ class UploadSource {
       if (left == 0) break;
       final count = left < chunk.length - start ? left : chunk.length - start;
       if (count > 0) {
-        yield Uint8List.fromList(chunk.sublist(start, start + count));
+        final copy = Uint8List(count)..setRange(0, count, chunk, start);
+        yield copy;
         left -= count;
       }
       if (left == 0) break;
     }
     if (skip != 0 || left != 0) {
       throw const TransportException('upload source ended early');
+    }
+  }
+
+  Future<void> _validateFileVersion(File file) async {
+    final stat = await file.stat();
+    final current = '${stat.size}:${stat.modified.millisecondsSinceEpoch}';
+    if (current != versionTag) {
+      throw const TransportException('upload source changed during upload');
     }
   }
 }
@@ -141,6 +175,48 @@ typedef UploadRunner<T> =
       void Function(UploadProgress progress) emit,
     );
 
+/// @nodoc
+class UploadProgressGate {
+  UploadProgressGate({int Function()? monotonicMilliseconds}) {
+    if (monotonicMilliseconds == null) {
+      _watch.start();
+      _clock = () => _watch.elapsedMilliseconds;
+    } else {
+      _clock = monotonicMilliseconds;
+    }
+  }
+
+  final Stopwatch _watch = Stopwatch();
+  late final int Function() _clock;
+  int _seenBytes = 0;
+  int _emittedBytes = 0;
+  int? _emittedAt;
+  bool _terminalEmitted = false;
+
+  UploadProgress? next(UploadProgress value) {
+    final safe = value.uploadedBytes.clamp(_seenBytes, value.totalBytes);
+    _seenBytes = safe;
+    final terminal = value.totalBytes > 0 && safe == value.totalBytes;
+    if (terminal && !_terminalEmitted) {
+      _terminalEmitted = true;
+      _emittedBytes = safe;
+      _emittedAt = _clock();
+      return UploadProgress(safe, value.totalBytes);
+    }
+    if (safe <= _emittedBytes) return null;
+    final now = _clock();
+    final first = _emittedAt == null;
+    final byteReady =
+        value.totalBytes > 0 &&
+        (safe - _emittedBytes) * 100 >= value.totalBytes;
+    final timeReady = !first && now - _emittedAt! >= 250;
+    if (!first && !byteReady && !timeReady) return null;
+    _emittedBytes = safe;
+    _emittedAt = now;
+    return UploadProgress(safe, value.totalBytes);
+  }
+}
+
 /// Running upload with result, progress, state, and cooperative cancellation.
 class UploadTask<T> {
   /// Starts [runner] immediately.
@@ -155,7 +231,7 @@ class UploadTask<T> {
   /// Token passed to the running upload operation.
   final CancellationToken cancellation = CancellationToken();
   UploadTaskState _state = UploadTaskState.running;
-  int _lastBytes = 0;
+  final UploadProgressGate _progressGate = UploadProgressGate();
 
   /// Completes with the typed upload response or the task error.
   Future<T> get result => _result.future;
@@ -197,9 +273,8 @@ class UploadTask<T> {
 
   void _emit(UploadProgress value) {
     if (_state != UploadTaskState.running) return;
-    final safe = value.uploadedBytes.clamp(_lastBytes, value.totalBytes);
-    _lastBytes = safe;
-    _progress.add(UploadProgress(safe, value.totalBytes));
+    final safe = _progressGate.next(value);
+    if (safe != null) _progress.add(safe);
   }
 }
 
@@ -284,8 +359,16 @@ class IoSignedUploadTransport implements SignedUploadTransport {
     final wanted = length ?? source.contentLength - offset;
     HttpClientRequest? request;
     var sent = 0;
+    var digestClosed = false;
+    void Function() removeCancel = () {};
     final digestSink = _DigestSink();
     final digest = md5.startChunkedConversion(digestSink);
+    void closeDigest() {
+      if (digestClosed) return;
+      digestClosed = true;
+      digest.close();
+    }
+
     try {
       request = await _client
           .openUrl(method.toUpperCase(), url)
@@ -294,29 +377,69 @@ class IoSignedUploadTransport implements SignedUploadTransport {
       request.contentLength = wanted;
       request.headers.contentType = ContentType.parse(source.contentType);
       safeHeaders.forEach(request.headers.set);
-      unawaited(
-        cancellation.whenCanceled.then((_) {
-          request?.abort(const OperationCanceled());
-        }),
+      removeCancel = cancellation.onCancel(
+        () => request?.abort(const OperationCanceled()),
       );
-      await for (final chunk in source.open(offset: offset, length: wanted)) {
-        cancellation.throwIfCanceled();
-        request.add(chunk);
-        digest.add(chunk);
-        sent += chunk.length;
-        onProgress?.call(UploadProgress(sent, wanted));
+      Stream<List<int>> body() async* {
+        await for (final chunk in source.open(offset: offset, length: wanted)) {
+          cancellation.throwIfCanceled();
+          if (chunk.length > wanted - sent) {
+            throw const TransportException(
+              'upload source exceeded the requested range',
+            );
+          }
+          digest.add(chunk);
+          sent += chunk.length;
+          onProgress?.call(UploadProgress(sent, wanted));
+          yield chunk;
+        }
+        if (sent != wanted) {
+          throw const TransportException(
+            'upload source length did not match Content-Length',
+          );
+        }
       }
-      digest.close();
-      final response = await request.close().timeout(timeout ?? defaultTimeout);
+
+      final phaseTimeout = timeout ?? defaultTimeout;
+      await request
+          .addStream(body())
+          .timeout(
+            phaseTimeout,
+            onTimeout: () {
+              final error = TimeoutException('signed upload body timeout');
+              request?.abort(error);
+              throw error;
+            },
+          );
+      closeDigest();
+      final response = await request.close().timeout(
+        phaseTimeout,
+        onTimeout: () {
+          final error = TimeoutException('signed upload response timeout');
+          request?.abort(error);
+          throw error;
+        },
+      );
       if (response.statusCode < 200 || response.statusCode > 299) {
-        final bytes = await _readIoBounded(response, errorResponseLimitBytes);
+        final bytes = await _readIoBounded(
+          response,
+          errorResponseLimitBytes,
+          phaseTimeout,
+        );
         throw ApiException(
           'signed upload failed',
           statusCode: response.statusCode,
           body: strRedactServerPaths(utf8.decode(bytes, allowMalformed: true)),
         );
       }
-      await response.drain<void>();
+      await response.drain<void>().timeout(
+        phaseTimeout,
+        onTimeout: () {
+          final error = TimeoutException('signed upload response body timeout');
+          request?.abort(error);
+          throw error;
+        },
+      );
       return SignedUploadResult(
         statusCode: response.statusCode,
         etag: (response.headers.value('etag') ?? '').replaceAll('"', '').trim(),
@@ -328,16 +451,15 @@ class IoSignedUploadTransport implements SignedUploadTransport {
       rethrow;
     } on Object catch (error) {
       request?.abort(error);
-      try {
-        digest.close();
-      } on Object {
-        // Digest may already be closed after all bytes were sent.
-      }
+      closeDigest();
+      if (cancellation.isCanceled) throw const OperationCanceled();
       throw SignedUploadFailure(
         sentBytes: sent,
         localMd5: digestSink.value?.toString() ?? '',
         cause: error,
       );
+    } finally {
+      removeCancel();
     }
   }
 
@@ -518,12 +640,16 @@ class _DigestSink implements Sink<Digest> {
   void close() {}
 }
 
-Future<Uint8List> _readIoBounded(HttpClientResponse response, int limit) async {
+Future<Uint8List> _readIoBounded(
+  HttpClientResponse response,
+  int limit,
+  Duration idleTimeout,
+) async {
   final declared = response.contentLength;
   if (declared > limit) throw ResponseTooLarge(limit, declared);
   final out = BytesBuilder(copy: false);
   var count = 0;
-  await for (final chunk in response) {
+  await for (final chunk in response.timeout(idleTimeout)) {
     if (chunk.length > limit - count) {
       throw ResponseTooLarge(limit, count + chunk.length);
     }

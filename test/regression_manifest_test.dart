@@ -153,6 +153,7 @@ void main() {
         'run.sh',
         'test.sh',
         'tool/live_test.dart',
+        'tool/perf_benchmark.dart',
         'example/01_full_app/README.md',
         'example/01_full_app/lib/main.dart',
         'example/01_full_app/asset/video_10frames.mp4',

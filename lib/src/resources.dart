@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'errors.dart';
@@ -554,6 +556,7 @@ class ImagesResource {
   Future<Uint8List> getImageFromUrl(
     String urlPreSigned, {
     String? userid,
+    int? maxBytes,
     CancellationToken? cancellation,
   }) => http.requestBytes(
     'POST',
@@ -564,8 +567,66 @@ class ImagesResource {
           (userid?.trim().isNotEmpty ?? false))
         'userid': userid,
     },
+    maxBytes: maxBytes,
     cancellation: cancellation,
   );
+
+  /// Streams an image into a caller-owned [sink] without closing it.
+  Future<void> writeImageFromUrl(
+    String urlPreSigned,
+    IOSink sink, {
+    String? userid,
+    int? maxBytes,
+    CancellationToken? cancellation,
+  }) => http.requestBytesToSink(
+    'POST',
+    Routes.full(Routes.imageGetImage),
+    sink: sink,
+    json: <String, Object?>{
+      'url_pre_signed': urlPreSigned,
+      if (http.config.normalizedMode == 'direct' &&
+          (userid?.trim().isNotEmpty ?? false))
+        'userid': userid,
+    },
+    maxBytes: maxBytes,
+    cancellation: cancellation,
+  );
+
+  /// Atomically downloads an image into [destination].
+  Future<File> saveImageFromUrl(
+    String urlPreSigned,
+    File destination, {
+    String? userid,
+    int? maxBytes,
+    CancellationToken? cancellation,
+  }) async {
+    final temp = File(
+      '${destination.path}.${DateTime.now().microsecondsSinceEpoch}-'
+      '${Random.secure().nextInt(1 << 32)}.tmp',
+    );
+    final sink = temp.openWrite();
+    try {
+      await writeImageFromUrl(
+        urlPreSigned,
+        sink,
+        userid: userid,
+        maxBytes: maxBytes,
+        cancellation: cancellation,
+      );
+      await sink.flush();
+      await sink.close();
+      await temp.rename(destination.path);
+      return destination;
+    } on Object catch (error, stack) {
+      try {
+        await sink.close();
+      } on Object {
+        // The sink may already be closed after a source-stream error.
+      }
+      if (await temp.exists()) await temp.delete();
+      Error.throwWithStackTrace(error, stack);
+    }
+  }
 
   /// Downloads several images represented by [urls].
   Future<ImageGetBulkResponse> getImageBulkFromUrls(

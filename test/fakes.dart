@@ -105,6 +105,8 @@ class FakeSignedUploadTransport implements SignedUploadTransport {
   int maxActive = 0;
   bool closed = false;
   int closeCalls = 0;
+  Duration delay = Duration.zero;
+  bool sourceMd5 = false;
 
   @override
   Future<SignedUploadResult> upload({
@@ -134,13 +136,28 @@ class FakeSignedUploadTransport implements SignedUploadTransport {
         ? const SignedUploadResult(statusCode: 200, etag: 'etag')
         : queued.removeAt(0);
     try {
+      if (delay > Duration.zero) {
+        await Future.any(<Future<void>>[
+          Future<void>.delayed(delay),
+          cancellation.whenCanceled,
+        ]);
+        cancellation.throwIfCanceled();
+      }
       var sent = 0;
       await for (final chunk in source.open(offset: offset, length: wanted)) {
         cancellation.throwIfCanceled();
         sent += chunk.length;
         onProgress?.call(UploadProgress(sent, wanted));
       }
-      if (value is SignedUploadResult) return value;
+      if (value is SignedUploadResult) {
+        if (!sourceMd5 || value.etag != 'etag') return value;
+        final digest = await md5Hex(source, offset: offset, length: wanted);
+        return SignedUploadResult(
+          statusCode: value.statusCode,
+          etag: digest,
+          localMd5: digest,
+        );
+      }
       throw value;
     } finally {
       active--;

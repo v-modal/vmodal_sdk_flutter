@@ -160,20 +160,24 @@ extension CollectionUploads on CollectionsResource {
   }) {
     final resolved = options.resolvedFor(source.contentLength);
     resolved.validate(source.contentLength);
-    return UploadTask<VideoUploadResponse>.start(
-      (CancellationToken cancellation, void Function(UploadProgress) emit) =>
-          _videoUploadRun(
-            source,
-            collectionName,
-            subCollectionName,
-            mode,
-            modality,
-            ttl,
-            resolved,
-            cancellation,
-            emit,
-          ),
-    );
+    return UploadTask<VideoUploadResponse>.start((
+      CancellationToken cancellation,
+      void Function(UploadProgress) emit,
+    ) {
+      final permits = _UploadPermitPool(resolved.maxConcurrency);
+      return _videoUploadRun(
+        source,
+        collectionName,
+        subCollectionName,
+        mode,
+        modality,
+        ttl,
+        resolved,
+        cancellation,
+        emit,
+        permits,
+      );
+    });
   }
 
   /// Starts an ordered bulk upload with aggregate progress.
@@ -195,6 +199,25 @@ extension CollectionUploads on CollectionsResource {
     for (var i = 0; i < sources.length; i++) {
       resolved[i].validate(sources[i].contentLength);
     }
+    final sessionKeys = <String>{};
+    for (var i = 0; i < sources.length; i++) {
+      if (!resolved[i].multipart) continue;
+      final key = _UploadContract(
+        source: sources[i],
+        baseUrl: http.config.normalizedBaseUrl,
+        userId: http.config.normalizedUserId,
+        collection: collectionName,
+        stream: subCollectionName,
+        mode: mode,
+        modality: modality,
+        partSize: resolved[i].partSizeBytes,
+      ).key;
+      if (!sessionKeys.add(key)) {
+        throw const ValidationException(
+          'bulk multipart upload contains a duplicate source contract',
+        );
+      }
+    }
     return UploadTask<VideoUploadBulkResponse>.start((
       CancellationToken cancellation,
       void Function(UploadProgress) emit,
@@ -210,10 +233,31 @@ extension CollectionUploads on CollectionsResource {
         (int value, UploadSource source) => value + source.contentLength,
       );
       final sent = List<int>.filled(sources.length, 0);
+      final gates = List<UploadProgressGate>.generate(
+        sources.length,
+        (_) => UploadProgressGate(),
+      );
       final results = List<VideoUploadResponse?>.filled(sources.length, null);
+      final budget = resolved.fold<int>(
+        options.maxConcurrency.clamp(1, 16),
+        (int value, VideoUploadOptions item) => min(value, item.maxConcurrency),
+      );
+      final permits = _UploadPermitPool(budget);
+      var sentTotal = 0;
       var cursor = 0;
       Object? firstError;
       StackTrace? firstStack;
+      void report(int index, UploadProgress progress) {
+        final value = gates[index].next(progress);
+        if (value == null) return;
+        final next = max(sent[index], value.uploadedBytes);
+        final delta = next - sent[index];
+        if (delta <= 0) return;
+        sent[index] = next;
+        sentTotal += delta;
+        emit(UploadProgress(sentTotal, total));
+      }
+
       Future<void> worker() async {
         while (!cancellation.isCanceled && firstError == null) {
           final index = cursor++;
@@ -228,17 +272,16 @@ extension CollectionUploads on CollectionsResource {
               ttl,
               resolved[index],
               cancellation,
-              (UploadProgress progress) {
-                sent[index] = max(sent[index], progress.uploadedBytes);
-                emit(
-                  UploadProgress(
-                    sent.fold<int>(0, (int a, int b) => a + b),
-                    total,
-                  ),
-                );
-              },
+              (UploadProgress progress) => report(index, progress),
+              permits,
             );
-            sent[index] = sources[index].contentLength;
+            report(
+              index,
+              UploadProgress(
+                sources[index].contentLength,
+                sources[index].contentLength,
+              ),
+            );
           } on Object catch (error, stack) {
             firstError ??= error;
             firstStack ??= stack;
@@ -273,6 +316,7 @@ extension CollectionUploads on CollectionsResource {
     VideoUploadOptions options,
     CancellationToken cancellation,
     void Function(UploadProgress) emit,
+    _UploadPermitPool permits,
   ) async {
     if (!options.transcoder.isPassthrough) {
       return _transcodeUploadRun(
@@ -285,6 +329,7 @@ extension CollectionUploads on CollectionsResource {
         options,
         cancellation,
         emit,
+        permits,
       );
     }
     if (!options.multipart) {
@@ -297,6 +342,7 @@ extension CollectionUploads on CollectionsResource {
         ttl,
         cancellation,
         emit,
+        permits,
       );
     }
     try {
@@ -310,6 +356,7 @@ extension CollectionUploads on CollectionsResource {
         options,
         cancellation,
         emit,
+        permits,
       );
     } on ApiException catch (error) {
       if (error.statusCode != 404) rethrow;
@@ -332,6 +379,7 @@ extension CollectionUploads on CollectionsResource {
     VideoUploadOptions options,
     CancellationToken cancellation,
     void Function(UploadProgress) emit,
+    _UploadPermitPool permits,
   ) async {
     final input = source.localFile;
     if (input == null) {
@@ -363,6 +411,7 @@ extension CollectionUploads on CollectionsResource {
       pass,
       cancellation,
       emit,
+      permits,
     );
     if (produced) {
       if (await result.output.exists()) await result.output.delete();
@@ -392,6 +441,7 @@ extension CollectionUploads on CollectionsResource {
     int ttl,
     CancellationToken cancellation,
     void Function(UploadProgress) emit,
+    _UploadPermitPool permits,
   ) async {
     cancellation.throwIfCanceled();
     final signed = await http.request(
@@ -402,12 +452,15 @@ extension CollectionUploads on CollectionsResource {
     );
     cancellation.throwIfCanceled();
     final url = _signedUri('${signed['url'] ?? ''}');
-    final result = await signedUploads.upload(
-      source: source,
-      url: url,
-      method: '${signed['method'] ?? 'PUT'}',
-      cancellation: cancellation,
-      onProgress: emit,
+    final result = await permits.run(
+      cancellation,
+      () => signedUploads.upload(
+        source: source,
+        url: url,
+        method: '${signed['method'] ?? 'PUT'}',
+        cancellation: cancellation,
+        onProgress: emit,
+      ),
     );
     cancellation.throwIfCanceled();
     final done = await _uploadDone(
@@ -445,6 +498,7 @@ extension CollectionUploads on CollectionsResource {
     VideoUploadOptions options,
     CancellationToken cancellation,
     void Function(UploadProgress) emit,
+    _UploadPermitPool permits,
   ) async {
     final contract = _UploadContract(
       source: source,
@@ -538,12 +592,13 @@ extension CollectionUploads on CollectionsResource {
       for (final entry in valid.entries)
         entry.key: intValue(entry.value['size_bytes']),
     };
+    var sentTotal = sentByPart.values.fold<int>(0, (int a, int b) => a + b);
     var lastProgress = 0;
     void report() {
-      final total = sentByPart.values
-          .fold<int>(0, (int a, int b) => a + b)
-          .clamp(0, source.contentLength);
-      lastProgress = max(lastProgress, total);
+      lastProgress = max(
+        lastProgress,
+        sentTotal.clamp(0, source.contentLength),
+      );
       emit(UploadProgress(lastProgress, source.contentLength));
     }
 
@@ -593,12 +648,15 @@ extension CollectionUploads on CollectionsResource {
               options,
               cancellation,
               (UploadProgress progress) {
-                sentByPart[number] = max(
-                  sentByPart[number] ?? 0,
-                  progress.uploadedBytes,
-                );
-                report();
+                final previous = sentByPart[number] ?? 0;
+                final next = max(previous, progress.uploadedBytes);
+                if (next > previous) {
+                  sentByPart[number] = next;
+                  sentTotal += next - previous;
+                  report();
+                }
               },
+              permits,
             );
             uploaded.add(part);
           } on Object catch (error, stack) {
@@ -620,7 +678,9 @@ extension CollectionUploads on CollectionsResource {
       for (final part in uploaded) {
         attempts += part.attempts;
         session.partMd5[part.number] = part.md5;
+        final previous = sentByPart[part.number] ?? 0;
         sentByPart[part.number] = part.size;
+        sentTotal += max(0, part.size - previous);
       }
       await options.store.save(sessionKey, session.toJson(contract));
       report();
@@ -713,6 +773,7 @@ extension CollectionUploads on CollectionsResource {
     VideoUploadOptions options,
     CancellationToken cancellation,
     void Function(UploadProgress) emit,
+    _UploadPermitPool permits,
   ) async {
     final offset = (number - 1) * session.partSize;
     final length = _partLength(source.contentLength, session.partSize, number);
@@ -723,16 +784,19 @@ extension CollectionUploads on CollectionsResource {
         final headers = objectMap(
           item['headers'],
         ).map((String key, Object? value) => MapEntry(key, '$value'));
-        final result = await signedUploads.upload(
-          source: source,
-          url: _signedUri('${item['url'] ?? ''}'),
-          method: '${item['method'] ?? 'PUT'}',
-          offset: offset,
-          length: length,
-          headers: headers,
-          timeout: options.partTimeout,
-          cancellation: cancellation,
-          onProgress: emit,
+        final result = await permits.run(
+          cancellation,
+          () => signedUploads.upload(
+            source: source,
+            url: _signedUri('${item['url'] ?? ''}'),
+            method: '${item['method'] ?? 'PUT'}',
+            offset: offset,
+            length: length,
+            headers: headers,
+            timeout: options.partTimeout,
+            cancellation: cancellation,
+            onProgress: emit,
+          ),
         );
         final expected = result.localMd5.isEmpty
             ? await md5Hex(source, offset: offset, length: length)
@@ -1042,6 +1106,64 @@ class _UploadedPart {
   final int size;
   final String md5;
   final int attempts;
+}
+
+class _UploadPermitPool {
+  _UploadPermitPool(int size) : _available = max(1, size);
+
+  int _available;
+  final List<_PermitWaiter> _waiters = <_PermitWaiter>[];
+
+  Future<T> run<T>(
+    CancellationToken cancellation,
+    Future<T> Function() operation,
+  ) async {
+    await _acquire(cancellation);
+    try {
+      cancellation.throwIfCanceled();
+      return await operation();
+    } finally {
+      _release();
+    }
+  }
+
+  Future<void> _acquire(CancellationToken cancellation) async {
+    cancellation.throwIfCanceled();
+    if (_available > 0) {
+      _available--;
+      return;
+    }
+    final waiter = _PermitWaiter();
+    _waiters.add(waiter);
+    await Future.any(<Future<void>>[
+      waiter.ready.future,
+      cancellation.whenCanceled,
+    ]);
+    if (cancellation.isCanceled) {
+      if (waiter.granted) {
+        _release();
+      } else {
+        _waiters.remove(waiter);
+      }
+      throw const OperationCanceled();
+    }
+  }
+
+  void _release() {
+    while (_waiters.isNotEmpty) {
+      final waiter = _waiters.removeAt(0);
+      if (waiter.ready.isCompleted) continue;
+      waiter.granted = true;
+      waiter.ready.complete();
+      return;
+    }
+    _available++;
+  }
+}
+
+class _PermitWaiter {
+  final Completer<void> ready = Completer<void>();
+  bool granted = false;
 }
 
 Map<String, Object?> _uploadParams(

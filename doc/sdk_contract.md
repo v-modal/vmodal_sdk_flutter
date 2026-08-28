@@ -16,13 +16,15 @@ behavior. `test/fixtures/routes_contract.json` is the reviewed normalized mirror
 | Indexes | `jobsList`, `createIndex`, `indexStatus`, `deleteIndex` | Active |
 | Admin | `userStats`, `usage`, `cacheStats` | Active; split external/users API bases |
 | R2 | `presignUploadFile`, `presignUploadFolderVideo` | Active users API routes |
-| Images | `getUrl`, `getUrlBulk`, `getImageFromUrl`, `getImageBulkFromUrls` | Active image routes |
+| Images | `getUrl`, `getUrlBulk`, `getImageFromUrl`, `writeImageFromUrl`, `saveImageFromUrl`, `getImageBulkFromUrls` | Active image routes; buffered, sink, and atomic-file download choices |
 | Multipart | explicit `VideoUploadOptions(multipart: true)` | Experimental; never selected by size |
 | GDrive/SQL/auto-index/folder scan | compatibility methods | Disabled before transport |
 | Google Drive collection upload | no public method | Mounted upstream but deprecated by SDK contract |
 
-Every operation uses the centralized `Routes`, `VmodalHttp`, bounded response
-reader, retry classifier, and cancellation token. Gateway payload serializers
+Every operation uses the centralized `Routes`, `VmodalHttp`, bounded chunked
+response readers, retry classifier, and cancellation token. `SdkConfig.timeout`
+bounds request/upload phases; `idleTimeout` bounds silence between response-body
+events and defaults to `timeout`. Gateway payload serializers
 remove caller identity; only unsafe direct mode may emit trusted identity fields.
 Application-visible error bodies and details retain their structured shape, but
 the SDK replaces Unix, Windows, UNC, and `file:` filesystem paths with `****`

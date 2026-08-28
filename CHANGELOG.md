@@ -1,3 +1,16 @@
+## 1.1.0
+
+- Streamed signed upload bodies with awaited socket backpressure, exact file
+  ranges, source-version checks, and bounded body/response timeouts.
+- Enforced one signed-upload concurrency budget across bulk multipart tasks and
+  coalesced monotonic progress before O(1) aggregation.
+- Added bounded image downloads to caller-owned sinks and atomic files, plus a
+  smaller per-call cap for buffered image responses.
+- Added response-body idle timeouts with attempt-scoped GET retries and bounded
+  chunked JSON decoding.
+- Added a throttled upload/RSS benchmark harness and public caller injection for
+  `HttpVmodalTransport` without adding native HTTP dependencies.
+
 ## 1.0.0
 
 - Added the immutable `VModal`, `VModalProject`, and `VModalScope` facade.

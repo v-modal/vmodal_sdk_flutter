@@ -42,6 +42,7 @@ export 'src/transcode.dart';
 export 'src/transport.dart'
     show
         CancellationToken,
+        HttpVmodalTransport,
         VmodalFilePart,
         VmodalRequest,
         VmodalResponse,

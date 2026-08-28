@@ -259,7 +259,8 @@ void main() {
 
     expect(cfg.api.requests, hasLength(9));
     for (final request in cfg.api.requests) {
-      expect(request.cancellation, same(cancel));
+      expect(request.cancellation, isNot(same(cancel)));
+      expect(request.cancellation.isCanceled, isFalse);
     }
     final values = cfg.api.requests.map(requestValues).toList();
     for (final index in <int>[0, 1, 2, 3, 4, 5, 7, 8]) {
@@ -364,7 +365,8 @@ void main() {
         ),
         <String>['global', 'user_123'],
       );
-      expect(cfg.api.requests.single.cancellation, same(cancel));
+      expect(cfg.api.requests.single.cancellation, isNot(same(cancel)));
+      expect(cfg.api.requests.single.cancellation.isCanceled, isFalse);
       expect(cfg.api.requests.single.uri.queryParameters['mode'], 'vid_file');
 
       cfg.api.addJson(<String, Object?>{

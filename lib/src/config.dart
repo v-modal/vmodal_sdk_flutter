@@ -35,15 +35,20 @@ class SdkConfig {
     this.email = '',
     this.token = '',
     this.timeout = const Duration(seconds: 30),
+    Duration? idleTimeout,
     this.mode = 'gateway',
     this.maxRetries = 1,
     this.apiKeyProvider,
-  }) : baseUrl = baseUrl ?? publicGatewayUrl {
+  }) : baseUrl = baseUrl ?? publicGatewayUrl,
+       idleTimeout = idleTimeout ?? timeout {
     if (timeout <= Duration.zero) {
       throw const ValidationException('timeout must be positive');
     }
     if (maxRetries < 0) {
       throw const ValidationException('max_retries must not be negative');
+    }
+    if (this.idleTimeout <= Duration.zero) {
+      throw const ValidationException('idle_timeout must be positive');
     }
     if (!const <String>{'gateway', 'direct'}.contains(normalizedMode)) {
       throw const ValidationException('mode must be gateway or direct');
@@ -66,8 +71,13 @@ class SdkConfig {
   /// Static API key used when [apiKeyProvider] is absent.
   final String token;
 
-  /// Maximum duration for an SDK request.
+  /// Maximum duration for establishing an SDK request or upload phase.
   final Duration timeout;
+
+  /// Maximum silence allowed while consuming a response body.
+  ///
+  /// Defaults to [timeout] when omitted.
+  final Duration idleTimeout;
 
   /// Connection mode, either `gateway` or `direct`.
   final String mode;
@@ -103,6 +113,7 @@ class SdkConfig {
     String? email,
     String? token,
     Duration? timeout,
+    Duration? idleTimeout,
     String? mode,
     int? maxRetries,
     ApiKeyProvider? apiKeyProvider,
@@ -113,6 +124,7 @@ class SdkConfig {
     email: email ?? this.email,
     token: token ?? this.token,
     timeout: timeout ?? this.timeout,
+    idleTimeout: idleTimeout ?? this.idleTimeout,
     mode: mode ?? this.mode,
     maxRetries: maxRetries ?? this.maxRetries,
     apiKeyProvider: apiKeyProvider ?? this.apiKeyProvider,
@@ -130,6 +142,7 @@ class SdkConfig {
     String? email,
     String? token,
     Duration? timeout,
+    Duration? idleTimeout,
     String? mode,
     int? maxRetries,
     ApiKeyProvider? apiKeyProvider,
@@ -169,6 +182,7 @@ class SdkConfig {
           (seconds == null
               ? const Duration(seconds: 30)
               : Duration(milliseconds: (seconds * 1000).round())),
+      idleTimeout: idleTimeout,
       mode: mode ?? 'gateway',
       maxRetries:
           maxRetries ?? int.tryParse(env['VMODAL_MAX_RETRIES'] ?? '') ?? 1,
@@ -185,6 +199,7 @@ class SdkConfig {
       'emailConfigured=${email.isNotEmpty}, '
       'tokenConfigured=${token.isNotEmpty}, '
       'timeoutMs=${timeout.inMilliseconds}, '
+      'idleTimeoutMs=${idleTimeout.inMilliseconds}, '
       'mode=$normalizedMode, '
       'maxRetries=$maxRetries, '
       'apiKeyProviderConfigured=${apiKeyProvider != null})';

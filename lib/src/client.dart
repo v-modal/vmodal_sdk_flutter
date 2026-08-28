@@ -7,7 +7,7 @@ import 'transport.dart';
 import 'upload.dart';
 
 /// Version of the Dart SDK contract represented by this package.
-const String vmodalSdkVersion = '1.0.0';
+const String vmodalSdkVersion = '1.1.0';
 
 /// Owns configuration, transports, and feature resources for one app session.
 ///

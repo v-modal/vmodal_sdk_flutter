@@ -61,6 +61,7 @@ void main() {
     expect(config.toString(), isNot(contains(key)));
     expect(config.toString(), isNot(contains(user)));
     expect(strUsersBaseUrl(config.normalizedBaseUrl), 'https://gateway.test');
+    expect(config.idleTimeout, config.timeout);
   });
 
   test('invalid configuration fails before transport', () {
@@ -74,6 +75,10 @@ void main() {
     );
     expect(
       () => SdkConfig(timeout: Duration.zero),
+      throwsA(isA<ValidationException>()),
+    );
+    expect(
+      () => SdkConfig(idleTimeout: Duration.zero),
       throwsA(isA<ValidationException>()),
     );
   });

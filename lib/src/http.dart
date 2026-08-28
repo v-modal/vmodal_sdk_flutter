@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'config.dart';
@@ -8,6 +9,8 @@ import 'transport.dart';
 import 'utils.dart';
 
 typedef DelayStrategy = Future<void> Function(Duration duration);
+typedef ResponseReader<T> =
+    Future<T> Function(VmodalResponse response, CancellationToken cancellation);
 
 class VmodalHttp {
   VmodalHttp(this.config, this.transport, {DelayStrategy? delay})
@@ -89,10 +92,12 @@ class VmodalHttp {
     String path, {
     Object? json,
     Map<String, Object?> params = const <String, Object?>{},
+    int? maxBytes,
     CancellationToken? cancellation,
   }) async {
+    final limit = _binaryLimit(maxBytes);
     final token = cancellation ?? CancellationToken();
-    final response = await _execute(
+    return _executeRead<Uint8List>(
       method,
       path,
       headers: headers(),
@@ -100,8 +105,44 @@ class VmodalHttp {
       params: params,
       responseMode: VmodalResponseMode.bytes,
       cancellation: token,
+      reader: (VmodalResponse response, CancellationToken attempt) =>
+          readBounded(
+            response,
+            limit,
+            cancellation: attempt,
+            idleTimeout: config.idleTimeout,
+          ),
     );
-    return readBounded(response, binaryResponseLimitBytes, cancellation: token);
+  }
+
+  Future<void> requestBytesToSink(
+    String method,
+    String path, {
+    required IOSink sink,
+    Object? json,
+    Map<String, Object?> params = const <String, Object?>{},
+    int? maxBytes,
+    CancellationToken? cancellation,
+  }) async {
+    final limit = _binaryLimit(maxBytes);
+    final token = cancellation ?? CancellationToken();
+    await _executeRead<void>(
+      method,
+      path,
+      headers: headers(),
+      json: json,
+      params: params,
+      responseMode: VmodalResponseMode.bytes,
+      cancellation: token,
+      reader: (VmodalResponse response, CancellationToken attempt) =>
+          writeBounded(
+            response,
+            sink,
+            limit,
+            cancellation: attempt,
+            idleTimeout: config.idleTimeout,
+          ),
+    );
   }
 
   Future<Map<String, Object?>> _requestJson(
@@ -116,7 +157,7 @@ class VmodalHttp {
     CancellationToken? cancellation,
   }) async {
     final token = cancellation ?? CancellationToken();
-    final response = await _execute(
+    return _executeRead<Map<String, Object?>>(
       method,
       path,
       headers: headers,
@@ -126,21 +167,17 @@ class VmodalHttp {
       params: params,
       usersApi: usersApi,
       cancellation: token,
+      reader: (VmodalResponse response, CancellationToken attempt) =>
+          readJsonObjectBounded(
+            response,
+            jsonResponseLimitBytes,
+            cancellation: attempt,
+            idleTimeout: config.idleTimeout,
+          ),
     );
-    final bytes = await readBounded(
-      response,
-      jsonResponseLimitBytes,
-      cancellation: token,
-    );
-    if (bytes.isEmpty) return <String, Object?>{};
-    final value = jsonDecodeStrict(bytes);
-    if (value is! Map) {
-      throw const MalformedResponse('JSON object response required');
-    }
-    return objectMap(value);
   }
 
-  Future<VmodalResponse> _execute(
+  Future<T> _executeRead<T>(
     String method,
     String path, {
     required Map<String, String> headers,
@@ -151,38 +188,52 @@ class VmodalHttp {
     bool usersApi = false,
     VmodalResponseMode responseMode = VmodalResponseMode.json,
     required CancellationToken cancellation,
+    required ResponseReader<T> reader,
   }) async {
     final normalized = method.toUpperCase();
     final canRetry = normalized == 'GET' || normalized == 'HEAD';
     final uri = _uri(path, params, usersApi: usersApi);
-    final request = VmodalRequest(
-      method: normalized,
-      uri: uri,
-      headers: headers,
-      jsonBody: json,
-      formFields: data,
-      files: files,
-      responseMode: responseMode,
-      cancellation: cancellation,
-    );
     for (var attempt = 0; attempt <= config.normalizedMaxRetries; attempt++) {
       cancellation.throwIfCanceled();
+      final attemptCancellation = CancellationToken();
+      final removeCancel = cancellation.onCancel(attemptCancellation.cancel);
       try {
+        final request = VmodalRequest(
+          method: normalized,
+          uri: uri,
+          headers: headers,
+          jsonBody: json,
+          formFields: data,
+          files: files,
+          responseMode: responseMode,
+          cancellation: attemptCancellation,
+        );
         final response = await transport.send(request);
         if (canRetry &&
             const <int>{500, 502, 503, 504}.contains(response.statusCode) &&
             attempt < config.normalizedMaxRetries) {
-          await _discard(response, cancellation);
+          await _discard(response, attemptCancellation);
           await _delay(Duration(milliseconds: 50 * (attempt + 1)));
           continue;
         }
         if (response.statusCode < 200 || response.statusCode > 299) {
-          await _raiseForStatus(response, cancellation);
+          await _raiseForStatus(response, attemptCancellation);
         }
-        return response;
+        final value = await reader(response, attemptCancellation);
+        cancellation.throwIfCanceled();
+        return value;
+      } on OperationCanceled {
+        if (cancellation.isCanceled) rethrow;
+        if (!canRetry || attempt >= config.normalizedMaxRetries) {
+          throw const TransportException();
+        }
+        await _delay(Duration(milliseconds: 50 * (attempt + 1)));
       } on TransportException {
+        if (cancellation.isCanceled) throw const OperationCanceled();
         if (!canRetry || attempt >= config.normalizedMaxRetries) rethrow;
         await _delay(Duration(milliseconds: 50 * (attempt + 1)));
+      } finally {
+        removeCancel();
       }
     }
     throw const TransportException();
@@ -196,6 +247,7 @@ class VmodalHttp {
       response,
       errorResponseLimitBytes,
       cancellation: token,
+      idleTimeout: config.idleTimeout,
     );
     Object? body;
     if (bytes.isNotEmpty) {
@@ -246,7 +298,12 @@ class VmodalHttp {
     VmodalResponse response,
     CancellationToken token,
   ) async {
-    await readBounded(response, errorResponseLimitBytes, cancellation: token);
+    await readBounded(
+      response,
+      errorResponseLimitBytes,
+      cancellation: token,
+      idleTimeout: config.idleTimeout,
+    );
   }
 
   Uri _uri(String path, Map<String, Object?> params, {required bool usersApi}) {
@@ -314,5 +371,15 @@ class VmodalHttp {
         'gateway request contains forbidden identity headers',
       );
     }
+  }
+
+  int _binaryLimit(int? maxBytes) {
+    if (maxBytes == null) return binaryResponseLimitBytes;
+    if (maxBytes <= 0 || maxBytes > binaryResponseLimitBytes) {
+      throw const ValidationException(
+        'max_bytes must be positive and no larger than the SDK binary limit',
+      );
+    }
+    return maxBytes;
   }
 }

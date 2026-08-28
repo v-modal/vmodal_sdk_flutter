@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vmodal_sdk_flutter/vmodal_sdk_flutter.dart';
@@ -85,6 +86,139 @@ void main() {
     final row = (body['records']! as List).single as Map<String, Object?>;
     expect(row, isNot(contains('userid')));
     expect(row, isNot(contains('user_id')));
+  });
+
+  test('image bytes honor a smaller per-call limit before buffering', () async {
+    final fake = FakeTransport()
+      ..addResponse(
+        VmodalResponse(
+          statusCode: 200,
+          contentLength: 4,
+          body: Stream<List<int>>.value(<int>[1, 2, 3, 4]),
+        ),
+      );
+    final client = VmodalClient(
+      config: SdkConfig(baseUrl: 'https://gateway.test', token: 'key'),
+      transport: fake,
+      signedUploadTransport: FakeSignedUploadTransport(),
+    );
+    await expectLater(
+      client.images.getImageFromUrl('https://objects.test/a', maxBytes: 3),
+      throwsA(isA<ResponseTooLarge>()),
+    );
+  });
+
+  test('image sink streams bytes and remains caller owned', () async {
+    final dir = await Directory.systemTemp.createTemp('vmodal-image-');
+    addTearDown(() => dir.delete(recursive: true));
+    final fake = FakeTransport()
+      ..addResponse(
+        VmodalResponse(
+          statusCode: 200,
+          contentLength: -1,
+          body: Stream<List<int>>.fromIterable(<List<int>>[
+            <int>[1, 2],
+            <int>[3, 4],
+          ]),
+        ),
+      );
+    final client = VmodalClient(
+      config: SdkConfig(baseUrl: 'https://gateway.test', token: 'key'),
+      transport: fake,
+      signedUploadTransport: FakeSignedUploadTransport(),
+    );
+    final file = File('${dir.path}/a.jpg');
+    final sink = file.openWrite();
+    await client.images.writeImageFromUrl(
+      'https://objects.test/a',
+      sink,
+      maxBytes: 4,
+    );
+    sink.add(<int>[5]);
+    await sink.close();
+    expect(await file.readAsBytes(), <int>[1, 2, 3, 4, 5]);
+  });
+
+  test(
+    'atomic image file download preserves destination on overflow',
+    () async {
+      final dir = await Directory.systemTemp.createTemp('vmodal-image-');
+      addTearDown(() => dir.delete(recursive: true));
+      final destination = File('${dir.path}/a.jpg');
+      await destination.writeAsBytes(<int>[9], flush: true);
+      final fake = FakeTransport()
+        ..addResponse(
+          VmodalResponse(
+            statusCode: 200,
+            contentLength: -1,
+            body: Stream<List<int>>.fromIterable(<List<int>>[
+              <int>[1, 2],
+              <int>[3, 4, 5],
+            ]),
+          ),
+        );
+      final client = VmodalClient(
+        config: SdkConfig(baseUrl: 'https://gateway.test', token: 'key'),
+        transport: fake,
+        signedUploadTransport: FakeSignedUploadTransport(),
+      );
+      await expectLater(
+        client.images.saveImageFromUrl(
+          'https://objects.test/a',
+          destination,
+          maxBytes: 4,
+        ),
+        throwsA(isA<ResponseTooLarge>()),
+      );
+      expect(await destination.readAsBytes(), <int>[9]);
+      expect(await dir.list().length, 1);
+    },
+  );
+
+  test('atomic image file download replaces destination on success', () async {
+    final dir = await Directory.systemTemp.createTemp('vmodal-image-');
+    addTearDown(() => dir.delete(recursive: true));
+    final destination = File('${dir.path}/a.jpg');
+    await destination.writeAsBytes(<int>[9], flush: true);
+    final fake = FakeTransport()
+      ..addResponse(
+        VmodalResponse(
+          statusCode: 200,
+          contentLength: 3,
+          body: Stream<List<int>>.value(<int>[1, 2, 3]),
+        ),
+      );
+    final client = VmodalClient(
+      config: SdkConfig(baseUrl: 'https://gateway.test', token: 'key'),
+      transport: fake,
+      signedUploadTransport: FakeSignedUploadTransport(),
+    );
+    expect(
+      await client.images.saveImageFromUrl(
+        'https://objects.test/a',
+        destination,
+      ),
+      destination,
+    );
+    expect(await destination.readAsBytes(), <int>[1, 2, 3]);
+    expect(await dir.list().length, 1);
+  });
+
+  test('image per-call cap cannot raise the SDK binary ceiling', () async {
+    final fake = FakeTransport();
+    final client = VmodalClient(
+      config: SdkConfig(baseUrl: 'https://gateway.test', token: 'key'),
+      transport: fake,
+      signedUploadTransport: FakeSignedUploadTransport(),
+    );
+    await expectLater(
+      client.images.getImageFromUrl(
+        'https://objects.test/a',
+        maxBytes: 65 * 1024 * 1024,
+      ),
+      throwsA(isA<ValidationException>()),
+    );
+    expect(fake.requests, isEmpty);
   });
 
   test('resource paths and users API base are exact', () async {

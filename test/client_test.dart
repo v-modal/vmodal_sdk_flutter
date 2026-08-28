@@ -1,9 +1,20 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as package_http;
 import 'package:vmodal_sdk_flutter/vmodal_sdk_flutter.dart';
 
 import 'fakes.dart';
 
 void main() {
+  test(
+    'public HTTP transport accepts a caller-selected package client',
+    () async {
+      final config = SdkConfig(baseUrl: 'https://gateway.test', token: 'key');
+      final wire = package_http.Client();
+      final transport = HttpVmodalTransport(config, client: wire);
+      await transport.close();
+    },
+  );
+
   test('fromEnvironment transfers bootstrap transport ownership', () async {
     final api = FakeTransport()
       ..addResponse(

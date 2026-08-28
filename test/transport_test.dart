@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vmodal_sdk_flutter/src/http.dart';
-import 'package:vmodal_sdk_flutter/src/transport.dart' show readBounded;
+import 'package:vmodal_sdk_flutter/src/transport.dart'
+    show readBounded, readJsonObjectBounded;
 import 'package:vmodal_sdk_flutter/vmodal_sdk_flutter.dart';
 
 import 'fakes.dart';
@@ -78,6 +80,76 @@ void main() {
     );
   });
 
+  test(
+    'chunked JSON preserves UTF-8, empty, and strict trailing semantics',
+    () async {
+      final bytes = Uint8List.fromList(utf8.encode('{"name":"東京"}'));
+      final chunked = VmodalResponse(
+        statusCode: 200,
+        contentLength: bytes.length,
+        body: Stream<List<int>>.fromIterable(
+          bytes.map((int value) => <int>[value]),
+        ),
+      );
+      expect(await readJsonObjectBounded(chunked, 100), <String, Object?>{
+        'name': '東京',
+      });
+      expect(
+        await readJsonObjectBounded(
+          const VmodalResponse(
+            statusCode: 200,
+            contentLength: 0,
+            body: Stream<List<int>>.empty(),
+          ),
+          100,
+        ),
+        isEmpty,
+      );
+      await expectLater(
+        readJsonObjectBounded(
+          VmodalResponse(
+            statusCode: 200,
+            contentLength: -1,
+            body: Stream<List<int>>.value(utf8.encode('{} {}')),
+          ),
+          100,
+        ),
+        throwsA(isA<MalformedResponse>()),
+      );
+      await expectLater(
+        readJsonObjectBounded(
+          VmodalResponse(
+            statusCode: 200,
+            contentLength: 2,
+            body: Stream<List<int>>.value(<int>[0xc3, 0x28]),
+          ),
+          100,
+        ),
+        throwsA(isA<MalformedResponse>()),
+      );
+    },
+  );
+
+  test('chunked JSON enforces its raw byte limit before decode', () async {
+    final token = CancellationToken();
+    await expectLater(
+      readJsonObjectBounded(
+        VmodalResponse(
+          statusCode: 200,
+          contentLength: -1,
+          body: Stream<List<int>>.fromIterable(<List<int>>[
+            <int>[123, 34],
+            <int>[97, 34, 58, 49, 125],
+          ]),
+        ),
+        4,
+        cancellation: token,
+      ),
+      throwsA(isA<ResponseTooLarge>()),
+    );
+    expect(token.isCanceled, isTrue);
+  });
+
   test('canceling one response does not affect a concurrent request', () async {
     final firstReady = Completer<void>();
     final releaseSecond = Completer<void>();
@@ -114,5 +186,104 @@ void main() {
     releaseSecond.complete();
     await expectLater(one, throwsA(isA<OperationCanceled>()));
     expect((await two)['status'], 'ok');
+  });
+
+  test('GET body idle timeout retries with a fresh attempt token', () async {
+    var calls = 0;
+    final fake = HandlerTransport((VmodalRequest request) async {
+      calls++;
+      if (calls == 1) {
+        return VmodalResponse(
+          statusCode: 200,
+          contentLength: -1,
+          body: (() async* {
+            yield <int>[123];
+            await Future<void>.delayed(const Duration(milliseconds: 50));
+            yield <int>[125];
+          })(),
+        );
+      }
+      return jsonResponse('{"status":"ok"}');
+    });
+    final caller = CancellationToken();
+    final http = VmodalHttp(
+      SdkConfig(
+        baseUrl: 'https://gateway.test',
+        token: 'key',
+        idleTimeout: const Duration(milliseconds: 10),
+      ),
+      fake,
+      delay: (_) async {},
+    );
+    expect(
+      (await http.request(
+        'GET',
+        '/api/external/v1/health',
+        cancellation: caller,
+      ))['status'],
+      'ok',
+    );
+    expect(calls, 2);
+    expect(fake.requests[0].cancellation.isCanceled, isTrue);
+    expect(fake.requests[1].cancellation.isCanceled, isFalse);
+    expect(caller.isCanceled, isFalse);
+  });
+
+  test('POST body idle timeout aborts once without retrying', () async {
+    final fake = HandlerTransport((VmodalRequest request) async {
+      return VmodalResponse(
+        statusCode: 200,
+        contentLength: -1,
+        body: (() async* {
+          yield <int>[123];
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+          yield <int>[125];
+        })(),
+      );
+    });
+    final caller = CancellationToken();
+    final http = VmodalHttp(
+      SdkConfig(
+        baseUrl: 'https://gateway.test',
+        token: 'key',
+        idleTimeout: const Duration(milliseconds: 10),
+      ),
+      fake,
+    );
+    await expectLater(
+      http.request('POST', '/api/external/v1/health', cancellation: caller),
+      throwsA(isA<TransportException>()),
+    );
+    expect(fake.requests, hasLength(1));
+    expect(fake.requests.single.cancellation.isCanceled, isTrue);
+    expect(caller.isCanceled, isFalse);
+  });
+
+  test('attempt timeout cancellation does not poison a GET retry', () async {
+    var calls = 0;
+    final fake = HandlerTransport((VmodalRequest request) async {
+      calls++;
+      if (calls == 1) {
+        request.cancellation.cancel();
+        throw TransportException(TimeoutException('headers'));
+      }
+      return jsonResponse('{"status":"ok"}');
+    });
+    final caller = CancellationToken();
+    final http = VmodalHttp(
+      SdkConfig(baseUrl: 'https://gateway.test', token: 'key'),
+      fake,
+      delay: (_) async {},
+    );
+    expect(
+      (await http.request(
+        'GET',
+        '/api/external/v1/health',
+        cancellation: caller,
+      ))['status'],
+      'ok',
+    );
+    expect(calls, 2);
+    expect(caller.isCanceled, isFalse);
   });
 }

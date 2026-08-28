@@ -202,6 +202,12 @@ await progress.cancel();
 print('Ready: ${uploaded.fileName}');
 </code></pre>
 <p>Signed single upload is the production default for every file size. Multipart upload is experimental and must be enabled explicitly with <code>VideoUploadOptions(multipart: true)</code>; it fails with <code>FeatureDisabled</code> when the complete backend route family is unavailable.</p>
+<p>Uploads use exact file ranges, awaited socket streaming, coalesced progress, and
+one network-concurrency budget per bulk task. For image caches, use
+<code>writeImageFromUrl</code> with a caller-owned sink or <code>saveImageFromUrl</code> for atomic
+file replacement instead of buffering the image. See
+<a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/performance.md">the performance guide</a>
+for limits, timeout behavior, and the benchmark command.</p>
 <h2 id="designed-for-real-mobile-lifecycles">Designed for real mobile lifecycles</h2>
 <ul>
 <li>Rotate credentials without rebuilding the client: <code>keys.rotate(newApiKey)</code>.</li>
@@ -436,7 +442,7 @@ The framework supports unified cross-platform logic, ensuring identical integrat
 <footer>
   <span class="no-break">
     vmodal_sdk_flutter
-      1.0.0
+      1.1.0
   </span>
   
 </footer>

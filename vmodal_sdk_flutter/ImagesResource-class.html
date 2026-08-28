@@ -113,7 +113,7 @@
 </dd>
 
         <dt id="getImageFromUrl" class="callable">
-  <span class="name"><a href="../vmodal_sdk_flutter/ImagesResource/getImageFromUrl.html">getImageFromUrl</a></span><span class="signature">(<wbr><span class="parameter" id="getImageFromUrl-param-urlPreSigned"><span class="type-annotation">String</span> <span class="parameter-name">urlPreSigned</span>, {</span><span class="parameter" id="getImageFromUrl-param-userid"><span class="type-annotation">String?</span> <span class="parameter-name">userid</span>, </span><span class="parameter" id="getImageFromUrl-param-cancellation"><span class="type-annotation"><a href="../vmodal_sdk_flutter/CancellationToken-class.html">CancellationToken</a>?</span> <span class="parameter-name">cancellation</span></span>})
+  <span class="name"><a href="../vmodal_sdk_flutter/ImagesResource/getImageFromUrl.html">getImageFromUrl</a></span><span class="signature">(<wbr><span class="parameter" id="getImageFromUrl-param-urlPreSigned"><span class="type-annotation">String</span> <span class="parameter-name">urlPreSigned</span>, {</span><span class="parameter" id="getImageFromUrl-param-userid"><span class="type-annotation">String?</span> <span class="parameter-name">userid</span>, </span><span class="parameter" id="getImageFromUrl-param-maxBytes"><span class="type-annotation">int?</span> <span class="parameter-name">maxBytes</span>, </span><span class="parameter" id="getImageFromUrl-param-cancellation"><span class="type-annotation"><a href="../vmodal_sdk_flutter/CancellationToken-class.html">CancellationToken</a>?</span> <span class="parameter-name">cancellation</span></span>})
     <span class="returntype parameter">&#8594; Future<span class="signature">&lt;<wbr><span class="type-parameter">Uint8List</span>&gt;</span></span>
   </span>
   
@@ -164,6 +164,19 @@
 
 </dd>
 
+        <dt id="saveImageFromUrl" class="callable">
+  <span class="name"><a href="../vmodal_sdk_flutter/ImagesResource/saveImageFromUrl.html">saveImageFromUrl</a></span><span class="signature">(<wbr><span class="parameter" id="saveImageFromUrl-param-urlPreSigned"><span class="type-annotation">String</span> <span class="parameter-name">urlPreSigned</span>, </span><span class="parameter" id="saveImageFromUrl-param-destination"><span class="type-annotation">File</span> <span class="parameter-name">destination</span>, {</span><span class="parameter" id="saveImageFromUrl-param-userid"><span class="type-annotation">String?</span> <span class="parameter-name">userid</span>, </span><span class="parameter" id="saveImageFromUrl-param-maxBytes"><span class="type-annotation">int?</span> <span class="parameter-name">maxBytes</span>, </span><span class="parameter" id="saveImageFromUrl-param-cancellation"><span class="type-annotation"><a href="../vmodal_sdk_flutter/CancellationToken-class.html">CancellationToken</a>?</span> <span class="parameter-name">cancellation</span></span>})
+    <span class="returntype parameter">&#8594; Future<span class="signature">&lt;<wbr><span class="type-parameter">File</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Atomically downloads an image into <code>destination</code>.
+  
+
+</dd>
+
         <dt id="toString" class="callable inherited">
   <span class="name"><a href="../vmodal_sdk_flutter/ImagesResource/toString.html">toString</a></span><span class="signature">(<wbr>)
     <span class="returntype parameter">&#8594; String</span>
@@ -174,6 +187,19 @@
 <dd class="inherited">
   A string representation of this object.
   <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="writeImageFromUrl" class="callable">
+  <span class="name"><a href="../vmodal_sdk_flutter/ImagesResource/writeImageFromUrl.html">writeImageFromUrl</a></span><span class="signature">(<wbr><span class="parameter" id="writeImageFromUrl-param-urlPreSigned"><span class="type-annotation">String</span> <span class="parameter-name">urlPreSigned</span>, </span><span class="parameter" id="writeImageFromUrl-param-sink"><span class="type-annotation">IOSink</span> <span class="parameter-name">sink</span>, {</span><span class="parameter" id="writeImageFromUrl-param-userid"><span class="type-annotation">String?</span> <span class="parameter-name">userid</span>, </span><span class="parameter" id="writeImageFromUrl-param-maxBytes"><span class="type-annotation">int?</span> <span class="parameter-name">maxBytes</span>, </span><span class="parameter" id="writeImageFromUrl-param-cancellation"><span class="type-annotation"><a href="../vmodal_sdk_flutter/CancellationToken-class.html">CancellationToken</a>?</span> <span class="parameter-name">cancellation</span></span>})
+    <span class="returntype parameter">&#8594; Future<span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Streams an image into a caller-owned <code>sink</code> without closing it.
+  
 
 </dd>
 
@@ -227,7 +253,7 @@
 <footer>
   <span class="no-break">
     vmodal_sdk_flutter
-      1.0.0
+      1.1.0
   </span>
   
 </footer>

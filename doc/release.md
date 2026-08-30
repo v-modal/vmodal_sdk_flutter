@@ -8,8 +8,8 @@ existing repository test credential variables.
 The CCTV contract has a separate opt-in gate, `bash test.sh cctv_live`. It
 uploads its own fixture and collection, verifies canonical timestamp fields,
 metadata filters, and absolute JST/UTC ranges, then deletes only that temporary
-collection. It remains outside `test.sh all` and runs explicitly in the Flutter
-release workflow.
+collection. It remains outside `test.sh all` and the Flutter release workflow;
+run it explicitly against a backend that has the CCTV search contract deployed.
 
 The release workflow is manually dispatched during development. Exact-candidate
 `RELEASE_SHA` checkout and `git rev-parse` verification lines are retained as

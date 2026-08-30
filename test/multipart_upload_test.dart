@@ -107,7 +107,18 @@ void main() {
         return jsonResponse('{"etag":"complete-etag"}');
       }
       if (path.endsWith(Routes.externalUploadDone)) {
-        return jsonResponse('{"dest_path":"done/a.mp4"}');
+        expect(request.uri.queryParametersAll['metadata_tags'], <String>[
+          'tag1',
+          'tag2',
+        ]);
+        expect(request.uri.queryParameters['video_filename'], 'public.mp4');
+        return jsonResponse(
+          '{"dest_path":"done/public.mp4",'
+          '"video_filename":"public.mp4",'
+          '"start_datetime_user":"2026-07-30T09:15:00+09:00",'
+          '"start_ts_unix_user_ms":1785370500000,'
+          '"timestamp_source":"user"}',
+        );
       }
       throw StateError('unexpected route: $path');
     });
@@ -120,7 +131,11 @@ void main() {
       ..add(SignedUploadResult(statusCode: 200, etag: md5a, localMd5: md5a))
       ..add(SignedUploadResult(statusCode: 200, etag: md5b, localMd5: md5b));
     final client = VmodalClient(
-      config: SdkConfig(baseUrl: 'https://gateway.test', token: 'key'),
+      config: SdkConfig(
+        baseUrl: 'https://gateway.test',
+        token: 'key',
+        maxRetries: 0,
+      ),
       transport: api,
       signedUploadTransport: signed,
     );
@@ -134,14 +149,109 @@ void main() {
             partSizeBytes: 5 * mib,
             maxConcurrency: 2,
             sessionStore: MemoryUploadSessionStore(),
+            videoFilename: 'public.mp4',
+            metadataText: '',
+            metadataTags: const <String>['tag1', 'tag2'],
+            startDatetimeUser: '2026-07-30T09:15:00+09:00',
           ),
         )
         .result;
     expect(result.uploadStrategy, 'multipart');
     expect(result.partCount, 2);
-    expect(result.destPath, 'done/a.mp4');
+    expect(result.destPath, 'done/public.mp4');
+    expect(result.videoFilename, 'public.mp4');
+    expect(result.startTsUnixUserMs, 1785370500000);
     expect(statusCalls, 2);
   });
+
+  test(
+    'completed multipart resume finalizes with the same CCTV fields',
+    () async {
+      const mib = 1024 * 1024;
+      final source = UploadSource(
+        fileName: 'camera.mp4',
+        contentLength: 6 * mib,
+        sourceId: 'resume-cctv',
+        versionTag: 'v1',
+        opener: () => _bytes(6 * mib, 8),
+      );
+      final store = MemoryUploadSessionStore();
+      var statusCalls = 0;
+      final api = HandlerTransport((VmodalRequest request) async {
+        final path = request.uri.path;
+        if (path.endsWith(Routes.externalUploadMultipartCreate)) {
+          return jsonResponse(
+            '{"request_id":"r","upload_id":"u","key":"k",'
+            '"part_count":2,"part_size_bytes":${5 * mib}}',
+          );
+        }
+        if (path.endsWith(Routes.externalUploadMultipartStatus)) {
+          statusCalls++;
+          if (statusCalls == 1) {
+            return jsonResponse('{"detail":"temporary"}', status: 500);
+          }
+          return jsonResponse(
+            '{"status":"completed","etag":"done-etag",'
+            '"size_bytes":${6 * mib}}',
+          );
+        }
+        if (path.endsWith(Routes.externalUploadDone)) {
+          expect(request.uri.queryParameters['video_filename'], 'camera.mp4');
+          expect(request.uri.queryParametersAll['metadata_tags'], <String>[
+            'tag1',
+            'tag2',
+            'tag3',
+          ]);
+          return jsonResponse(
+            '{"video_filename":"camera.mp4",'
+            '"start_datetime_user":"2026-07-30T09:15:00+09:00",'
+            '"start_ts_unix_user_ms":1785370500000,'
+            '"timestamp_source":"user"}',
+          );
+        }
+        throw StateError('unexpected route: $path');
+      });
+      final client = VmodalClient(
+        config: SdkConfig(
+          baseUrl: 'https://gateway.test',
+          token: 'key',
+          maxRetries: 0,
+        ),
+        transport: api,
+        signedUploadTransport: FakeSignedUploadTransport(),
+      );
+      final options = VideoUploadOptions(
+        multipart: true,
+        partSizeBytes: 5 * mib,
+        sessionStore: store,
+        metadataTags: const <String>['tag1', 'tag2', 'tag3'],
+        startDatetimeUser: '2026-07-30T09:15:00+09:00',
+      );
+      await expectLater(
+        client.collections
+            .videoUpload(
+              source,
+              collectionName: 'group',
+              subCollectionName: 'stream',
+              options: options,
+            )
+            .result,
+        throwsA(isA<ApiException>()),
+      );
+      final result = await client.collections
+          .videoUpload(
+            source,
+            collectionName: 'group',
+            subCollectionName: 'stream',
+            options: options,
+          )
+          .result;
+      expect(result.resumed, isTrue);
+      expect(result.videoFilename, 'camera.mp4');
+      expect(result.startTsUnixUserMs, 1785370500000);
+      expect(statusCalls, 2);
+    },
+  );
 
   test(
     'adaptive bulk multipart shares its conservative signed budget',

@@ -166,6 +166,56 @@ await progress.cancel();
 print('Ready: ${uploaded.fileName}');
 ```
 
+For CCTV footage, provide the public filename and offset-aware recording
+origin in `VideoUploadOptions`. The backend—not the SDK—normalizes the datetime
+and returns the canonical UTC epoch milliseconds. Metadata tags are repeated
+independently on the wire.
+
+```dart
+final task = favorites.upload(
+  UploadSource.fromFile(File(cameraClipPath)),
+  options: const ScopedUploadOptions(
+    uploadOptions: VideoUploadOptions(
+      videoFilename: 'entrance-camera.mp4',
+      metadataText: 'north entrance delivery lane',
+      metadataTags: ['entrance', 'delivery', 'camera-3'],
+      startDatetimeUser: '2026-07-30T09:15:00+09:00',
+    ),
+  ),
+);
+final uploaded = await task.result;
+print(uploaded.startTsUnixUserMs); // canonical backend value
+```
+
+Search the same footage using a metadata string and an absolute range. Start is
+inclusive and end is exclusive. Datetime values must include `Z` or an explicit
+UTC offset; the SDK preserves the caller text without timezone conversion.
+
+```dart
+final moments = await favorites.search(
+  'vehicle',
+  options: const ScopedSearchOptions(
+    queryMetadataText: 'delivery',
+    startDate: '2026-07-30T09:15:00.000+09:00',
+    endDate: '2026-07-30T09:16:00.000+09:00',
+    searchSources: ['image'],
+  ),
+);
+```
+
+The low-level direct multipart endpoint accepts the same contract additively:
+
+```dart
+await client.collections.uploadFile(
+  filePart('file', File(cameraClipPath), contentType: 'video/mp4'),
+  groupName: 'camera_archive',
+  videoFilename: 'entrance-camera.mp4',
+  metadataText: '',
+  metadataTags: ['entrance', 'camera-3'],
+  startDatetimeUser: '2026-07-30T09:15:00+09:00',
+);
+```
+
 Signed single upload is the production default for every file size. Multipart upload is experimental and must be enabled explicitly with `VideoUploadOptions(multipart: true)`; it fails with `FeatureDisabled` when the complete backend route family is unavailable.
 
 Uploads use exact file ranges, awaited socket streaming, coalesced progress, and

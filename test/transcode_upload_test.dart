@@ -83,7 +83,10 @@ void main() {
             UploadSource.fromFile(original),
             collectionName: 'g',
             subCollectionName: 's',
-            options: VideoUploadOptions(transcoder: FakeReduceTranscoder(temp)),
+            options: VideoUploadOptions(
+              transcoder: FakeReduceTranscoder(temp),
+              startDatetimeUser: '2026-07-30T09:15:00+09:00',
+            ),
           )
           .result;
       expect(result.reduceSize, isTrue);
@@ -96,6 +99,14 @@ void main() {
       expect(signed.calls.single.length, 3);
       expect(original.existsSync(), isTrue);
       expect(temp.existsSync(), isFalse);
+      expect(
+        api.requests.last.uri.queryParameters['video_filename'],
+        'big.mp4',
+      );
+      expect(
+        api.requests.last.uri.queryParameters['filename'],
+        'big.reduced.mp4',
+      );
     },
   );
 

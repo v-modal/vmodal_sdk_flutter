@@ -7,6 +7,7 @@ help='
     bash test.sh regression S16
     bash test.sh all
     bash test.sh live
+    bash test.sh cctv_live
 '
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -113,6 +114,20 @@ sdk_live() {
   sdk_live_lancedb_version
 }
 
+sdk_cctv_live() {
+  local help='
+    ## Usage:
+      source ../../ztmp/env_gitignore.sh
+      bash test.sh cctv_live
+
+    Runs the opt-in CCTV timestamp, metadata, and absolute-time search gate.
+  '
+  source env.sh
+  sdk_env_live
+  [[ -n "${VMODAL_API_KEY:-}" ]] || { echo 'Live API credential is required.' >&2; return 2; }
+  "$(bash install.sh dart_bin)" run tool/live_cctv_test.dart
+}
+
 sdk_all() {
   local help='
     ## Usage:
@@ -147,6 +162,7 @@ case "${1:-test}" in
   security) sdk_security ;;
   package) sdk_package ;;
   live) sdk_live ;;
+  cctv_live) sdk_cctv_live ;;
   all) sdk_all ;;
   clean) sdk_clean ;;
   help|-h|--help) sdk_help ;;

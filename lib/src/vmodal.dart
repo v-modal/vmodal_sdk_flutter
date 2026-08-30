@@ -142,6 +142,7 @@ final class VModalScope {
     SearchRequest(
       queryText: query,
       queryMetadata: options.queryMetadata,
+      queryMetadataText: options.queryMetadataText,
       imageQuery: options.imageQuery,
       mode: options.mode,
       groupName: _scope.backendCollectionName,
@@ -298,6 +299,7 @@ final class ScopedMetadataOptions {
 final class ScopedSearchOptions {
   const ScopedSearchOptions({
     this.queryMetadata,
+    this.queryMetadataText,
     this.imageQuery,
     this.mode = 'vid_file',
     this.searchSources = const <String>['ocr', 'asr', 'image'],
@@ -311,7 +313,12 @@ final class ScopedSearchOptions {
     this.versionLancedb,
   });
 
+  /// Legacy structured metadata query kept for source compatibility.
+  @Deprecated('Use queryMetadataText for the current CCTV string contract.')
   final Map<String, Object?>? queryMetadata;
+
+  /// CCTV metadata text serialized as the `query_metadata` string.
+  final String? queryMetadataText;
   final String? imageQuery;
   final String mode;
   final List<String> searchSources;

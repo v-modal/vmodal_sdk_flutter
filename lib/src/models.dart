@@ -73,13 +73,15 @@ class AdminUserStatItem extends JsonBackedResponse {
 
 /// Parameters for a multimodal media search.
 ///
-/// At least one of [queryText] or [imageQuery] must be nonblank. Defaults
-/// search common speech, visible-text, and image sources with union semantics.
+/// At least one of [queryText], [imageQuery], or [queryMetadataText] must be
+/// nonblank. Defaults search common speech, visible-text, and image sources
+/// with union semantics.
 class SearchRequest {
   /// Creates a search request with mobile-oriented defaults.
   const SearchRequest({
     this.queryText = '',
     this.queryMetadata,
+    this.queryMetadataText,
     this.imageQuery,
     this.mode = 'vid_file',
     this.groupName = 'agroup',
@@ -96,7 +98,13 @@ class SearchRequest {
   });
 
   final String queryText;
+
+  /// Legacy structured metadata query kept for source compatibility.
+  @Deprecated('Use queryMetadataText for the current CCTV string contract.')
   final Map<String, Object?>? queryMetadata;
+
+  /// CCTV metadata text serialized as the `query_metadata` string.
+  final String? queryMetadataText;
   final String? imageQuery;
   final String mode;
   final String groupName;
@@ -113,15 +121,33 @@ class SearchRequest {
 
   /// Validates the required query input.
   void validate() {
-    if (queryText.trim().isEmpty && (imageQuery?.trim().isEmpty ?? true)) {
-      throw const ValidationException('query_text or image_query is required');
+    if (queryMetadata != null && queryMetadataText != null) {
+      throw const ValidationException(
+        'query_metadata map and query_metadata_text cannot both be set',
+      );
+    }
+    if (queryText.trim().isEmpty &&
+        (imageQuery?.trim().isEmpty ?? true) &&
+        (queryMetadataText?.trim().isEmpty ?? true)) {
+      throw const ValidationException(
+        'query_text, image_query, or query_metadata_text is required',
+      );
+    }
+    if (mode == 'vid_file' && (startDate == null) != (endDate == null)) {
+      throw const ValidationException(
+        'vid_file absolute time filtering requires both start_date and end_date',
+      );
+    }
+    if (mode == 'vid_file') {
+      _validateVidFileDate(startDate, 'start_date');
+      _validateVidFileDate(endDate, 'end_date');
     }
   }
 
   /// Converts this request to its structured transport representation.
   Map<String, Object?> toJson() => _withoutNull(<String, Object?>{
     'query_text': queryText,
-    'query_metadata': queryMetadata,
+    'query_metadata': queryMetadataText ?? queryMetadata,
     'image_query': imageQuery,
     'mode': mode,
     'group_name': groupName,
@@ -136,6 +162,20 @@ class SearchRequest {
     'image_emb_score_min': imageEmbScoreMin,
     'version_lancedb': versionLancedb,
   });
+}
+
+void _validateVidFileDate(String? value, String name) {
+  if (value == null) return;
+  final clean = value.trim();
+  if (clean.isEmpty || DateTime.tryParse(clean) == null) {
+    throw ValidationException('$name must be a valid ISO-8601 value');
+  }
+  if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(clean)) return;
+  if (!RegExp(r'(?:[zZ]|[+-]\d{2}:\d{2})$').hasMatch(clean)) {
+    throw ValidationException(
+      '$name must include Z or an explicit UTC offset for vid_file',
+    );
+  }
 }
 
 /// Parameters for previewing or confirming collection deletion.
@@ -550,6 +590,10 @@ class VideoUploadResponse extends JsonBackedResponse {
       resumed = raw['resumed'] == true,
       attemptCount = intValue(raw['attempt_count']),
       destPath = '${raw['dest_path'] ?? ''}',
+      videoFilename = '${raw['video_filename'] ?? ''}',
+      startDatetimeUser = '${raw['start_datetime_user'] ?? ''}',
+      startTsUnixUserMs = intValue(raw['start_ts_unix_user_ms']),
+      timestampSource = '${raw['timestamp_source'] ?? ''}',
       reduceSize = raw['reduce_size'] == true,
       filePath = '${raw['filepath_local'] ?? ''}',
       sourceFilePath = '${raw['source_filepath_local'] ?? ''}',
@@ -574,6 +618,18 @@ class VideoUploadResponse extends JsonBackedResponse {
   final bool resumed;
   final int attemptCount;
   final String destPath;
+
+  /// Canonical public CCTV filename returned by finalization.
+  final String videoFilename;
+
+  /// Backend-normalized footage origin text.
+  final String startDatetimeUser;
+
+  /// Canonical UTC footage origin in epoch milliseconds.
+  final int startTsUnixUserMs;
+
+  /// Source of the canonical timestamp, normally `user` for CCTV uploads.
+  final String timestampSource;
 
   /// Whether the file was transcoded to a smaller temp before upload.
   final bool reduceSize;

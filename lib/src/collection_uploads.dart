@@ -31,6 +31,11 @@ class VideoUploadOptions {
     this.sessionStore,
     this.adaptiveConditions,
     this.transcoder = const PassthroughVideoTranscoder(),
+    this.videoFilename,
+    this.metadataText,
+    this.metadataTags,
+    this.startDatetimeUser,
+    this.reProcess = false,
   });
 
   /// Enables experimental multipart upload behavior.
@@ -67,14 +72,37 @@ class VideoUploadOptions {
   /// [VideoUploadResponse] mirroring the Python `video_upload(reduce_size=...)`.
   final VideoTranscoder transcoder;
 
+  /// Public CCTV filename used by metadata, frame paths, and search joins.
+  final String? videoFilename;
+
+  /// Searchable CCTV metadata text. An explicit empty string is preserved.
+  final String? metadataText;
+
+  /// Repeated CCTV metadata tags, snapshotted when an upload starts.
+  final List<String>? metadataTags;
+
+  /// Caller footage origin. Must include `Z` or an explicit UTC offset.
+  final String? startDatetimeUser;
+
+  /// Allows replacement of an existing CCTV timestamp during finalization.
+  final bool reProcess;
+
   /// Effective checkpoint store.
   UploadSessionStore get store => sessionStore ?? UploadSessionStores.memory;
 
   /// Returns options resolved for [size] using [adaptiveConditions].
   VideoUploadOptions resolvedFor(int size) {
-    if (!multipart || adaptiveConditions == null) return this;
-    final preset = AdaptiveUploadPolicy.select(size, adaptiveConditions!);
-    return copyWith(
+    final current = metadataTags == null
+        ? this
+        : copyWith(metadataTags: List<String>.unmodifiable(metadataTags!));
+    if (!current.multipart || current.adaptiveConditions == null) {
+      return current;
+    }
+    final preset = AdaptiveUploadPolicy.select(
+      size,
+      current.adaptiveConditions!,
+    );
+    return current.copyWith(
       partSizeBytes: preset.partSizeBytes,
       maxConcurrency: preset.maxConcurrency,
       maxPartAttempts: preset.maxPartAttempts,
@@ -94,6 +122,11 @@ class VideoUploadOptions {
     UploadSessionStore? sessionStore,
     UploadConditions? adaptiveConditions,
     VideoTranscoder? transcoder,
+    String? videoFilename,
+    String? metadataText,
+    List<String>? metadataTags,
+    String? startDatetimeUser,
+    bool? reProcess,
   }) => VideoUploadOptions(
     multipart: multipart ?? this.multipart,
     multipartThresholdBytes:
@@ -106,13 +139,28 @@ class VideoUploadOptions {
     sessionStore: sessionStore ?? this.sessionStore,
     adaptiveConditions: adaptiveConditions ?? this.adaptiveConditions,
     transcoder: transcoder ?? this.transcoder,
+    videoFilename: videoFilename ?? this.videoFilename,
+    metadataText: metadataText ?? this.metadataText,
+    metadataTags: metadataTags ?? this.metadataTags,
+    startDatetimeUser: startDatetimeUser ?? this.startDatetimeUser,
+    reProcess: reProcess ?? this.reProcess,
   );
 
   /// Max size for a single video upload (100 MB). Larger files are rejected.
   static const int maxVideoUploadBytes = 100 * 1024 * 1024;
 
   /// Validates the source [size] and multipart constraints.
-  void validate(int size) {
+  void validate(
+    int size, {
+    String mode = 'vid_file',
+    String sourceFileName = '',
+  }) {
+    validateCctvUpload(
+      mode: mode,
+      sourceFileName: sourceFileName,
+      videoFilename: videoFilename,
+      startDatetimeUser: startDatetimeUser,
+    );
     if (size > maxVideoUploadBytes) {
       throw ValidationException(
         'video file too large: $size bytes exceeds the '
@@ -159,7 +207,11 @@ extension CollectionUploads on CollectionsResource {
     VideoUploadOptions options = const VideoUploadOptions(),
   }) {
     final resolved = options.resolvedFor(source.contentLength);
-    resolved.validate(source.contentLength);
+    resolved.validate(
+      source.contentLength,
+      mode: mode,
+      sourceFileName: source.fileName,
+    );
     return UploadTask<VideoUploadResponse>.start((
       CancellationToken cancellation,
       void Function(UploadProgress) emit,
@@ -193,11 +245,20 @@ extension CollectionUploads on CollectionsResource {
     int ttl = 12600,
     VideoUploadOptions options = const VideoUploadOptions(),
   }) {
+    if (sources.length > 1 && options.videoFilename != null) {
+      throw const ValidationException(
+        'bulk upload cannot share one video_filename across multiple sources',
+      );
+    }
     final resolved = sources
         .map((UploadSource source) => options.resolvedFor(source.contentLength))
         .toList();
     for (var i = 0; i < sources.length; i++) {
-      resolved[i].validate(sources[i].contentLength);
+      resolved[i].validate(
+        sources[i].contentLength,
+        mode: mode,
+        sourceFileName: sources[i].fileName,
+      );
     }
     final sessionKeys = <String>{};
     for (var i = 0; i < sources.length; i++) {
@@ -340,6 +401,7 @@ extension CollectionUploads on CollectionsResource {
         mode,
         modality,
         ttl,
+        options,
         cancellation,
         emit,
         permits,
@@ -388,6 +450,11 @@ extension CollectionUploads on CollectionsResource {
       );
     }
     final sourceSize = source.contentLength;
+    final publicName = strCctvVideoFilename(
+      source.fileName,
+      options.videoFilename,
+      options.startDatetimeUser,
+    );
     final result = await options.transcoder.reduce(input);
     final produced = result.output.absolute.path != input.absolute.path;
     final temp = UploadSource.fromFile(
@@ -398,9 +465,16 @@ extension CollectionUploads on CollectionsResource {
       throw const ValidationException('transcoder produced an empty file');
     }
     final pass = options
-        .copyWith(transcoder: const PassthroughVideoTranscoder())
+        .copyWith(
+          transcoder: const PassthroughVideoTranscoder(),
+          videoFilename: publicName,
+        )
         .resolvedFor(temp.contentLength);
-    pass.validate(temp.contentLength);
+    pass.validate(
+      temp.contentLength,
+      mode: mode,
+      sourceFileName: temp.fileName,
+    );
     final res = await _videoUploadRun(
       temp,
       collection,
@@ -439,6 +513,7 @@ extension CollectionUploads on CollectionsResource {
     String mode,
     String modality,
     int ttl,
+    VideoUploadOptions options,
     CancellationToken cancellation,
     void Function(UploadProgress) emit,
     _UploadPermitPool permits,
@@ -470,6 +545,7 @@ extension CollectionUploads on CollectionsResource {
       stream,
       mode,
       modality,
+      options,
       cancellation,
     );
     return VideoUploadResponse(<String, Object?>{
@@ -485,6 +561,7 @@ extension CollectionUploads on CollectionsResource {
       'attempt_count': 1,
       'upload_done': done,
       'dest_path': '${done['dest_path'] ?? ''}',
+      ..._cctvResponseFields(done),
     });
   }
 
@@ -550,6 +627,7 @@ extension CollectionUploads on CollectionsResource {
         stream,
         mode,
         modality,
+        options,
         cancellation,
       );
       await options.store.remove(sessionKey);
@@ -713,6 +791,7 @@ extension CollectionUploads on CollectionsResource {
       stream,
       mode,
       modality,
+      options,
       cancellation,
     );
     await options.store.remove(sessionKey);
@@ -979,20 +1058,34 @@ extension CollectionUploads on CollectionsResource {
     String stream,
     String mode,
     String modality,
+    VideoUploadOptions options,
     CancellationToken cancellation,
-  ) => http.request(
-    'POST',
-    Routes.full(Routes.externalUploadDone),
-    params: <String, Object?>{
-      'key': key,
-      'mode': mode,
-      'group_name': collection,
-      'stream_name': stream,
-      'modality': modality,
-      'filename': source.fileName,
-    },
-    cancellation: cancellation,
-  );
+  ) {
+    final publicName = strCctvVideoFilename(
+      source.fileName,
+      options.videoFilename,
+      options.startDatetimeUser,
+    );
+    return http.request(
+      'POST',
+      Routes.full(Routes.externalUploadDone),
+      params: <String, Object?>{
+        'key': key,
+        'mode': mode,
+        'group_name': collection,
+        'stream_name': stream,
+        'modality': modality,
+        'filename': source.fileName,
+        if (publicName != null) 'video_filename': publicName,
+        if (options.metadataText != null) 'metadata_text': options.metadataText,
+        if (options.metadataTags != null) 'metadata_tags': options.metadataTags,
+        if (options.startDatetimeUser != null)
+          'start_datetime_user': options.startDatetimeUser,
+        're_process': options.reProcess,
+      },
+      cancellation: cancellation,
+    );
+  }
 }
 
 class _UploadContract {
@@ -1205,7 +1298,16 @@ VideoUploadResponse _multipartResponse(
   'attempt_count': attempts,
   'upload_done': done,
   'dest_path': '${done['dest_path'] ?? ''}',
+  ..._cctvResponseFields(done),
 });
+
+Map<String, Object?> _cctvResponseFields(Map<String, Object?> done) =>
+    <String, Object?>{
+      'video_filename': done['video_filename'],
+      'start_datetime_user': done['start_datetime_user'],
+      'start_ts_unix_user_ms': done['start_ts_unix_user_ms'],
+      'timestamp_source': done['timestamp_source'],
+    };
 
 Uri _signedUri(String value) {
   final uri = Uri.tryParse(value);

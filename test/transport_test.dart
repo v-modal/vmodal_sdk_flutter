@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -11,6 +12,59 @@ import 'package:vmodal_sdk_flutter/vmodal_sdk_flutter.dart';
 import 'fakes.dart';
 
 void main() {
+  test(
+    'multipart iterable fields are repeated text parts on the wire',
+    () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() => server.close(force: true));
+      final received = Completer<String>();
+      server.listen((HttpRequest request) async {
+        final bytes = await request.fold<List<int>>(
+          <int>[],
+          (List<int> out, List<int> chunk) => out..addAll(chunk),
+        );
+        received.complete(utf8.decode(bytes));
+        request.response.headers.contentType = ContentType.json;
+        request.response.write('{}');
+        await request.response.close();
+      });
+      final client = VmodalClient(
+        config: SdkConfig(
+          baseUrl: 'http://127.0.0.1:${server.port}',
+          token: 'key',
+        ),
+      );
+      addTearDown(client.close);
+      await client.collections.uploadFile(
+        VmodalFilePart.bytes(
+          fieldName: 'file',
+          fileName: 'source.mp4',
+          bytes: <int>[1, 2],
+          contentType: 'video/mp4',
+        ),
+        groupName: 'group',
+        tag: <String>['old1', 'old2'],
+        metadataText: '',
+        metadataTags: <String>['tag1', 'tag2', 'tag3'],
+      );
+      final body = await received.future;
+      expect(RegExp(r'name="metadata_tags"').allMatches(body), hasLength(3));
+      expect(
+        RegExp(r'name="metadata_tags";\s*filename=').hasMatch(body),
+        isFalse,
+      );
+      expect(RegExp(r'name="tag"').allMatches(body), hasLength(2));
+      expect(RegExp(r'name="metadata_text"').allMatches(body), hasLength(1));
+      expect(
+        RegExp(
+          r'name="metadata_text"[^\r\n]*\r\n(?:[^\r\n]*\r\n)*\r\n\r\n--',
+          caseSensitive: false,
+        ).hasMatch(body),
+        isTrue,
+      );
+    },
+  );
+
   test(
     'bounded reader accepts exact limit and rejects limit plus one',
     () async {

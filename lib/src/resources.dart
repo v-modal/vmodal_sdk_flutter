@@ -197,22 +197,46 @@ class CollectionsResource {
     String streamName = 'astream',
     String description = '',
     List<String> tag = const <String>[],
+    String? videoFilename,
+    String? metadataText,
+    List<String>? metadataTags,
+    String? startDatetimeUser,
+    bool reProcess = false,
     CancellationToken? cancellation,
-  }) async => UploadResponse(
-    await http.request(
-      'POST',
-      Routes.full(Routes.upload),
-      data: <String, Object?>{
-        'mode': mode,
-        'group_name': groupName,
-        'stream_name': streamName,
-        'description': description,
-        if (tag.isNotEmpty) 'tag': tag,
-      },
-      files: <VmodalFilePart>[part],
-      cancellation: cancellation,
-    ),
-  );
+  }) async {
+    validateCctvUpload(
+      mode: mode,
+      sourceFileName: part.fileName,
+      videoFilename: videoFilename,
+      startDatetimeUser: startDatetimeUser,
+    );
+    final publicName = strCctvVideoFilename(
+      part.fileName,
+      videoFilename,
+      startDatetimeUser,
+    );
+    return UploadResponse(
+      await http.request(
+        'POST',
+        Routes.full(Routes.upload),
+        data: <String, Object?>{
+          'mode': mode,
+          'group_name': groupName,
+          'stream_name': streamName,
+          'description': description,
+          if (tag.isNotEmpty) 'tag': tag,
+          if (publicName != null) 'video_filename': publicName,
+          if (metadataText != null) 'metadata_text': metadataText,
+          if (metadataTags != null) 'metadata_tags': metadataTags,
+          if (startDatetimeUser != null)
+            'start_datetime_user': startDatetimeUser,
+          're_process': reProcess,
+        },
+        files: <VmodalFilePart>[part],
+        cancellation: cancellation,
+      ),
+    );
+  }
 
   /// Always throws [FeatureDisabled] before any transport call.
   Never uploadFolder() => throw const FeatureDisabled(

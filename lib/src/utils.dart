@@ -69,6 +69,60 @@ String strMultipartValue(String name, String value, int maxLength) {
   return value;
 }
 
+/// Validates the additive CCTV upload fields shared by direct and signed paths.
+void validateCctvUpload({
+  required String mode,
+  required String sourceFileName,
+  String? videoFilename,
+  String? startDatetimeUser,
+}) {
+  if ((videoFilename != null || startDatetimeUser != null) &&
+      mode != 'vid_file') {
+    throw const ValidationException(
+      'video_filename and start_datetime_user require mode vid_file',
+    );
+  }
+  if (videoFilename != null) {
+    final name = videoFilename.trim();
+    if (name.isEmpty || name.contains('/') || name.contains(r'\')) {
+      throw const ValidationException(
+        'video_filename must be a nonblank bare filename',
+      );
+    }
+    final sourceExt = _fileExtension(sourceFileName);
+    final publicExt = _fileExtension(name);
+    if (sourceExt.isNotEmpty &&
+        publicExt.isNotEmpty &&
+        sourceExt.toLowerCase() != publicExt.toLowerCase()) {
+      throw const ValidationException(
+        'video_filename extension must match the uploaded file extension',
+      );
+    }
+  }
+  if (startDatetimeUser != null) {
+    final value = startDatetimeUser.trim();
+    if (value.isEmpty ||
+        !RegExp(r'(?:[zZ]|[+-]\d{2}:\d{2})$').hasMatch(value)) {
+      throw const ValidationException(
+        'start_datetime_user must be nonblank and include Z or an explicit UTC offset',
+      );
+    }
+  }
+}
+
+/// Resolves the canonical public CCTV filename without changing timestamps.
+String? strCctvVideoFilename(
+  String sourceFileName,
+  String? videoFilename,
+  String? startDatetimeUser,
+) => videoFilename ?? (startDatetimeUser == null ? null : sourceFileName);
+
+String _fileExtension(String value) {
+  final name = value.split(RegExp(r'[/\\]')).last;
+  final index = name.lastIndexOf('.');
+  return index <= 0 || index == name.length - 1 ? '' : name.substring(index);
+}
+
 bool _isControl(int value) => value < 32 || value == 127;
 
 int intValue(Object? value) {

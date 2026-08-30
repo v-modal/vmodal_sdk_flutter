@@ -73,6 +73,21 @@ Uploads use reopenable `UploadSource` streams. Signed single upload is always
 the default. `UploadTask` exposes a result future, broadcast progress stream,
 and per-task cancellation. Multipart requires explicit opt-in and is experimental.
 
+CCTV signed uploads use `VideoUploadOptions(videoFilename, metadataText,
+metadataTags, startDatetimeUser, reProcess)`. The timestamp input must contain
+`Z` or an explicit UTC offset and is sent unchanged; the backend owns
+normalization and the canonical `startTsUnixUserMs` response. Tags remain
+ordered repeated wire values, including after multipart resume, bulk upload,
+or transcoding. A timestamp with no public name derives the original source
+filename.
+
+`CollectionsResource.uploadFile` accepts the same CCTV fields for direct
+multipart compatibility. Use `SearchRequest.queryMetadataText` or
+`ScopedSearchOptions.queryMetadataText` for the backend string metadata
+contract. In `vid_file` mode, `startDate` and `endDate` are a required pair,
+with inclusive start and exclusive end; datetime values require `Z` or an
+explicit UTC offset and are never converted by the SDK.
+
 Flutter Web, login UI, key persistence, file picking, widget state management,
 and background scheduling are outside the package. The first release supports
 Flutter applications on Android and iOS.

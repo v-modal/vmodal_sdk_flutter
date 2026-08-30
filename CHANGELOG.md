@@ -1,3 +1,15 @@
+## 1.2.0
+
+- Added CCTV uploads with caller-selected public filenames, searchable metadata
+  text, repeated tags, offset-aware footage origins, and canonical timestamp
+  response fields across signed, multipart, resumed, bulk, and transcoded paths.
+- Added the same additive CCTV fields to direct multipart uploads and fixed the
+  transport so every iterable form value is emitted as an independent text
+  part on the wire.
+- Added absolute-time CCTV search with string metadata queries, paired
+  timezone-aware `[start, end)` bounds, scoped propagation, compatibility for
+  the legacy metadata map, and an explicit opt-in live contract gate.
+
 ## 1.1.0
 
 - Added ordered asynchronous batch search with mini-batch ownership, bounded

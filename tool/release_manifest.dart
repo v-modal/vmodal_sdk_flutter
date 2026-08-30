@@ -102,6 +102,7 @@ Future<void> _export(Directory root, Directory destination) async {
     'tool/flutter_checksums.txt',
     'tool/check_route_sync.dart',
     'tool/live_test.dart',
+    'tool/live_cctv_test.dart',
     'tool/perf_benchmark.dart',
     'tool/release_manifest.dart',
   ];

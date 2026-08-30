@@ -294,7 +294,9 @@ class HttpVmodalTransport implements VmodalTransport {
       if (value == null) return;
       if (value is Iterable) {
         for (final item in value) {
-          if (item != null) wire.fields[key] = '$item';
+          if (item != null) {
+            wire.files.add(http.MultipartFile.fromString(key, '$item'));
+          }
         }
       } else {
         wire.fields[key] = '$value';

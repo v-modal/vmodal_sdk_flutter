@@ -5,6 +5,12 @@ archive checksum and installs only into a user-owned cache. Run `bash test.sh al
 for the offline gate and `bash test.sh live` only after explicitly loading the
 existing repository test credential variables.
 
+The CCTV contract has a separate opt-in gate, `bash test.sh cctv_live`. It
+uploads its own fixture and collection, verifies canonical timestamp fields,
+metadata filters, and absolute JST/UTC ranges, then deletes only that temporary
+collection. It remains outside `test.sh all` and runs explicitly in the Flutter
+release workflow.
+
 The release workflow is manually dispatched during development. Exact-candidate
 `RELEASE_SHA` checkout and `git rev-parse` verification lines are retained as
 comments so they can be restored later, but they do not gate the fast release

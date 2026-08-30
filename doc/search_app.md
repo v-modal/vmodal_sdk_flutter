@@ -92,3 +92,23 @@ application client merely because a page was disposed.
 If application logic inspects a structured error body, server filesystem paths
 are replaced with `****` before the exception reaches the application. Do not
 render the remaining raw server detail as user-facing copy.
+
+For independent low-level searches, use `client.searches.searchBatch(...)`.
+`batchSize` controls the contiguous mini-batch owned by a worker, while
+`nWorker` is the maximum number of search requests in flight. Results retain
+the input order even when network responses complete in another order:
+
+```dart
+final cancellation = CancellationToken();
+final results = await client.searches.searchBatch(
+  requests,
+  batchSize: 8,
+  nWorker: 3,
+  cancellation: cancellation,
+);
+```
+
+Keep the token with the screen, controller, or session that owns the batch.
+Cancel and await active batches before clearing or replacing authentication
+credentials, logging out, or closing `VmodalClient`. The batch helper never
+cancels a caller-owned token after an item failure and does not retry searches.

@@ -71,6 +71,95 @@ class SearchesResource {
       ),
     );
   }
+
+  /// Runs [batchQueryInput] through [searchVideo] with bounded concurrency.
+  ///
+  /// Each worker processes contiguous mini-batches of [batchSize] requests
+  /// serially. At most [nWorker] searches are in flight, and results retain
+  /// their input order. The caller owns [cancellation] and may share it with
+  /// other operations.
+  Future<List<SearchResponse>> searchBatch(
+    List<SearchRequest> batchQueryInput, {
+    int batchSize = 10,
+    int nWorker = 4,
+    CancellationToken? cancellation,
+  }) async {
+    if (batchSize <= 0) {
+      throw const ValidationException('batchSize must be greater than zero');
+    }
+    if (nWorker <= 0) {
+      throw const ValidationException('nWorker must be greater than zero');
+    }
+
+    final requests = List<SearchRequest>.of(batchQueryInput, growable: false);
+    for (final request in requests) {
+      request.validate();
+    }
+    if (requests.isEmpty) return <SearchResponse>[];
+
+    final results = List<SearchResponse?>.filled(requests.length, null);
+    final failures = <_BatchFailure>[];
+    var nextStart = 0;
+    var stopped = false;
+
+    void recordFailure(int index, Object error, StackTrace stackTrace) {
+      failures.add(_BatchFailure(index, error, stackTrace));
+      stopped = true;
+    }
+
+    Future<void> worker() async {
+      while (true) {
+        if (stopped) return;
+        try {
+          cancellation?.throwIfCanceled();
+        } on Object catch (error, stackTrace) {
+          recordFailure(nextStart, error, stackTrace);
+          return;
+        }
+        if (stopped || nextStart >= requests.length) return;
+
+        final start = nextStart;
+        final end = min(start + batchSize, requests.length);
+        nextStart = end;
+        for (var index = start; index < end; index++) {
+          if (stopped) return;
+          try {
+            cancellation?.throwIfCanceled();
+            results[index] = await searchVideo(
+              requests[index],
+              cancellation: cancellation,
+            );
+          } on Object catch (error, stackTrace) {
+            recordFailure(index, error, stackTrace);
+            return;
+          }
+        }
+      }
+    }
+
+    final batchCount = (requests.length + batchSize - 1) ~/ batchSize;
+    await Future.wait(<Future<void>>[
+      for (var index = 0; index < min(nWorker, batchCount); index++) worker(),
+    ]);
+
+    if (failures.isNotEmpty) {
+      failures.sort(
+        (_BatchFailure left, _BatchFailure right) =>
+            left.index.compareTo(right.index),
+      );
+      final failure = failures.first;
+      Error.throwWithStackTrace(failure.error, failure.stackTrace);
+    }
+    return <SearchResponse>[for (final result in results) result!];
+  }
+}
+
+final class _BatchFailure {
+  const _BatchFailure(this.index, this.error, this.stackTrace);
+
+  final int index;
+  final Object error;
+  final StackTrace stackTrace;
 }
 
 /// Collection discovery, mutation, and media-upload operations.

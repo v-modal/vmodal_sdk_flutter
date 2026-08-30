@@ -10,7 +10,7 @@ behavior. `test/fixtures/routes_contract.json` is the reviewed normalized mirror
 | Scoped facade | `VModal.configure`, `VModal.fromClient`, `VModalProject.scope`, `listCollections`, `close` | Preferred additive API |
 | Scoped operations | `upload`, `uploadMetadata`, `search`, `addAssets`, `updateAsset`, index lifecycle, collection deletion | Immutable organization; delegates to resources |
 | Client/auth | `health`, `authCheck`, `auth.me` | Active; gateway bearer only |
-| Searches | `searchVideo(SearchRequest)` | Active; exact Python/Android defaults |
+| Searches | `searchVideo(SearchRequest)`, `searchBatch(List<SearchRequest>)` | Active; exact single-search contract and bounded client-side batch scheduling |
 | Collections | `listGroups`, `uploadFile`, `uploadMetadataJsonl`, `addAssets`, `updateDescription`, `delete` | Active |
 | Signed upload | `videoUpload`, `videoUploadBulk` | Active; signed single is default |
 | Indexes | `jobsList`, `createIndex`, `indexStatus`, `deleteIndex` | Active |

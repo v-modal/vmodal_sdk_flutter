@@ -1,5 +1,7 @@
 ## 1.1.0
 
+- Added ordered asynchronous batch search with mini-batch ownership, bounded
+  worker concurrency, preflight validation, and cooperative cancellation.
 - Streamed signed upload bodies with awaited socket backpressure, exact file
   ranges, source-version checks, and bounded body/response timeouts.
 - Enforced one signed-upload concurrency budget across bulk multipart tasks and

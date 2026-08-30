@@ -112,6 +112,19 @@
 
 </dd>
 
+        <dt id="searchBatch" class="callable">
+  <span class="name"><a href="../vmodal_sdk_flutter/SearchesResource/searchBatch.html">searchBatch</a></span><span class="signature">(<wbr><span class="parameter" id="searchBatch-param-batchQueryInput"><span class="type-annotation">List<span class="signature">&lt;<wbr><span class="type-parameter"><a href="../vmodal_sdk_flutter/SearchRequest-class.html">SearchRequest</a></span>&gt;</span></span> <span class="parameter-name">batchQueryInput</span>, {</span><span class="parameter" id="searchBatch-param-batchSize"><span class="type-annotation">int</span> <span class="parameter-name">batchSize</span> = <span class="default-value">10</span>, </span><span class="parameter" id="searchBatch-param-nWorker"><span class="type-annotation">int</span> <span class="parameter-name">nWorker</span> = <span class="default-value">4</span>, </span><span class="parameter" id="searchBatch-param-cancellation"><span class="type-annotation"><a href="../vmodal_sdk_flutter/CancellationToken-class.html">CancellationToken</a>?</span> <span class="parameter-name">cancellation</span></span>})
+    <span class="returntype parameter">&#8594; Future<span class="signature">&lt;<wbr><span class="type-parameter">List<span class="signature">&lt;<wbr><span class="type-parameter"><a href="../vmodal_sdk_flutter/SearchResponse-class.html">SearchResponse</a></span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Runs <code>batchQueryInput</code> through <a href="../vmodal_sdk_flutter/SearchesResource/searchVideo.html">searchVideo</a> with bounded concurrency.
+  
+
+</dd>
+
         <dt id="searchVideo" class="callable">
   <span class="name"><a href="../vmodal_sdk_flutter/SearchesResource/searchVideo.html">searchVideo</a></span><span class="signature">(<wbr><span class="parameter" id="searchVideo-param-request"><span class="type-annotation"><a href="../vmodal_sdk_flutter/SearchRequest-class.html">SearchRequest</a></span> <span class="parameter-name">request</span>, {</span><span class="parameter" id="searchVideo-param-cancellation"><span class="type-annotation"><a href="../vmodal_sdk_flutter/CancellationToken-class.html">CancellationToken</a>?</span> <span class="parameter-name">cancellation</span></span>})
     <span class="returntype parameter">&#8594; Future<span class="signature">&lt;<wbr><span class="type-parameter"><a href="../vmodal_sdk_flutter/SearchResponse-class.html">SearchResponse</a></span>&gt;</span></span>

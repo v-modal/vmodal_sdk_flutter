@@ -65,7 +65,7 @@
     <h2>Constructors</h2>
     <dl class="constructor-summary-list">
         <dt id="ScopedSearchOptions.new" class="callable">
-          <span class="name"><a href="../vmodal_sdk_flutter/ScopedSearchOptions/ScopedSearchOptions.html">ScopedSearchOptions</a></span><span class="signature">({<span class="parameter" id="param-queryMetadata"><span class="type-annotation">Map<span class="signature">&lt;<wbr><span class="type-parameter">String</span>, <span class="type-parameter">Object?</span>&gt;</span>?</span> <span class="parameter-name">queryMetadata</span>, </span><span class="parameter" id="param-imageQuery"><span class="type-annotation">String?</span> <span class="parameter-name">imageQuery</span>, </span><span class="parameter" id="param-mode"><span class="type-annotation">String</span> <span class="parameter-name">mode</span> = <span class="default-value">&#39;vid_file&#39;</span>, </span><span class="parameter" id="param-searchSources"><span class="type-annotation">List<span class="signature">&lt;<wbr><span class="type-parameter">String</span>&gt;</span></span> <span class="parameter-name">searchSources</span> = <span class="default-value">const &lt;String&gt;[&#39;ocr&#39;, &#39;asr&#39;, &#39;image&#39;]</span>, </span><span class="parameter" id="param-searchCombineMode"><span class="type-annotation">String</span> <span class="parameter-name">searchCombineMode</span> = <span class="default-value">&#39;union&#39;</span>, </span><span class="parameter" id="param-startDate"><span class="type-annotation">String?</span> <span class="parameter-name">startDate</span>, </span><span class="parameter" id="param-endDate"><span class="type-annotation">String?</span> <span class="parameter-name">endDate</span>, </span><span class="parameter" id="param-offset"><span class="type-annotation">int</span> <span class="parameter-name">offset</span> = <span class="default-value">0</span>, </span><span class="parameter" id="param-limit"><span class="type-annotation">int</span> <span class="parameter-name">limit</span> = <span class="default-value">50</span>, </span><span class="parameter" id="param-textEmbScoreMin"><span class="type-annotation">double</span> <span class="parameter-name">textEmbScoreMin</span> = <span class="default-value">0.90</span>, </span><span class="parameter" id="param-imageEmbScoreMin"><span class="type-annotation">double</span> <span class="parameter-name">imageEmbScoreMin</span> = <span class="default-value">1.5</span>, </span><span class="parameter" id="param-versionLancedb"><span class="type-annotation">int?</span> <span class="parameter-name">versionLancedb</span></span>})</span>
+          <span class="name"><a href="../vmodal_sdk_flutter/ScopedSearchOptions/ScopedSearchOptions.html">ScopedSearchOptions</a></span><span class="signature">({<span class="parameter" id="param-queryMetadata"><span class="type-annotation">Map<span class="signature">&lt;<wbr><span class="type-parameter">String</span>, <span class="type-parameter">Object?</span>&gt;</span>?</span> <span class="parameter-name">queryMetadata</span>, </span><span class="parameter" id="param-queryMetadataText"><span class="type-annotation">String?</span> <span class="parameter-name">queryMetadataText</span>, </span><span class="parameter" id="param-imageQuery"><span class="type-annotation">String?</span> <span class="parameter-name">imageQuery</span>, </span><span class="parameter" id="param-mode"><span class="type-annotation">String</span> <span class="parameter-name">mode</span> = <span class="default-value">&#39;vid_file&#39;</span>, </span><span class="parameter" id="param-searchSources"><span class="type-annotation">List<span class="signature">&lt;<wbr><span class="type-parameter">String</span>&gt;</span></span> <span class="parameter-name">searchSources</span> = <span class="default-value">const &lt;String&gt;[&#39;ocr&#39;, &#39;asr&#39;, &#39;image&#39;]</span>, </span><span class="parameter" id="param-searchCombineMode"><span class="type-annotation">String</span> <span class="parameter-name">searchCombineMode</span> = <span class="default-value">&#39;union&#39;</span>, </span><span class="parameter" id="param-startDate"><span class="type-annotation">String?</span> <span class="parameter-name">startDate</span>, </span><span class="parameter" id="param-endDate"><span class="type-annotation">String?</span> <span class="parameter-name">endDate</span>, </span><span class="parameter" id="param-offset"><span class="type-annotation">int</span> <span class="parameter-name">offset</span> = <span class="default-value">0</span>, </span><span class="parameter" id="param-limit"><span class="type-annotation">int</span> <span class="parameter-name">limit</span> = <span class="default-value">50</span>, </span><span class="parameter" id="param-textEmbScoreMin"><span class="type-annotation">double</span> <span class="parameter-name">textEmbScoreMin</span> = <span class="default-value">0.90</span>, </span><span class="parameter" id="param-imageEmbScoreMin"><span class="type-annotation">double</span> <span class="parameter-name">imageEmbScoreMin</span> = <span class="default-value">1.5</span>, </span><span class="parameter" id="param-versionLancedb"><span class="type-annotation">int?</span> <span class="parameter-name">versionLancedb</span></span>})</span>
         </dt>
         <dd>
           
@@ -164,13 +164,25 @@
 </dd>
 
         <dt id="queryMetadata" class="property">
-  <span class="name"><a href="../vmodal_sdk_flutter/ScopedSearchOptions/queryMetadata.html">queryMetadata</a></span>
+  <span class="name"><a class="deprecated" href="../vmodal_sdk_flutter/ScopedSearchOptions/queryMetadata.html">queryMetadata</a></span>
   <span class="signature">&#8594; Map<span class="signature">&lt;<wbr><span class="type-parameter">String</span>, <span class="type-parameter">Object?</span>&gt;</span>?</span>
   
 
 </dt>
 <dd>
+  Legacy structured metadata query kept for source compatibility.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="queryMetadataText" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/ScopedSearchOptions/queryMetadataText.html">queryMetadataText</a></span>
+  <span class="signature">&#8594; String?</span>
   
+
+</dt>
+<dd>
+  CCTV metadata text serialized as the <code>query_metadata</code> string.
   <div class="features"><span class="feature">final</span></div>
 
 </dd>
@@ -332,7 +344,7 @@
 <footer>
   <span class="no-break">
     vmodal_sdk_flutter
-      1.1.0
+      1.2.0
   </span>
   
 </footer>

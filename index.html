@@ -201,6 +201,47 @@ final uploaded = await task.result;
 await progress.cancel();
 print('Ready: ${uploaded.fileName}');
 </code></pre>
+<p>For CCTV footage, provide the public filename and offset-aware recording
+origin in <code>VideoUploadOptions</code>. The backend—not the SDK—normalizes the datetime
+and returns the canonical UTC epoch milliseconds. Metadata tags are repeated
+independently on the wire.</p>
+<pre class="language-dart"><code class="language-dart">final task = favorites.upload(
+  UploadSource.fromFile(File(cameraClipPath)),
+  options: const ScopedUploadOptions(
+    uploadOptions: VideoUploadOptions(
+      videoFilename: 'entrance-camera.mp4',
+      metadataText: 'north entrance delivery lane',
+      metadataTags: ['entrance', 'delivery', 'camera-3'],
+      startDatetimeUser: '2026-07-30T09:15:00+09:00',
+    ),
+  ),
+);
+final uploaded = await task.result;
+print(uploaded.startTsUnixUserMs); // canonical backend value
+</code></pre>
+<p>Search the same footage using a metadata string and an absolute range. Start is
+inclusive and end is exclusive. Datetime values must include <code>Z</code> or an explicit
+UTC offset; the SDK preserves the caller text without timezone conversion.</p>
+<pre class="language-dart"><code class="language-dart">final moments = await favorites.search(
+  'vehicle',
+  options: const ScopedSearchOptions(
+    queryMetadataText: 'delivery',
+    startDate: '2026-07-30T09:15:00.000+09:00',
+    endDate: '2026-07-30T09:16:00.000+09:00',
+    searchSources: ['image'],
+  ),
+);
+</code></pre>
+<p>The low-level direct multipart endpoint accepts the same contract additively:</p>
+<pre class="language-dart"><code class="language-dart">await client.collections.uploadFile(
+  filePart('file', File(cameraClipPath), contentType: 'video/mp4'),
+  groupName: 'camera_archive',
+  videoFilename: 'entrance-camera.mp4',
+  metadataText: '',
+  metadataTags: ['entrance', 'camera-3'],
+  startDatetimeUser: '2026-07-30T09:15:00+09:00',
+);
+</code></pre>
 <p>Signed single upload is the production default for every file size. Multipart upload is experimental and must be enabled explicitly with <code>VideoUploadOptions(multipart: true)</code>; it fails with <code>FeatureDisabled</code> when the complete backend route family is unavailable.</p>
 <p>Uploads use exact file ranges, awaited socket streaming, coalesced progress, and
 one network-concurrency budget per bulk task. For image caches, use
@@ -442,7 +483,7 @@ The framework supports unified cross-platform logic, ensuring identical integrat
 <footer>
   <span class="no-break">
     vmodal_sdk_flutter
-      1.1.0
+      1.2.0
   </span>
   
 </footer>

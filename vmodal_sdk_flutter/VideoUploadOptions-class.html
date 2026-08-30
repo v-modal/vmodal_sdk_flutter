@@ -66,7 +66,7 @@ derives bounded part and concurrency settings before validating the upload.</p>
     <h2>Constructors</h2>
     <dl class="constructor-summary-list">
         <dt id="VideoUploadOptions.new" class="callable">
-          <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadOptions/VideoUploadOptions.html">VideoUploadOptions</a></span><span class="signature">({<span class="parameter" id="param-multipart"><span class="type-annotation">bool</span> <span class="parameter-name">multipart</span> = <span class="default-value">false</span>, </span><span class="parameter" id="param-multipartThresholdBytes"><span class="type-annotation">int</span> <span class="parameter-name">multipartThresholdBytes</span> = <span class="default-value">100 * 1024 * 1024</span>, </span><span class="parameter" id="param-partSizeBytes"><span class="type-annotation">int</span> <span class="parameter-name">partSizeBytes</span> = <span class="default-value">64 * 1024 * 1024</span>, </span><span class="parameter" id="param-maxConcurrency"><span class="type-annotation">int</span> <span class="parameter-name">maxConcurrency</span> = <span class="default-value">4</span>, </span><span class="parameter" id="param-maxPartAttempts"><span class="type-annotation">int</span> <span class="parameter-name">maxPartAttempts</span> = <span class="default-value">5</span>, </span><span class="parameter" id="param-partTimeout"><span class="type-annotation">Duration</span> <span class="parameter-name">partTimeout</span> = <span class="default-value">const Duration(seconds: 300)</span>, </span><span class="parameter" id="param-resume"><span class="type-annotation">bool</span> <span class="parameter-name">resume</span> = <span class="default-value">true</span>, </span><span class="parameter" id="param-sessionStore"><span class="type-annotation"><a href="../vmodal_sdk_flutter/UploadSessionStore-class.html">UploadSessionStore</a>?</span> <span class="parameter-name">sessionStore</span>, </span><span class="parameter" id="param-adaptiveConditions"><span class="type-annotation"><a href="../vmodal_sdk_flutter/UploadConditions-class.html">UploadConditions</a>?</span> <span class="parameter-name">adaptiveConditions</span>, </span><span class="parameter" id="param-transcoder"><span class="type-annotation"><a href="../vmodal_sdk_flutter/VideoTranscoder-class.html">VideoTranscoder</a></span> <span class="parameter-name">transcoder</span> = <span class="default-value">const PassthroughVideoTranscoder()</span></span>})</span>
+          <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadOptions/VideoUploadOptions.html">VideoUploadOptions</a></span><span class="signature">({<span class="parameter" id="param-multipart"><span class="type-annotation">bool</span> <span class="parameter-name">multipart</span> = <span class="default-value">false</span>, </span><span class="parameter" id="param-multipartThresholdBytes"><span class="type-annotation">int</span> <span class="parameter-name">multipartThresholdBytes</span> = <span class="default-value">100 * 1024 * 1024</span>, </span><span class="parameter" id="param-partSizeBytes"><span class="type-annotation">int</span> <span class="parameter-name">partSizeBytes</span> = <span class="default-value">64 * 1024 * 1024</span>, </span><span class="parameter" id="param-maxConcurrency"><span class="type-annotation">int</span> <span class="parameter-name">maxConcurrency</span> = <span class="default-value">4</span>, </span><span class="parameter" id="param-maxPartAttempts"><span class="type-annotation">int</span> <span class="parameter-name">maxPartAttempts</span> = <span class="default-value">5</span>, </span><span class="parameter" id="param-partTimeout"><span class="type-annotation">Duration</span> <span class="parameter-name">partTimeout</span> = <span class="default-value">const Duration(seconds: 300)</span>, </span><span class="parameter" id="param-resume"><span class="type-annotation">bool</span> <span class="parameter-name">resume</span> = <span class="default-value">true</span>, </span><span class="parameter" id="param-sessionStore"><span class="type-annotation"><a href="../vmodal_sdk_flutter/UploadSessionStore-class.html">UploadSessionStore</a>?</span> <span class="parameter-name">sessionStore</span>, </span><span class="parameter" id="param-adaptiveConditions"><span class="type-annotation"><a href="../vmodal_sdk_flutter/UploadConditions-class.html">UploadConditions</a>?</span> <span class="parameter-name">adaptiveConditions</span>, </span><span class="parameter" id="param-transcoder"><span class="type-annotation"><a href="../vmodal_sdk_flutter/VideoTranscoder-class.html">VideoTranscoder</a></span> <span class="parameter-name">transcoder</span> = <span class="default-value">const PassthroughVideoTranscoder()</span>, </span><span class="parameter" id="param-videoFilename"><span class="type-annotation">String?</span> <span class="parameter-name">videoFilename</span>, </span><span class="parameter" id="param-metadataText"><span class="type-annotation">String?</span> <span class="parameter-name">metadataText</span>, </span><span class="parameter" id="param-metadataTags"><span class="type-annotation">List<span class="signature">&lt;<wbr><span class="type-parameter">String</span>&gt;</span>?</span> <span class="parameter-name">metadataTags</span>, </span><span class="parameter" id="param-startDatetimeUser"><span class="type-annotation">String?</span> <span class="parameter-name">startDatetimeUser</span>, </span><span class="parameter" id="param-reProcess"><span class="type-annotation">bool</span> <span class="parameter-name">reProcess</span> = <span class="default-value">false</span></span>})</span>
         </dt>
         <dd>
           Creates upload options with single-upload behavior by default.
@@ -128,6 +128,30 @@ derives bounded part and concurrency settings before validating the upload.</p>
 
 </dd>
 
+        <dt id="metadataTags" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadOptions/metadataTags.html">metadataTags</a></span>
+  <span class="signature">&#8594; List<span class="signature">&lt;<wbr><span class="type-parameter">String</span>&gt;</span>?</span>
+  
+
+</dt>
+<dd>
+  Repeated CCTV metadata tags, snapshotted when an upload starts.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="metadataText" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadOptions/metadataText.html">metadataText</a></span>
+  <span class="signature">&#8594; String?</span>
+  
+
+</dt>
+<dd>
+  Searchable CCTV metadata text. An explicit empty string is preserved.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
         <dt id="multipart" class="property">
   <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadOptions/multipart.html">multipart</a></span>
   <span class="signature">&#8594; bool</span>
@@ -176,6 +200,18 @@ derives bounded part and concurrency settings before validating the upload.</p>
 
 </dd>
 
+        <dt id="reProcess" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadOptions/reProcess.html">reProcess</a></span>
+  <span class="signature">&#8594; bool</span>
+  
+
+</dt>
+<dd>
+  Allows replacement of an existing CCTV timestamp during finalization.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
         <dt id="resume" class="property">
   <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadOptions/resume.html">resume</a></span>
   <span class="signature">&#8594; bool</span>
@@ -212,6 +248,18 @@ derives bounded part and concurrency settings before validating the upload.</p>
 
 </dd>
 
+        <dt id="startDatetimeUser" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadOptions/startDatetimeUser.html">startDatetimeUser</a></span>
+  <span class="signature">&#8594; String?</span>
+  
+
+</dt>
+<dd>
+  Caller footage origin. Must include <code>Z</code> or an explicit UTC offset.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
         <dt id="store" class="property">
   <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadOptions/store.html">store</a></span>
   <span class="signature">&#8594; <a href="../vmodal_sdk_flutter/UploadSessionStore-class.html">UploadSessionStore</a></span>
@@ -236,6 +284,18 @@ derives bounded part and concurrency settings before validating the upload.</p>
 
 </dd>
 
+        <dt id="videoFilename" class="property">
+  <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadOptions/videoFilename.html">videoFilename</a></span>
+  <span class="signature">&#8594; String?</span>
+  
+
+</dt>
+<dd>
+  Public CCTV filename used by metadata, frame paths, and search joins.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
     </dl>
   </section>
 
@@ -246,7 +306,7 @@ derives bounded part and concurrency settings before validating the upload.</p>
     <h2>Methods</h2>
     <dl class="callables">
         <dt id="copyWith" class="callable">
-  <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadOptions/copyWith.html">copyWith</a></span><span class="signature">(<wbr>{<span class="parameter" id="copyWith-param-multipart"><span class="type-annotation">bool?</span> <span class="parameter-name">multipart</span>, </span><span class="parameter" id="copyWith-param-multipartThresholdBytes"><span class="type-annotation">int?</span> <span class="parameter-name">multipartThresholdBytes</span>, </span><span class="parameter" id="copyWith-param-partSizeBytes"><span class="type-annotation">int?</span> <span class="parameter-name">partSizeBytes</span>, </span><span class="parameter" id="copyWith-param-maxConcurrency"><span class="type-annotation">int?</span> <span class="parameter-name">maxConcurrency</span>, </span><span class="parameter" id="copyWith-param-maxPartAttempts"><span class="type-annotation">int?</span> <span class="parameter-name">maxPartAttempts</span>, </span><span class="parameter" id="copyWith-param-partTimeout"><span class="type-annotation">Duration?</span> <span class="parameter-name">partTimeout</span>, </span><span class="parameter" id="copyWith-param-resume"><span class="type-annotation">bool?</span> <span class="parameter-name">resume</span>, </span><span class="parameter" id="copyWith-param-sessionStore"><span class="type-annotation"><a href="../vmodal_sdk_flutter/UploadSessionStore-class.html">UploadSessionStore</a>?</span> <span class="parameter-name">sessionStore</span>, </span><span class="parameter" id="copyWith-param-adaptiveConditions"><span class="type-annotation"><a href="../vmodal_sdk_flutter/UploadConditions-class.html">UploadConditions</a>?</span> <span class="parameter-name">adaptiveConditions</span>, </span><span class="parameter" id="copyWith-param-transcoder"><span class="type-annotation"><a href="../vmodal_sdk_flutter/VideoTranscoder-class.html">VideoTranscoder</a>?</span> <span class="parameter-name">transcoder</span></span>})
+  <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadOptions/copyWith.html">copyWith</a></span><span class="signature">(<wbr>{<span class="parameter" id="copyWith-param-multipart"><span class="type-annotation">bool?</span> <span class="parameter-name">multipart</span>, </span><span class="parameter" id="copyWith-param-multipartThresholdBytes"><span class="type-annotation">int?</span> <span class="parameter-name">multipartThresholdBytes</span>, </span><span class="parameter" id="copyWith-param-partSizeBytes"><span class="type-annotation">int?</span> <span class="parameter-name">partSizeBytes</span>, </span><span class="parameter" id="copyWith-param-maxConcurrency"><span class="type-annotation">int?</span> <span class="parameter-name">maxConcurrency</span>, </span><span class="parameter" id="copyWith-param-maxPartAttempts"><span class="type-annotation">int?</span> <span class="parameter-name">maxPartAttempts</span>, </span><span class="parameter" id="copyWith-param-partTimeout"><span class="type-annotation">Duration?</span> <span class="parameter-name">partTimeout</span>, </span><span class="parameter" id="copyWith-param-resume"><span class="type-annotation">bool?</span> <span class="parameter-name">resume</span>, </span><span class="parameter" id="copyWith-param-sessionStore"><span class="type-annotation"><a href="../vmodal_sdk_flutter/UploadSessionStore-class.html">UploadSessionStore</a>?</span> <span class="parameter-name">sessionStore</span>, </span><span class="parameter" id="copyWith-param-adaptiveConditions"><span class="type-annotation"><a href="../vmodal_sdk_flutter/UploadConditions-class.html">UploadConditions</a>?</span> <span class="parameter-name">adaptiveConditions</span>, </span><span class="parameter" id="copyWith-param-transcoder"><span class="type-annotation"><a href="../vmodal_sdk_flutter/VideoTranscoder-class.html">VideoTranscoder</a>?</span> <span class="parameter-name">transcoder</span>, </span><span class="parameter" id="copyWith-param-videoFilename"><span class="type-annotation">String?</span> <span class="parameter-name">videoFilename</span>, </span><span class="parameter" id="copyWith-param-metadataText"><span class="type-annotation">String?</span> <span class="parameter-name">metadataText</span>, </span><span class="parameter" id="copyWith-param-metadataTags"><span class="type-annotation">List<span class="signature">&lt;<wbr><span class="type-parameter">String</span>&gt;</span>?</span> <span class="parameter-name">metadataTags</span>, </span><span class="parameter" id="copyWith-param-startDatetimeUser"><span class="type-annotation">String?</span> <span class="parameter-name">startDatetimeUser</span>, </span><span class="parameter" id="copyWith-param-reProcess"><span class="type-annotation">bool?</span> <span class="parameter-name">reProcess</span></span>})
     <span class="returntype parameter">&#8594; <a href="../vmodal_sdk_flutter/VideoUploadOptions-class.html">VideoUploadOptions</a></span>
   </span>
   
@@ -298,7 +358,7 @@ derives bounded part and concurrency settings before validating the upload.</p>
 </dd>
 
         <dt id="validate" class="callable">
-  <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadOptions/validate.html">validate</a></span><span class="signature">(<wbr><span class="parameter" id="validate-param-size"><span class="type-annotation">int</span> <span class="parameter-name">size</span></span>)
+  <span class="name"><a href="../vmodal_sdk_flutter/VideoUploadOptions/validate.html">validate</a></span><span class="signature">(<wbr><span class="parameter" id="validate-param-size"><span class="type-annotation">int</span> <span class="parameter-name">size</span>, {</span><span class="parameter" id="validate-param-mode"><span class="type-annotation">String</span> <span class="parameter-name">mode</span> = <span class="default-value">&#39;vid_file&#39;</span>, </span><span class="parameter" id="validate-param-sourceFileName"><span class="type-annotation">String</span> <span class="parameter-name">sourceFileName</span> = <span class="default-value">&#39;&#39;</span></span>})
     <span class="returntype parameter">&#8594; void</span>
   </span>
   
@@ -377,7 +437,7 @@ derives bounded part and concurrency settings before validating the upload.</p>
 <footer>
   <span class="no-break">
     vmodal_sdk_flutter
-      1.1.0
+      1.2.0
   </span>
   
 </footer>

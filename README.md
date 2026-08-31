@@ -32,7 +32,7 @@ VModal brings multimodal video search and mobile-friendly uploads to Dart with a
 | Collection and indexing screens | Typed collection, index, usage, and image resources |
 | Login and account switching your way | App-owned runtime credentials—no login UI imposed |
 
-## Gettting started with one prompt
+## Getting started with one prompt
 
 Copy this prompt into your coding agent:
 
@@ -63,7 +63,7 @@ key is unavailable, stop at that boundary and report the exact blocker and the
 next command I should run.
 ```
 
-### How to get get API KEY :
+### How to get API KEY :
   Get an API Key : [API Key](https://v-modal.com/page/contact.ts)
 
 
@@ -142,6 +142,44 @@ environment can return HTTP 404 even when the search route is healthy. Use
 specific index version.
 
 The response stays typed where the contract is stable and preserves the raw JSON so new server fields remain available immediately.
+
+## Understanding search scores
+
+Search finds the nearest frames to your query. It isn't object detection, and it always
+returns something, so a result on its own doesn't mean the subject is in the video.
+
+| Field | What it is |
+|---|---|
+| `score` | A distance. Lower means closer to the query. This is the one to use. |
+| `score_ui` | Normalised across the rows you got back, so the top one is always about `1.0` even when nothing matched well. Not a confidence. |
+
+`textEmbScoreMin` didn't filter anything in testing. `0.9`, `0.5` and `0.0` returned the
+same rows.
+
+### Working out if something is really there
+
+No single cutoff works everywhere. On a fixed traffic camera `a person` came back at
+`0.875` on footage full of people, and `a giraffe` at `0.877` on the same footage with
+none. On a library of different clips it's clearer: clips holding the subject scored
+`0.70` to `0.87`, the rest started at `0.885`.
+
+Two cuts together work well, both measured per collection:
+
+1. A window relative to the best row. `best + 0.03` suited one fixed camera,
+   `best + 0.15` a mixed library where you want a few clips back rather than one frame.
+2. A hard ceiling, so a nonsense query returns nothing instead of unrelated frames.
+
+Run a few queries you already know the answer to and see where the hits and misses
+separate.
+
+### Two things that catch people out
+
+Clips under about a minute can index as a single frame, so every search returns that same
+frame and looks broken. Use something longer when trying it out.
+
+Frame lookups use the `vid_img` modality, and `url_pre_signed` is a token for
+`/image/get_image`, not a URL you can load. Pass it through the SDK's image client rather
+than into an image widget. Image queries take base64 bytes.
 
 ## Upload with progress and cancellation
 
@@ -364,7 +402,7 @@ The framework supports unified cross-platform logic, ensuring identical integrat
 * Asynchronous Execution: Run complex indexing tasks in background threads to maintain app performance.
 
 
-Developers can quickly query their indexed catalog by passing strings or files to the search client. The SDK processes these inputs, communicates with V-Modal's specialized embedding models, and returns structured data objects. These response objects contain relevance confidence scores, metadata tags, and specific timestamps for video matches, allowing apps to jump directly to relevant frames.
+Developers can quickly query their indexed catalog by passing strings or files to the search client. The SDK processes these inputs, communicates with V-Modal's specialized embedding models, and returns structured data objects. These response objects contain relevance scores, metadata tags, and specific timestamps for video matches, allowing apps to jump directly to relevant frames. The score is a distance, so lower is closer to the query — see [Understanding search scores](#understanding-search-scores).
 
 ------------------------------
 ## Evaluate Technical Architecture

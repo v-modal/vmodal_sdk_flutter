@@ -1,3 +1,8 @@
+## 1.2.2
+
+- Configured the public pub.dev workflow to initialize GitHub Actions OIDC
+  before publishing, so release jobs do not fall back to interactive login.
+
 ## 1.2.1
 
 - Reissued the CCTV release with a reproducible public-source manifest that

@@ -76,6 +76,8 @@ jobs:
           sha256sum --check "$RUNNER_TEMP/pub-verification/SHA256SUMS"
       - name: Install pinned Flutter
         run: bash install.sh install
+      - name: Configure pub.dev GitHub OIDC
+        uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d
       - name: Publish through pub.dev OIDC
         run: |
           bash build.sh package

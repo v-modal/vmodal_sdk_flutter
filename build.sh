@@ -41,6 +41,7 @@ sdk_pub_get() {
   sdk_flutter pub get
   (cd example/01_full_app && sdk_flutter pub get)
   (cd example/02_users && sdk_flutter pub get)
+  (cd example/03_cctv && sdk_flutter pub get)
 }
 
 sdk_format() {
@@ -48,7 +49,7 @@ sdk_format() {
     ## Usage:
       bash build.sh format
   '
-  sdk_dart format --output=none --set-exit-if-changed lib test tool example/01_full_app/lib example/01_full_app/test example/02_users/lib example/02_users/test
+  sdk_dart format --output=none --set-exit-if-changed lib test tool example/01_full_app/lib example/01_full_app/test example/02_users/lib example/02_users/test example/03_cctv/bin example/03_cctv/lib example/03_cctv/test
 }
 
 sdk_analyze() {
@@ -59,6 +60,7 @@ sdk_analyze() {
   sdk_flutter analyze
   (cd example/01_full_app && sdk_flutter analyze)
   (cd example/02_users && sdk_flutter analyze)
+  (cd example/03_cctv && sdk_flutter analyze)
 }
 
 sdk_test() {
@@ -69,6 +71,7 @@ sdk_test() {
   sdk_flutter test
   (cd example/01_full_app && sdk_flutter test)
   (cd example/02_users && sdk_flutter test)
+  (cd example/03_cctv && sdk_flutter test)
 }
 
 sdk_example_android() {

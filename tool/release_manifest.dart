@@ -85,6 +85,7 @@ Future<void> _export(Directory root, Directory destination) async {
     'dartdoc_options.yaml',
     'LICENSE',
     'README.md',
+    'release_note.md',
     'readme_assets',
     'CHANGELOG.md',
     '.flutter-version',

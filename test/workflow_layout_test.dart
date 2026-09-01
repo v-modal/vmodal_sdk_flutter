@@ -174,6 +174,7 @@ void checkWorkflow(String main, String tagged) {
   expect(main, contains('for attempt in {1..30}'));
   expect(main, contains('https://pub.dev/api/packages/vmodal_sdk_flutter'));
   expect(main, contains('dartdoc_options.yaml'));
+  expect(main, contains('README.md release_note.md CHANGELOG.md'));
   expect(main, contains("--exclude='todo'"));
 
   final actions = RegExp(

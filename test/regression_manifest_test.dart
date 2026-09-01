@@ -45,6 +45,7 @@ void main() {
   test('required implementation and release artifacts exist', () {
     const files = <String>[
       'dartdoc_options.yaml',
+      'release_note.md',
       'lib/vmodal_sdk_flutter.dart',
       'lib/src/client.dart',
       'lib/src/content_scope.dart',
@@ -59,6 +60,10 @@ void main() {
       'example/02_users/README.md',
       'example/02_users/lib/user_examples.dart',
       'example/02_users/test/user_examples_test.dart',
+      'example/03_cctv/README.md',
+      'example/03_cctv/bin/main.dart',
+      'example/03_cctv/lib/cctv_example.dart',
+      'example/03_cctv/test/cctv_example_test.dart',
       'test/new_api_surface_test.dart',
     ];
     for (final path in files) {
@@ -117,6 +122,7 @@ void main() {
       expect(text, contains(path), reason: path);
     }
     expect(text, isNot(contains('dartdoc_options.yaml')));
+    expect(text, isNot(contains('release_note.md')));
   });
 
   test('default all suite remains offline', () {
@@ -146,6 +152,7 @@ void main() {
       expect(result.exitCode, 0, reason: '${result.stderr}');
       expect(File('${dir.path}/pubspec.lock').existsSync(), isTrue);
       expect(File('${dir.path}/dartdoc_options.yaml').existsSync(), isTrue);
+      expect(File('${dir.path}/release_note.md').existsSync(), isTrue);
       expect(File('${dir.path}/.gitleaks.toml').existsSync(), isTrue);
       for (final path in <String>[
         'install.sh',
@@ -163,6 +170,10 @@ void main() {
         'example/02_users/lib/user_streams.dart',
         'example/02_users/lib/product_catalog.dart',
         'example/02_users/test/user_examples_test.dart',
+        'example/03_cctv/README.md',
+        'example/03_cctv/bin/main.dart',
+        'example/03_cctv/lib/cctv_example.dart',
+        'example/03_cctv/test/cctv_example_test.dart',
         'doc/search_app.md',
         'doc/sdk_doc.md',
         'doc/manage_api_key.md',
@@ -194,6 +205,8 @@ void main() {
         'example/01_full_app/ios/Runner/GeneratedPluginRegistrant.m',
         'example/02_users/.dart_tool',
         'example/02_users/build',
+        'example/03_cctv/.dart_tool',
+        'example/03_cctv/build',
         'doc/todo/sdk_doc.md',
         'docs_sdk',
         'docs.py',

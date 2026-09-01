@@ -1,3 +1,9 @@
+## 1.2.1
+
+- Reissued the CCTV release with a reproducible public-source manifest that
+  tracks the SDK and example lockfiles before tag verification and pub.dev
+  publication.
+
 ## 1.2.0
 
 - Added CCTV uploads with caller-selected public filenames, searchable metadata

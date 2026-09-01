@@ -176,6 +176,13 @@ void checkWorkflow(String main, String tagged) {
   expect(main, contains('dartdoc_options.yaml'));
   expect(main, contains('README.md release_note.md CHANGELOG.md'));
   expect(main, contains("--exclude='todo'"));
+  expect(
+    main,
+    contains(
+      'git add -f pubspec.lock example/01_full_app/pubspec.lock '
+      'example/02_users/pubspec.lock example/03_cctv/pubspec.lock',
+    ),
+  );
 
   final actions = RegExp(
     r'uses:\s+[^\s]+@([^\s]+)',

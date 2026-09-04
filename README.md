@@ -394,10 +394,8 @@ The offline gate analyzes the package, runs the SDK and example tests, checks ro
 
 ---
 
-<p align="center"><strong>Build video experiences people can search, not just scroll.</strong></p>
-
 <p>
-------------------------------
+
 ## Understand Core Features
 
 * Multimodal Search: Query media asset databases using text prompts or reference images simultaneously.

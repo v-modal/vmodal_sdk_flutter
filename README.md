@@ -1,17 +1,11 @@
 
 <div align="center">
   <img src="readme_assets/logo_vmodal_owl.jpeg" alt="VModal owl" width="96">
-  <h1>VModal AI for Flutter</h1>
+  <h1>VModal for Flutter</h1>
   <p><strong>Give your Android and iOS apps a multimodal memory.</strong></p>
   <p>Upload video. Find moments by meaning, speech, text, or imagery.<br>Keep the experience fast, native, and 100% Flutter.</p>
   <img src="https://flutter.dev/assets/lockup_built-w-flutter.5443036ead976e7afea9249e17cd32b3.svg" alt="Built with Flutter" width="210">
   <br><br>
-<p align="center">
-  <a href="https://trendshift.io/repositories/50668" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/50668/daily" alt="DietrichGebert/ponytail | Trendshift" width="250" height="55"/></a>
-  <a href="https://trendshift.io/repositories/50668" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/50668/weekly" alt="DietrichGebert/ponytail | Trendshift" width="250" height="55"/></a>
-</p>
-
-  
   <img src="https://img.shields.io/badge/Flutter-3.44%2B-02569B?logo=flutter&logoColor=white" alt="Flutter 3.44+">
   <img src="https://img.shields.io/badge/Dart-3.12%2B-0175C2?logo=dart&logoColor=white" alt="Dart 3.12+">
   <img src="https://img.shields.io/badge/Android-supported-3DDC84?logo=android&logoColor=white" alt="Android supported">
@@ -20,6 +14,15 @@
 </div>
 
 <br>
+
+## Start here: support, documentation, demo, and API key
+
+| | Resource | Link |
+|---|---|---|
+| 💬 | **Discord support** | [Join the V-Modal AI Discord](https://discord.gg/XGxgBQqkaY) |
+| 📚 | **SDK documentation** | [Read the Flutter SDK reference](https://v-modal.github.io/vmodal_sdk_flutter/) |
+| 📱 | **Demo app and community** | [Visit r/v_modal on Reddit](https://www.reddit.com/r/v_modal/) |
+| 🔑 | **Get an API key** | [Request a VModal API key](https://v-modal.com/page/contact.ts) |
 
 <img src="readme_assets/dev_homepage.jpg" alt="A wall of searchable video moments and developer screens" width="100%">
 
@@ -38,7 +41,7 @@ VModal brings multimodal video search and mobile-friendly uploads to Dart with a
 | Collection and indexing screens | Typed collection, index, usage, and image resources |
 | Login and account switching your way | App-owned runtime credentials—no login UI imposed |
 
-## Getting started with one prompt
+## Gettting started with one prompt
 
 Copy this prompt into your coding agent:
 
@@ -69,7 +72,7 @@ key is unavailable, stop at that boundary and report the exact blocker and the
 next command I should run.
 ```
 
-### How to get API KEY :
+### How to get get API KEY :
   Get an API Key : [API Key](https://v-modal.com/page/contact.ts)
 
 
@@ -148,44 +151,6 @@ environment can return HTTP 404 even when the search route is healthy. Use
 specific index version.
 
 The response stays typed where the contract is stable and preserves the raw JSON so new server fields remain available immediately.
-
-## Understanding search scores
-
-Search finds the nearest frames to your query. It isn't object detection, and it always
-returns something, so a result on its own doesn't mean the subject is in the video.
-
-| Field | What it is |
-|---|---|
-| `score` | A distance. Lower means closer to the query. This is the one to use. |
-| `score_ui` | Normalised across the rows you got back, so the top one is always about `1.0` even when nothing matched well. Not a confidence. |
-
-`textEmbScoreMin` didn't filter anything in testing. `0.9`, `0.5` and `0.0` returned the
-same rows.
-
-### Working out if something is really there
-
-No single cutoff works everywhere. On a fixed traffic camera `a person` came back at
-`0.875` on footage full of people, and `a giraffe` at `0.877` on the same footage with
-none. On a library of different clips it's clearer: clips holding the subject scored
-`0.70` to `0.87`, the rest started at `0.885`.
-
-Two cuts together work well, both measured per collection:
-
-1. A window relative to the best row. `best + 0.03` suited one fixed camera,
-   `best + 0.15` a mixed library where you want a few clips back rather than one frame.
-2. A hard ceiling, so a nonsense query returns nothing instead of unrelated frames.
-
-Run a few queries you already know the answer to and see where the hits and misses
-separate.
-
-### Two things that catch people out
-
-Clips under about a minute can index as a single frame, so every search returns that same
-frame and looks broken. Use something longer when trying it out.
-
-Frame lookups use the `vid_img` modality, and `url_pre_signed` is a token for
-`/image/get_image`, not a URL you can load. Pass it through the SDK's image client rather
-than into an image widget. Image queries take base64 bytes.
 
 ## Upload with progress and cancellation
 
@@ -394,8 +359,11 @@ The offline gate analyzes the package, runs the SDK and example tests, checks ro
 
 ---
 
-<p>
+<p align="center"><strong>Build video experiences people can search, not just scroll.</strong></p>
 
+The vmodal_sdk_flutter repository provides the official Flutter SDK for integrating V-Modal AI’s advanced multimodal video and image search technology into cross-platform applications. Developed as an open-source tool, the SDK abstracts complex machine learning infrastructure into simple, developer-friendly methods. This allows mobile developers to incorporate deep visual intelligence into their apps without managing raw vector databases or heavy AI pipelines. During its current public beta phase, the SDK enables fast, semantic querying across media libraries using natural language text or visual references.
+The framework supports unified cross-platform logic, ensuring identical integration paths for both iOS and Android deployment. By optimizing communication with V-Modal AI’s backend, the SDK minimizes network latency and processing overhead on user devices. This makes it ideal for apps requiring real-time asset tracking, e-commerce visual discovery, or intelligent media organization.
+------------------------------
 ## Understand Core Features
 
 * Multimodal Search: Query media asset databases using text prompts or reference images simultaneously.
@@ -406,7 +374,7 @@ The offline gate analyzes the package, runs the SDK and example tests, checks ro
 * Asynchronous Execution: Run complex indexing tasks in background threads to maintain app performance.
 
 
-Developers can quickly query their indexed catalog by passing strings or files to the search client. The SDK processes these inputs, communicates with V-Modal's specialized embedding models, and returns structured data objects. These response objects contain relevance scores, metadata tags, and specific timestamps for video matches, allowing apps to jump directly to relevant frames. The score is a distance, so lower is closer to the query — see [Understanding search scores](#understanding-search-scores).
+Developers can quickly query their indexed catalog by passing strings or files to the search client. The SDK processes these inputs, communicates with V-Modal's specialized embedding models, and returns structured data objects. These response objects contain relevance confidence scores, metadata tags, and specific timestamps for video matches, allowing apps to jump directly to relevant frames.
 
 ------------------------------
 ## Evaluate Technical Architecture

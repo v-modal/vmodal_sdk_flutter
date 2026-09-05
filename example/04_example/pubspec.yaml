@@ -1,0 +1,31 @@
+name: sightline
+description: >-
+  Search inside video by describing what you are looking for. A demo app for the
+  VModal Flutter SDK, shown as two very different products on one codebase.
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  file_selector: ^1.1.0
+  flutter:
+    sdk: flutter
+  vmodal_sdk_flutter:
+    git:
+      url: https://github.com/v-modal/vmodal_sdk_flutter.git
+      ref: 725ce8e
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/footage/
+    - assets/queries/

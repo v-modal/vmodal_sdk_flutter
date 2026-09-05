@@ -359,10 +359,15 @@ The offline gate analyzes the package, runs the SDK and example tests, checks ro
 
 ---
 
-<p align="center"><strong>Build video experiences people can search, not just scroll.</strong></p>
+------------------------------
+## Flutter SDK Goals
 
-The vmodal_sdk_flutter repository provides the official Flutter SDK for integrating V-Modal AI’s advanced multimodal video and image search technology into cross-platform applications. Developed as an open-source tool, the SDK abstracts complex machine learning infrastructure into simple, developer-friendly methods. This allows mobile developers to incorporate deep visual intelligence into their apps without managing raw vector databases or heavy AI pipelines. During its current public beta phase, the SDK enables fast, semantic querying across media libraries using natural language text or visual references.
+Developed as an open-source tool, the SDK abstracts complex machine learning infrastructure into simple, developer-friendly methods. This allows mobile developers to incorporate deep visual intelligence into their apps without managing raw vector databases or heavy AI pipelines. During its current public beta phase, the SDK enables fast, semantic querying across media libraries using natural language text or visual references.
 The framework supports unified cross-platform logic, ensuring identical integration paths for both iOS and Android deployment. By optimizing communication with V-Modal AI’s backend, the SDK minimizes network latency and processing overhead on user devices. This makes it ideal for apps requiring real-time asset tracking, e-commerce visual discovery, or intelligent media organization.
+
+
+
+
 ------------------------------
 ## Understand Core Features
 

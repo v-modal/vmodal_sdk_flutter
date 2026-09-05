@@ -13,9 +13,7 @@ dependencies:
   flutter:
     sdk: flutter
   vmodal_sdk_flutter:
-    git:
-      url: https://github.com/v-modal/vmodal_sdk_flutter.git
-      ref: 725ce8e
+    path: ../..
 
 dev_dependencies:
   flutter_lints: ^6.0.0

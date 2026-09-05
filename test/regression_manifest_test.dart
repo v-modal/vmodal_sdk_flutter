@@ -65,6 +65,9 @@ void main() {
       'example/03_cctv/bin/main.dart',
       'example/03_cctv/lib/cctv_example.dart',
       'example/03_cctv/test/cctv_example_test.dart',
+      'example/04_example/README.md',
+      'example/04_example/lib/main.dart',
+      'example/04_example/test/widget_test.dart',
       'test/new_api_surface_test.dart',
     ];
     for (final path in files) {
@@ -176,6 +179,9 @@ void main() {
         'example/03_cctv/bin/main.dart',
         'example/03_cctv/lib/cctv_example.dart',
         'example/03_cctv/test/cctv_example_test.dart',
+        'example/04_example/README.md',
+        'example/04_example/lib/main.dart',
+        'example/04_example/test/widget_test.dart',
         'doc/search_app.md',
         'doc/sdk_doc.md',
         'doc/manage_api_key.md',

@@ -1,3 +1,11 @@
+----------------------------------------------------------
+date: 2026-09-05
+commit_hash: 0f70f90
+title: Restore and validate the Sightline Flutter example
+summary:
+  - Restored the omitted Sightline application sources in the public SDK export.
+  - Added dependency, analysis, formatting, test, and manifest coverage for example 04.
+
 ## 1.2.2
 
 - Configured the public pub.dev workflow to initialize GitHub Actions OIDC

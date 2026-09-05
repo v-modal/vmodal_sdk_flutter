@@ -61,7 +61,10 @@ void main() {
     );
     await tester.enterText(find.byType(TextField).first, '');
     await pause(tester, 600);
-    await view.controller.searchByAsset(view.scene, 'assets/queries/sunset.jpg');
+    await view.controller.searchByAsset(
+      view.scene,
+      'assets/queries/sunset.jpg',
+    );
     await pause(tester, 5000);
     await scrollDown(tester, 300);
     await pause(tester, 3000);

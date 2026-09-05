@@ -119,7 +119,10 @@ void main() {
     await wait(tester, 10);
     await shot(tester, '11_image_search_result');
 
-    await view.controller.searchByAsset(view.scene, 'assets/queries/sunset.jpg');
+    await view.controller.searchByAsset(
+      view.scene,
+      'assets/queries/sunset.jpg',
+    );
     await wait(tester, 10);
     await shot(tester, '12_image_search_sunset');
 

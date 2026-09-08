@@ -10,6 +10,12 @@ The bundled library contains three short city-street recordings. Try searches
 such as `A bus on a city street`, `People crossing the street`, or
 `Cars at an intersection`.
 
+## Screenshots
+
+| Library | Grouped search results | Source playback |
+| --- | --- | --- |
+| ![Framebase street-video library](readme_assets/library.png) | ![Bus search results grouped by source video](readme_assets/search.png) | ![Source video opened at a matching timestamp](readme_assets/playback.png) |
+
 ## Run the example
 
 From the SDK repository root, install the reviewed Flutter toolchain and fetch

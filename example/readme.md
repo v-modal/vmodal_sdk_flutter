@@ -23,6 +23,7 @@ upload, cancellation, and error handling.
 | [`02_users`](02_users/README.md) | Content organization patterns | Shared global search, private per-user collections, multiple streams per user, and business/product catalog layouts. |
 | [`03_cctv`](03_cctv/README.md) | Timestamped surveillance media | CCTV filename and timestamp metadata, searchable tags/text, image indexing, and absolute-time metadata search. |
 | [`04_example`](04_example/README.md) | Searchable-video demo app | Traffic-camera moment search and multi-video visual discovery in one Android/iOS application. |
+| [`05_framebase`](05_framebase/README.md) | Product-style street archive | Runtime authentication, bundled and picked video upload, visual indexing, grouped semantic results, and local playback at the returned timestamp. |
 
 ## SDK capabilities
 

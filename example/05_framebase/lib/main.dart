@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 import 'package:file_selector/file_selector.dart';
@@ -119,6 +120,13 @@ class LibraryPage extends StatefulWidget {
 
 class _LibraryPageState extends State<LibraryPage> {
   late final ArchiveController archive;
+  String? selectedPlace;
+
+  List<String> get places => archive.clips.map(city).toSet().toList()..sort();
+
+  List<ArchiveClip> get visibleClips => selectedPlace == null
+      ? archive.clips
+      : archive.clips.where((clip) => city(clip) == selectedPlace).toList();
   @override
   void initState() {
     super.initState();
@@ -138,7 +146,9 @@ class _LibraryPageState extends State<LibraryPage> {
 
   void openSearch() => Navigator.push(
     context,
-    MaterialPageRoute<void>(builder: (_) => SearchPage(archive: archive)),
+    MaterialPageRoute<void>(
+      builder: (_) => SearchPage(archive: archive, place: selectedPlace),
+    ),
   );
 
   Future<void> importVideo() async {
@@ -161,11 +171,17 @@ class _LibraryPageState extends State<LibraryPage> {
       }
       player = VideoPlayerController.file(File(file.path));
       await player.initialize().timeout(const Duration(seconds: 15));
+      if (!mounted) return;
+      final details = await showImportDetails(context, basename(file.path));
+      if (!mounted || details == null) return;
       await archive.importFile(
         file.path,
         player.value.duration.inMilliseconds / 1000,
+        title: details.title,
+        place: details.place,
       );
       if (mounted) {
+        setState(() => selectedPlace = details.place);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -254,20 +270,29 @@ class _LibraryPageState extends State<LibraryPage> {
         children: [
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Street footage',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  selectedPlace ?? 'Travel footage',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
               Text(
-                '${archive.clips.length} videos',
+                '${visibleClips.length} ${visibleClips.length == 1 ? 'video' : 'videos'}',
                 style: const TextStyle(color: secondary),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          for (final clip in archive.clips)
+          const SizedBox(height: 10),
+          PlaceRail(
+            places: places,
+            selected: selectedPlace,
+            onSelected: (place) => setState(() => selectedPlace = place),
+          ),
+          const SizedBox(height: 14),
+          for (final clip in visibleClips)
             VideoRow(
               clip: clip,
               onTap: () => showRecording(context, archive, clip),
@@ -308,7 +333,12 @@ class _LibraryPageState extends State<LibraryPage> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          child: SearchDock(onTap: openSearch),
+          child: SearchDock(
+            label: selectedPlace == null
+                ? 'Search all trips'
+                : 'Search $selectedPlace',
+            onTap: openSearch,
+          ),
         ),
       ),
     ),
@@ -356,8 +386,75 @@ class _BrandPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
+class PlaceRail extends StatelessWidget {
+  const PlaceRail({
+    super.key,
+    required this.places,
+    required this.selected,
+    required this.onSelected,
+  });
+  final List<String> places;
+  final String? selected;
+  final ValueChanged<String?> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = <String?>[null, ...places];
+    return SizedBox(
+      height: 42,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: items.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 7),
+        itemBuilder: (_, index) {
+          final place = items[index];
+          final active = place == selected;
+          return Material(
+            color: active ? ink : const Color(0xFFDFDCD4),
+            borderRadius: BorderRadius.circular(14),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              key: Key(place == null ? 'place_all' : 'place_$place'),
+              onTap: () => onSelected(place),
+              child: AnimatedPadding(
+                duration: const Duration(milliseconds: 160),
+                padding: EdgeInsets.symmetric(
+                  horizontal: active ? 16 : 14,
+                  vertical: 10,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (active) ...[
+                      const Icon(
+                        Icons.location_on_outlined,
+                        size: 16,
+                        color: Color(0xFFF2B28F),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    Text(
+                      place ?? 'All trips',
+                      style: TextStyle(
+                        color: active ? Colors.white : ink,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 class SearchDock extends StatelessWidget {
-  const SearchDock({super.key, required this.onTap});
+  const SearchDock({super.key, required this.label, required this.onTap});
+  final String label;
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context) => DecoratedBox(
@@ -393,10 +490,12 @@ class SearchDock extends StatelessWidget {
                 children: [
                   const Icon(Icons.search, color: Colors.white, size: 23),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Search your videos',
-                      style: TextStyle(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                         color: Colors.white,
@@ -421,6 +520,103 @@ class SearchDock extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    ),
+  );
+}
+
+class PlaceContext extends StatelessWidget {
+  const PlaceContext({super.key, required this.place});
+  final String place;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: const Color(0xFFFFE2D2),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: const Color(0x33AA4F2D)),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+      child: Row(
+        children: [
+          const Icon(Icons.location_on_outlined, size: 18, color: green),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Searching in $place',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class ReferenceImageContext extends StatelessWidget {
+  const ReferenceImageContext({
+    super.key,
+    required this.name,
+    required this.onRemove,
+  });
+
+  final String name;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: const Color(0xFFDFDCD4),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: const Color(0x24706F67)),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(13, 8, 5, 8),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFE2D2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.image_search_outlined,
+              size: 19,
+              color: green,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Reference photo',
+                  style: TextStyle(fontSize: 12, color: secondary),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            key: const Key('remove_reference_image'),
+            tooltip: 'Remove reference photo',
+            onPressed: onRemove,
+            icon: const Icon(Icons.close, size: 19),
+          ),
+        ],
       ),
     ),
   );
@@ -591,8 +787,9 @@ Map<String, List<FrameMatch>> groupMoments(List<FrameMatch> hits) {
 }
 
 class SearchPage extends StatefulWidget {
-  const SearchPage({super.key, required this.archive});
+  const SearchPage({super.key, required this.archive, this.place});
   final ArchiveController archive;
+  final String? place;
   @override
   State<SearchPage> createState() => _SearchPageState();
 }
@@ -600,6 +797,8 @@ class SearchPage extends StatefulWidget {
 class _SearchPageState extends State<SearchPage> {
   final query = TextEditingController();
   bool broad = false;
+  String? imageName;
+  String? imageQuery;
   final expandedVideos = <String>{};
   ArchiveController get archive => widget.archive;
   @override
@@ -618,7 +817,7 @@ class _SearchPageState extends State<SearchPage> {
     expandedVideos.clear();
     if (text != null) query.text = text;
     FocusManager.instance.primaryFocus?.unfocus();
-    if (query.text.trim().isEmpty) return;
+    if (query.text.trim().isEmpty && imageQuery == null) return;
     if (archive.connecting) return;
     if (!archive.connected) {
       await showConnection(context, archive);
@@ -628,7 +827,41 @@ class _SearchPageState extends State<SearchPage> {
       await prepareArchive(context, archive);
       return;
     }
-    await archive.search(query.text, maxDistance: broad ? 1.5 : .85);
+    await archive.search(
+      query.text,
+      maxDistance: broad ? 1.5 : .85,
+      place: widget.place,
+      imageQuery: imageQuery,
+    );
+  }
+
+  Future<void> chooseReferenceImage() async {
+    final file = await openFile(
+      acceptedTypeGroups: [
+        const XTypeGroup(
+          label: 'Reference image',
+          extensions: ['jpg', 'jpeg', 'png', 'webp'],
+          mimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+          uniformTypeIdentifiers: ['public.image'],
+        ),
+      ],
+    );
+    if (file == null) return;
+    final bytes = await file.readAsBytes();
+    if (bytes.length > 10 * 1024 * 1024) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Choose an image smaller than 10 MB.')),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+    setState(() {
+      imageName = basename(file.path);
+      imageQuery = base64Encode(bytes);
+    });
+    archive.invalidateSearch();
   }
 
   void options() => showModalBottomSheet<void>(
@@ -688,6 +921,16 @@ class _SearchPageState extends State<SearchPage> {
             onSubmitted: (_) => search(),
             trailing: [
               IconButton(
+                key: const Key('image_search'),
+                tooltip: 'Search with a photo',
+                onPressed: archive.searching ? null : chooseReferenceImage,
+                icon: Icon(
+                  imageQuery == null
+                      ? Icons.add_photo_alternate_outlined
+                      : Icons.image_outlined,
+                ),
+              ),
+              IconButton(
                 key: const Key('run_search'),
                 tooltip: archive.searching ? 'Cancel search' : 'Search',
                 icon: Icon(archive.searching ? Icons.close : Icons.search),
@@ -714,6 +957,25 @@ class _SearchPageState extends State<SearchPage> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                 children: [
+                  if (widget.place != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: PlaceContext(place: widget.place!),
+                    ),
+                  if (imageQuery != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: ReferenceImageContext(
+                        name: imageName ?? 'Reference photo',
+                        onRemove: () {
+                          setState(() {
+                            imageName = null;
+                            imageQuery = null;
+                          });
+                          archive.invalidateSearch();
+                        },
+                      ),
+                    ),
                   if (archive.busy) WorkStatus(archive: archive),
                   if (batch == null && !archive.searching) ...[
                     const Padding(
@@ -1196,6 +1458,133 @@ class PlaybackControls extends StatelessWidget {
       ),
     );
   }
+}
+
+class ImportDetails {
+  const ImportDetails({required this.title, required this.place});
+  final String title;
+  final String place;
+}
+
+String readableFilename(String path) {
+  final name = basename(path).replaceFirst(RegExp(r'\.[^.]+$'), '');
+  if (name.isEmpty) return 'Travel recording';
+  return name
+      .replaceAll(RegExp(r'[_-]+'), ' ')
+      .split(' ')
+      .where((part) => part.isNotEmpty)
+      .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+      .join(' ');
+}
+
+Future<ImportDetails?> showImportDetails(
+  BuildContext context,
+  String sourceName,
+) => showModalBottomSheet<ImportDetails>(
+  context: context,
+  isScrollControlled: true,
+  useSafeArea: true,
+  builder: (_) => ImportDetailsSheet(sourceName: sourceName),
+);
+
+class ImportDetailsSheet extends StatefulWidget {
+  const ImportDetailsSheet({super.key, required this.sourceName});
+  final String sourceName;
+
+  @override
+  State<ImportDetailsSheet> createState() => _ImportDetailsSheetState();
+}
+
+class _ImportDetailsSheetState extends State<ImportDetailsSheet> {
+  late final TextEditingController title;
+  final place = TextEditingController();
+  bool showErrors = false;
+
+  @override
+  void initState() {
+    super.initState();
+    title = TextEditingController(text: readableFilename(widget.sourceName));
+  }
+
+  @override
+  void dispose() {
+    title.dispose();
+    place.dispose();
+    super.dispose();
+  }
+
+  void add() {
+    final cleanTitle = title.text.trim();
+    final cleanPlace = place.text.trim();
+    if (cleanTitle.isEmpty || cleanPlace.isEmpty) {
+      setState(() => showErrors = true);
+      return;
+    }
+    Navigator.pop(context, ImportDetails(title: cleanTitle, place: cleanPlace));
+  }
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.fromLTRB(
+      20,
+      0,
+      20,
+      MediaQuery.viewInsetsOf(context).bottom + 20,
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Add to a trip',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'The place stays with the recording and can be used to narrow search.',
+          style: TextStyle(color: secondary),
+        ),
+        const SizedBox(height: 20),
+        TextField(
+          key: const Key('import_title'),
+          controller: title,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(
+            labelText: 'Recording name',
+            errorText: showErrors && title.text.trim().isEmpty
+                ? 'Enter a name'
+                : null,
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          key: const Key('import_place'),
+          controller: place,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          onSubmitted: (_) => add(),
+          decoration: InputDecoration(
+            labelText: 'City or trip',
+            hintText: 'Lisbon',
+            errorText: showErrors && place.text.trim().isEmpty
+                ? 'Enter a place'
+                : null,
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 18),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            key: const Key('add_to_trip'),
+            onPressed: add,
+            child: const Text('Add recording'),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 Future<void> showConnection(BuildContext context, ArchiveController archive) =>

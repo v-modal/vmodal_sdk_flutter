@@ -24,7 +24,7 @@
 | 📱 | **Demo app and community** | [Visit r/v_modal on Reddit](https://www.reddit.com/r/v_modal/) |
 | 🔑 | **Get an API key** | [Request a VModal API key](https://v-modal.com/page/contact.ts) |
 
-<img src="readme_assets/dev_homepage.jpg" alt="A wall of searchable video moments and developer screens" width="100%">
+<img src="https://tinyurl.com/ai-video-search" alt="A wall of searchable video moments and developer screens" width="100%">
 
 <p align="center"><em>Turn every video library into an experience your users can explore.</em></p>
 

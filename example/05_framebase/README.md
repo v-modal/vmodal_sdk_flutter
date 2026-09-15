@@ -1,20 +1,20 @@
 # Framebase
 
 Framebase is a product-style Flutter example for finding moments inside a
-small video library with natural-language visual search. It demonstrates the
-complete mobile flow: runtime authentication, streamed uploads, asynchronous
-indexing, grouped frame results, and playback of the local source video at the
-returned timestamp.
+small travel-video library with natural-language or reference-photo search.
+It demonstrates the complete mobile flow: runtime authentication,
+metadata-aware streamed uploads, asynchronous indexing, trip-scoped grouped
+results, and playback of the local source video at the returned timestamp.
 
-The bundled library contains three short city-street recordings. Try searches
-such as `A bus on a city street`, `People crossing the street`, or
-`Cars at an intersection`.
+The bundled library contains three short city-street recordings. Filter it by
+city, try a query such as `A bus on a city street`, or choose a reference photo
+to retrieve visually similar moments from the selected trip.
 
 ## Screenshots
 
-| Library | Grouped search results | Source playback |
+| Travel library | Selected trip | Reference-photo results |
 | --- | --- | --- |
-| ![Framebase street-video library](readme_assets/library.png) | ![Bus search results grouped by source video](readme_assets/search.png) | ![Source video opened at a matching timestamp](readme_assets/playback.png) |
+| ![Framebase travel-video library](readme_assets/library.png) | ![Singapore trip selected in the library](readme_assets/trip.png) | ![Reference photo matched inside the Singapore trip](readme_assets/photo_search.png) |
 
 ## Run the example
 
@@ -52,9 +52,11 @@ than 100 MB and are copied into the app's support directory before upload.
 
 - `MutableApiKeyProvider` and `auth.me()` for runtime authentication.
 - `UploadSource.fromFile`, upload progress, and cancellation.
+- Caller-selected filenames and searchable title/place upload metadata.
 - Image-index creation and status polling.
 - Collection-version discovery before search.
-- Natural-language video search with an explicit distance cutoff.
+- Text and base64 reference-image search with an explicit distance cutoff.
+- Client-side trip scoping before frame retrieval.
 - One bulk URL lookup followed by cancellable image retrieval.
 - Defensive mapping of filenames, result indexes, and relative timestamps.
 - Grouping nearby matches from the same source video.
@@ -81,10 +83,11 @@ bash build.sh analyze
 bash build.sh test
 ```
 
-Framebase has offline tests for result mapping, timestamp handling, cancellation,
-cutoff enforcement, narrow layouts, grouped results, runtime-key error handling,
-and navigation. Live upload, indexing, search, and playback require an API key
-and a physical device or emulator.
+Framebase has offline tests for result mapping, reference-image request mapping,
+trip scoping, import validation, timestamp handling, cancellation, cutoff
+enforcement, narrow layouts, grouped results, runtime-key error handling, and
+navigation. Live upload, indexing, search, and playback require an API key and
+a physical device or emulator.
 
 Android was validated on a physical device. The iOS project is included, but
 iOS runtime validation requires macOS and Xcode.

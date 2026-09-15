@@ -265,16 +265,27 @@ class ArchiveController extends ChangeNotifier {
     return file;
   }
 
-  Future<void> importFile(String path, double duration) async {
+  Future<void> importFile(
+    String path,
+    double duration, {
+    String? title,
+    String? place,
+  }) async {
     _directory ??= await getApplicationSupportDirectory();
     final id = 'street_${DateTime.now().millisecondsSinceEpoch}';
     final file = await File(path).copy('${_directory!.path}/$id.mp4');
     final sourceName = basename(path);
+    final displayTitle = title?.trim().isNotEmpty == true
+        ? title!.trim()
+        : sourceName;
+    final displayPlace = place?.trim().isNotEmpty == true
+        ? place!.trim()
+        : 'Unsorted trip';
     clips.add(
       ArchiveClip(
         id: id,
-        title: sourceName,
-        location: 'Imported recording',
+        title: displayTitle,
+        location: '$displayPlace · Imported',
         duration: duration,
         asset: '',
         poster: '',
@@ -284,7 +295,7 @@ class ArchiveController extends ChangeNotifier {
     );
     invalidateSearch();
     await save();
-    record('Recording added', '$sourceName · stored on device only');
+    record('Recording added', '$displayTitle · $displayPlace');
   }
 
   ArchiveClip? clipFor(String filename) {
@@ -316,7 +327,11 @@ class ArchiveController extends ChangeNotifier {
         emit();
         final file = await localFile(clip);
         token.throwIfCanceled();
-        final task = gateway.upload(file);
+        final task = gateway.upload(
+          file,
+          title: clip.title,
+          place: clip.location.split(' · ').first,
+        );
         _upload = task;
         final watch = Stopwatch()..start();
         final subscription = task.progress.listen((p) {
@@ -438,11 +453,16 @@ class ArchiveController extends ChangeNotifier {
     emit();
   }
 
-  Future<void> search(String query, {double maxDistance = 1.5}) async {
+  Future<void> search(
+    String query, {
+    double maxDistance = 1.5,
+    String? place,
+    String? imageQuery,
+  }) async {
     final gateway = _gateway;
     if (gateway == null ||
         indexVersion == null ||
-        query.trim().isEmpty ||
+        (query.trim().isEmpty && imageQuery == null) ||
         busy) {
       return;
     }
@@ -451,14 +471,21 @@ class ArchiveController extends ChangeNotifier {
     final token = CancellationToken();
     _queryToken = token;
     searching = true;
-    activeQuery = query.trim();
+    activeQuery = query.trim().isEmpty ? 'Reference photo' : query.trim();
     notice = '';
     emit();
     try {
       final result = await gateway.search(
-        activeQuery,
+        query.trim(),
         cancellation: token,
         maxDistance: maxDistance,
+        imageQuery: imageQuery,
+        allowedFilenames: place == null
+            ? null
+            : clips
+                  .where((clip) => clip.location.split(' · ').first == place)
+                  .expand((clip) => [clip.id, clip.filename])
+                  .toSet(),
       );
       if (_disposed || generation != _searchGeneration) return;
       batch = result;

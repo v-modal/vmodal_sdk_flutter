@@ -144,12 +144,20 @@ class SearchGateway {
         ?.latestLancedbVersion;
   }
 
-  UploadTask<VideoUploadResponse> upload(File file) =>
-      client.collections.videoUpload(
-        UploadSource.fromFile(file),
-        collectionName: archiveCollection,
-        subCollectionName: archiveStream,
-      );
+  UploadTask<VideoUploadResponse> upload(
+    File file, {
+    required String title,
+    required String place,
+  }) => client.collections.videoUpload(
+    UploadSource.fromFile(file),
+    collectionName: archiveCollection,
+    subCollectionName: archiveStream,
+    options: VideoUploadOptions(
+      videoFilename: basename(file.path),
+      metadataText: '$title $place',
+      metadataTags: ['travel', place.toLowerCase()],
+    ),
+  );
 
   Future<IndexationSubmitResponse> createIndex(
     CancellationToken cancellation,
@@ -175,6 +183,7 @@ class SearchGateway {
     CancellationToken? cancellation,
     String? imageQuery,
     double maxDistance = 1.5,
+    Set<String>? allowedFilenames,
   }) async {
     final token = cancellation ?? CancellationToken();
     final timer = Stopwatch()..start();
@@ -199,9 +208,14 @@ class SearchGateway {
         .toList();
     // Enforce the displayed cutoff defensively on returned rows as well.
     // A client-filtered result is distinct from the raw server result count.
+    final allowed = allowedFilenames
+        ?.map((name) => basename(name).toLowerCase())
+        .toSet();
     final usable = rows.where((r) {
       final distance = num.tryParse('${r['score']}');
-      return hitFilename(r).isNotEmpty &&
+      final filename = hitFilename(r);
+      return filename.isNotEmpty &&
+          (allowed == null || allowed.contains(filename.toLowerCase())) &&
           distance != null &&
           distance.isFinite &&
           distance <= maxDistance;

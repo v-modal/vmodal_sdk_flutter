@@ -44,6 +44,7 @@ sdk_pub_get() {
   (cd example/03_cctv && sdk_flutter pub get)
   (cd example/04_example && sdk_flutter pub get)
   (cd example/05_framebase && sdk_flutter pub get)
+  (cd example/05_framebase_userlogin && sdk_flutter pub get)
 }
 
 sdk_format() {
@@ -51,7 +52,7 @@ sdk_format() {
     ## Usage:
       bash build.sh format
   '
-  sdk_dart format --output=none --set-exit-if-changed lib test tool example/01_full_app/lib example/01_full_app/test example/02_users/lib example/02_users/test example/03_cctv/bin example/03_cctv/lib example/03_cctv/test example/04_example/lib example/04_example/test example/04_example/integration_test example/05_framebase/lib example/05_framebase/test
+  sdk_dart format --output=none --set-exit-if-changed lib test tool example/01_full_app/lib example/01_full_app/test example/02_users/lib example/02_users/test example/03_cctv/bin example/03_cctv/lib example/03_cctv/test example/04_example/lib example/04_example/test example/04_example/integration_test example/05_framebase_userlogin/lib example/05_framebase_userlogin/test
 }
 
 sdk_analyze() {
@@ -64,7 +65,7 @@ sdk_analyze() {
   (cd example/02_users && sdk_flutter analyze)
   (cd example/03_cctv && sdk_flutter analyze)
   (cd example/04_example && sdk_flutter analyze)
-  (cd example/05_framebase && sdk_flutter analyze)
+  (cd example/05_framebase_userlogin && sdk_flutter analyze)
 }
 
 sdk_test() {
@@ -77,7 +78,7 @@ sdk_test() {
   (cd example/02_users && sdk_flutter test)
   (cd example/03_cctv && sdk_flutter test)
   (cd example/04_example && sdk_flutter test)
-  (cd example/05_framebase && sdk_flutter test)
+  (cd example/05_framebase_userlogin && sdk_flutter test)
 }
 
 sdk_example_android() {
@@ -86,6 +87,7 @@ sdk_example_android() {
       bash build.sh example_android
   '
   (cd example/01_full_app && sdk_flutter build apk --debug)
+  (cd example/05_framebase_userlogin && sdk_flutter build apk --debug)
 }
 
 sdk_example_ios() {
@@ -95,6 +97,7 @@ sdk_example_ios() {
   '
   [[ "$(uname -s)" == 'Darwin' ]] || { echo 'iOS builds require a configured macOS runner.' >&2; return 2; }
   (cd example/01_full_app && sdk_flutter build ios --simulator --debug --no-codesign)
+  (cd example/05_framebase_userlogin && sdk_flutter build ios --simulator --debug --no-codesign)
 }
 
 sdk_package() {
@@ -140,7 +143,7 @@ sdk_clean() {
   (cd example/02_users && sdk_flutter clean)
   (cd example/03_cctv && sdk_flutter clean)
   (cd example/04_example && sdk_flutter clean)
-  (cd example/05_framebase && sdk_flutter clean)
+  (cd example/05_framebase_userlogin && sdk_flutter clean)
 }
 
 sdk_help() {

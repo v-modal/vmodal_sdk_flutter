@@ -6,6 +6,11 @@ description = "Internal implementation plans contain documented credential-patte
 paths = ['''(^|/)uinterface/sdk_flutter/docs/dev_plan(_step)?\.md$''', '''^docs/dev_plan(_step)?\.md$''']
 
 [[allowlists]]
+description = "Unpublished Flutter task plan contains a documented credential-pattern example"
+targetRules = ["generic-api-key"]
+paths = ['''^docs/todo/dev_plan\.md$''']
+
+[[allowlists]]
 description = "Generated Flutter build outputs are excluded from source secret detection"
 paths = ['''(^|/)build/''']
 

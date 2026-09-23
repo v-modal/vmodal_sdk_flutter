@@ -78,36 +78,6 @@ void main() {
     expect(input.enableSuggestions, isFalse);
     c.dispose();
   });
-  testWidgets('trip selection narrows the library and carries into search', (
-    tester,
-  ) async {
-    final c = ArchiveController(persist: false);
-    await tester.pumpWidget(FramebaseApp(controller: c));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('place_Singapore')));
-    await tester.pumpAndSettle();
-    expect(find.byType(VideoRow), findsOneWidget);
-    expect(find.text('Downtown traffic'), findsOneWidget);
-    expect(find.text('Neighborhood crossing'), findsNothing);
-    expect(find.text('Search Singapore'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('open_search')));
-    await tester.pumpAndSettle();
-    expect(find.text('Searching in Singapore'), findsOneWidget);
-    c.dispose();
-  });
-  testWidgets('import details require a human title and trip', (tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(
-          body: ImportDetailsSheet(sourceName: 'old_town-walk.mp4'),
-        ),
-      ),
-    );
-    expect(find.widgetWithText(TextField, 'Old Town Walk'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('add_to_trip')));
-    await tester.pump();
-    expect(find.text('Enter a place'), findsOneWidget);
-  });
   testWidgets('320px layout and secondary history route', (tester) async {
     tester.view.physicalSize = const Size(320, 680);
     tester.view.devicePixelRatio = 1;

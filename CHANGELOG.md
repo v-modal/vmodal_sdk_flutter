@@ -1,4 +1,12 @@
 ----------------------------------------------------------
+date: 2026-09-23
+commit_hash: pending
+title: Add account-scoped Framebase Flutter example
+summary:
+  - Added offline Firebase-style sign-in, VMODAL session validation and refresh, and per-user archive storage.
+  - Added Flutter example checks to the SDK release workflow and restored its secret scan.
+
+----------------------------------------------------------
 date: 2026-09-05
 commit_hash: 0f70f90
 title: Restore and validate the Sightline Flutter example

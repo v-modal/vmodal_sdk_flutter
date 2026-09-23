@@ -24,7 +24,7 @@
 | 📱 | **Demo app and community** | [Visit r/v_modal on Reddit](https://www.reddit.com/r/v_modal/) |
 | 🔑 | **Get an API key** | [Request a VModal API key](https://v-modal.com/page/contact.ts) |
 
-<img src="https://shorturl.at/hSnss" alt="A wall of searchable video moments and developer screens" width="100%">
+<img src="readme_assets/dev_homepage.jpg" alt="A wall of searchable video moments and developer screens" width="100%">
 
 <p align="center"><em>Turn every video library into an experience your users can explore.</em></p>
 
@@ -35,7 +35,7 @@ VModal brings multimodal video search and mobile-friendly uploads to Dart with a
 | Your Flutter experience | VModal gives you |
 |---|---|
 | “Find the cyclist in the red jacket” | Semantic video and image search |
-| Search words spoken or shown on screen | ASR and OCR search sources |
+| Search words spoken or shown on screen | AUDIO and TEXT search sources |
 | Upload from a picker or camera flow | Streamed, signed uploads with live progress |
 | A cancel button that really cancels | Per-operation cancellation tokens |
 | Collection and indexing screens | Typed collection, index, usage, and image resources |

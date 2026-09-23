@@ -85,6 +85,10 @@ void checkWorkflow(String main, String tagged) {
   expect(main, contains('environment: sdk-flutter-production'));
   expect(main, contains('gitleaks_'));
   expect(main, contains('--source "\$WORKDIR"'));
+  expect(main, contains('run: bash security_check.sh secrets'));
+  expect(main, contains('cd example/05_framebase_userlogin'));
+  expect(main, contains('flutter_bin)" analyze'));
+  expect(main, contains('flutter_bin)" test'));
   expect(main, isNot(contains('--log-opts=')));
   expect(main, contains('SHA256SUMS'));
   expect(main, contains('SOURCE_MANIFEST.sha256'));
@@ -104,6 +108,16 @@ void checkWorkflow(String main, String tagged) {
     ),
   );
   expect(main, contains("find example/01_full_app/build/ios -name '*.app'"));
+  expect(
+    main,
+    contains(
+      'sha256sum example/05_framebase_userlogin/build/app/outputs/flutter-apk/app-debug.apk',
+    ),
+  );
+  expect(
+    main,
+    contains("find example/05_framebase_userlogin/build/ios -name '*.app'"),
+  );
   expect(main, isNot(contains('sha256sum example/build/')));
   expect(main, isNot(contains('find example/build/ios')));
   expect(main, contains('RELEASE_TOKEN: \${{ secrets.GH_TOKEN }}'));
@@ -181,6 +195,13 @@ void checkWorkflow(String main, String tagged) {
     contains(
       'git add -f pubspec.lock example/01_full_app/pubspec.lock '
       'example/02_users/pubspec.lock example/03_cctv/pubspec.lock',
+    ),
+  );
+  expect(
+    main,
+    contains(
+      'git add -f example/05_framebase_userlogin/lib '
+      'example/05_framebase_userlogin/pubspec.lock',
     ),
   );
 

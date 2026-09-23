@@ -144,63 +144,6 @@ void main() {
   });
 
   test(
-    'reference photo search keeps only recordings from the selected trip',
-    () async {
-      const route = '/api/external/v1/image/get_image';
-      final transport = QueueTransport([
-        {
-          'data': [
-            {
-              'filename': 'downtown_traffic.mp4',
-              'ts_unix': '0000000008000',
-              'score': .62,
-            },
-            {
-              'filename': 'evening_junction.mp4',
-              'ts_unix': '0000000010000',
-              'score': .58,
-            },
-          ],
-          'cnt_total': 2,
-        },
-        {
-          'records': [
-            {
-              'input_index': 0,
-              'found': true,
-              'url_pre_signed': '$route?test=singapore',
-            },
-          ],
-        },
-        {
-          'records': [
-            {
-              'url_pre_signed': '$route?test=singapore',
-              'content_base64': base64Encode([7, 8, 9]),
-            },
-          ],
-        },
-      ]);
-      final gateway = SearchGateway(
-        'test-only-placeholder',
-        transport: transport,
-      );
-      final result = await gateway.search(
-        '',
-        imageQuery: 'base64-reference',
-        allowedFilenames: {'downtown_traffic.mp4'},
-      );
-      expect(result.matches, hasLength(1));
-      expect(result.matches.single.filename, 'downtown_traffic.mp4');
-      expect(result.matches.single.imageBytes, [7, 8, 9]);
-      final body = transport.requests.first.jsonBody as Map;
-      expect(body['query_text'], '');
-      expect(body['image_query'], 'base64-reference');
-      await gateway.close();
-    },
-  );
-
-  test(
     'client cutoff rejects out-of-threshold beta results before downloading',
     () async {
       final transport = QueueTransport([

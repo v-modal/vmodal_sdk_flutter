@@ -43,7 +43,6 @@ sdk_pub_get() {
   (cd example/02_users && sdk_flutter pub get)
   (cd example/03_cctv && sdk_flutter pub get)
   (cd example/04_example && sdk_flutter pub get)
-  (cd example/05_framebase && sdk_flutter pub get)
   (cd example/05_framebase_userlogin && sdk_flutter pub get)
 }
 
@@ -60,7 +59,7 @@ sdk_analyze() {
     ## Usage:
       bash build.sh analyze
   '
-  sdk_flutter analyze
+  sdk_flutter analyze lib test tool
   (cd example/01_full_app && sdk_flutter analyze)
   (cd example/02_users && sdk_flutter analyze)
   (cd example/03_cctv && sdk_flutter analyze)

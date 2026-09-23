@@ -17,10 +17,15 @@ comments so they can be restored later, but they do not gate the fast release
 path. Jobs use the normal workflow checkout, while GitHub's built-in
 `GITHUB_SHA` is recorded in artifacts, public commits, tags, and documentation
 metadata for traceability. A secret-detection job scans the Flutter SDK tree
-before source and documentation publication. Protected release approval remains
+and source publication waits for secret detection, offline tests, Android and
+iOS builds, the live test, and the tested package artifact. Protected release approval remains
 disabled during this development mode. Optional pub.dev publication is
 triggered only by the exported version tag and uses OIDC trusted publishing; no
 long-lived pub token is stored.
+
+The Ubuntu Android build and package jobs clear unused preinstalled toolchains
+and emulator images before building, since both examples can exhaust the hosted
+runner's disk space.
 
 The offline job also analyzes and tests `example/05_framebase_userlogin` with
 fake auth and transport. Its real Firebase and credential issuer integration

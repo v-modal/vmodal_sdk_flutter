@@ -27,6 +27,7 @@ sdk_security_workflow() {
   grep -Eq 'environment:[[:space:]]+sdk-flutter-production' "$internal"
   grep -Eq 'persist-credentials:[[:space:]]+false' "$internal" "$public"
   grep -Fq 'run: bash security_check.sh secrets' "$internal"
+  grep -Fq 'needs: [secret_detection, offline_test, example_android, example_ios, live_test, pub_package]' "$internal"
   ! grep -Fq 'Security scan disabled for development' "$internal"
   ! grep -Fq -- '--log-opts=' "$internal"
   grep -Fq 'RELEASE_TOKEN: ${{ secrets.GH_TOKEN }}' "$internal"

@@ -74,7 +74,13 @@ void checkWorkflow(String main, String tagged) {
       'needs: [secret_detection, offline_test, example_android, example_ios, live_test, pub_package]',
     ),
   );
-  expect(main, contains('needs: release_gate'));
+  expect(
+    main,
+    contains(
+      'publish_sdk_flutter:\n    needs: '
+      '[secret_detection, offline_test, example_android, example_ios, live_test, pub_package]',
+    ),
+  );
   expect(main, contains('pub.dev publication requires source export.'));
   expect(
     main,
@@ -268,8 +274,9 @@ void main() {
   test('publication shortcut mutation fails', () {
     if (internal.isEmpty) return;
     final bad = internal.replaceFirst(
-      'needs: release_gate',
-      'needs: offline_test',
+      'publish_sdk_flutter:\n    needs: '
+          '[secret_detection, offline_test, example_android, example_ios, live_test, pub_package]',
+      'publish_sdk_flutter:\n    needs: offline_test',
     );
     expect(() => checkWorkflow(bad, public), throwsA(isA<TestFailure>()));
   });

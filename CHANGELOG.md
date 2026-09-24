@@ -1,4 +1,12 @@
 ----------------------------------------------------------
+date: 2026-09-24
+commit_hash: pending
+title: Explain Framebase user login and video flows
+summary:
+  - Added a screenshot tour and three flow diagrams to the user library example.
+  - Checked that screenshot assets are included in the public source export.
+
+----------------------------------------------------------
 date: 2026-09-23
 commit_hash: pending
 title: Add account-scoped Framebase Flutter example

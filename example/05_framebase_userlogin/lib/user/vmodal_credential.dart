@@ -1,54 +1,78 @@
 import 'auth_adapter.dart';
-import 'user_collection.dart';
+import 'library_scope.dart';
 
 class VmodalCredential {
   const VmodalCredential({
+    required this.contractVersion,
+    required this.sessionId,
+    required this.issuedAt,
     required this.apiToken,
     required this.expiresAt,
     required this.firebaseUid,
     required this.vmodalUserId,
-    required this.collectionUserId,
+    required this.scopeId,
     required this.allowed,
     required this.permissions,
   });
-  final String? apiToken, firebaseUid, vmodalUserId, collectionUserId;
-  final DateTime? expiresAt;
+  final int? contractVersion;
+  final String? sessionId, apiToken, firebaseUid, vmodalUserId, scopeId;
+  final DateTime? issuedAt, expiresAt;
   final bool allowed;
   final Set<String> permissions;
 
   factory VmodalCredential.fromJson(Map<String, Object?> data) {
-    final raw = data['expires_at'];
+    final issued = data['issued_at'];
+    final expires = data['expires_at'];
+    final permissions = data['permissions'];
     return VmodalCredential(
-      apiToken: data['api_token'] as String?,
-      expiresAt: raw is String ? DateTime.tryParse(raw)?.toUtc() : null,
-      firebaseUid: data['firebase_uid'] as String?,
-      vmodalUserId: data['vmodal_user_id'] as String?,
-      collectionUserId: data['collection_user_id'] as String?,
+      contractVersion: data['version'] is int ? data['version'] as int : null,
+      sessionId: data['session_id'] is String
+          ? data['session_id'] as String
+          : null,
+      issuedAt: issued is String ? DateTime.tryParse(issued)?.toUtc() : null,
+      apiToken: data['api_token'] is String
+          ? data['api_token'] as String
+          : null,
+      expiresAt: expires is String ? DateTime.tryParse(expires)?.toUtc() : null,
+      firebaseUid: data['firebase_uid'] is String
+          ? data['firebase_uid'] as String
+          : null,
+      vmodalUserId: data['vmodal_user_id'] is String
+          ? data['vmodal_user_id'] as String
+          : null,
+      scopeId: data['scope_id'] is String ? data['scope_id'] as String : null,
       allowed: data['allowed'] == true,
-      permissions: (data['permissions'] as List? ?? [])
-          .whereType<String>()
-          .toSet(),
+      permissions: permissions is List
+          ? permissions.whereType<String>().toSet()
+          : <String>{},
     );
   }
 
   void validate(AppUser user, DateTime now, {VmodalCredential? previous}) {
-    if (!allowed) throw const CredentialDenied();
-    if (firebaseUid != user.uid ||
-        vmodalUserId == null ||
-        vmodalUserId!.isEmpty ||
-        collectionUserId == null ||
-        apiToken == null ||
-        apiToken!.trim().isEmpty ||
-        expiresAt == null ||
-        !expiresAt!.isAfter(now.toUtc()) ||
-        (previous != null &&
-            (previous.vmodalUserId != vmodalUserId ||
-                previous.collectionUserId != collectionUserId))) {
+    if (!allowed || !permissions.contains('library:read')) {
       throw const CredentialDenied();
     }
-    userCollection(collectionUserId!);
-    if (!permissions.contains('library:read')) {
-      throw const CredentialDenied();
+    try {
+      validateLibraryScope(scopeId);
+    } on InvalidLibraryScope {
+      throw const CredentialContractError();
+    }
+    if (contractVersion != 1 ||
+        sessionId == null ||
+        sessionId!.trim().isEmpty ||
+        issuedAt == null ||
+        expiresAt == null ||
+        !issuedAt!.toUtc().isBefore(expiresAt!.toUtc()) ||
+        firebaseUid != user.uid ||
+        vmodalUserId == null ||
+        vmodalUserId!.trim().isEmpty ||
+        apiToken == null ||
+        apiToken!.trim().isEmpty ||
+        !expiresAt!.toUtc().isAfter(now.toUtc()) ||
+        (previous != null &&
+            (previous.vmodalUserId != vmodalUserId ||
+                previous.scopeId != scopeId))) {
+      throw const CredentialContractError();
     }
   }
 }
@@ -59,6 +83,20 @@ class CredentialDenied implements Exception {
   String toString() => 'Access to this library is unavailable.';
 }
 
+class CredentialTransient implements Exception {
+  const CredentialTransient();
+}
+
+class CredentialContractError implements Exception {
+  const CredentialContractError();
+}
+
+/// Exchanges app identity for a scoped VMODAL credential.
+///
+/// Implementations report explicit policy denial as [CredentialDenied],
+/// temporary network or issuer 5xx failures as [CredentialTransient], invalid
+/// responses or configuration as [CredentialContractError], and rejected or
+/// expired Firebase identity as [FirebaseIdentityExpired].
 abstract interface class VmodalCredentialSource {
   Future<VmodalCredential> acquire(AppUser user, String? firebaseIdToken);
 }
@@ -84,11 +122,14 @@ class MockVmodalCredentialSource implements VmodalCredentialSource {
 }
 
 const emptyCredential = <String, Object?>{
+  'version': null,
+  'session_id': null,
+  'issued_at': null,
   'api_token': null,
   'expires_at': null,
   'firebase_uid': null,
   'vmodal_user_id': null,
-  'collection_user_id': null,
+  'scope_id': null,
   'allowed': false,
   'permissions': <String>[],
 };

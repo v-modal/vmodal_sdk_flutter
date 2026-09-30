@@ -48,6 +48,29 @@ or API-key-provider contract. `VmodalClient` remains public and compatible.
 `VModal.fromClient` transfers lifecycle ownership, so the project is the object
 that must be closed.
 
+## Typed video-search results
+
+`SearchResponse.videoHits` is an additive typed view of map-shaped entries in
+the unchanged `SearchResponse.data` list. It preserves map-entry order, ignores
+non-map entries, and retains every original field through `VideoSearchHit.raw`.
+
+| Field | Canonical wire field | Meaning |
+|---|---|---|
+| `assetId` | `asset_id` | Nullable stable source-asset identity |
+| `fileName` | `file_name` | Nullable normalized basename for display and legacy lookup |
+| `playbackOffsetMs` | `playback_offset_ms` | Nullable elapsed milliseconds from source-video start |
+| `distance` | `distance` | Nullable raw lower-is-better distance |
+| `previewImageUrl` | `preview_image_url` | Nullable absolute HTTPS or relative signed image route |
+
+Legacy filename/path, seconds, relative-millisecond, `score`/`_distance`, and
+image URL aliases remain accepted. Invalid, blank, negative, non-finite, and
+epoch-like playback values become null rather than throwing. `score_ui`,
+similarity, and confidence are not distance and are never transformed into it.
+Missing `asset_id` is never synthesized from an item ID, filename, path,
+stream, or timestamp. `VideoUploadResponse.assetId` follows the same
+canonical-only identity rule, allowing applications to persist upload identity
+and reconnect later search hits without weakening legacy compatibility.
+
 ## CCTV timestamp and metadata contract
 
 `VideoUploadOptions` carries `videoFilename`, `metadataText`, repeated

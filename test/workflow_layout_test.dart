@@ -12,6 +12,7 @@ final publicFile = File('release/public_publish.yml').existsSync()
     ? File('release/public_publish.yml')
     : File('.github/workflows/publish.yml');
 final public = publicFile.readAsStringSync();
+final release = File('ga_release.sh').readAsStringSync();
 final androidProperties = File(
   'example/01_full_app/android/gradle.properties',
 ).readAsStringSync();
@@ -22,7 +23,7 @@ final examplePubspec = File(
   'example/01_full_app/pubspec.yaml',
 ).readAsStringSync();
 
-void checkWorkflow(String main, String tagged) {
+void checkWorkflow(String main, String script, String tagged) {
   const releaseOnly =
       "if: \${{ github.event_name == 'workflow_dispatch' && !inputs.publish_sdk_docs_only && (inputs.publish_sdk_flutter || inputs.publish_pub_dev) }}";
   const publishDocs =
@@ -39,15 +40,33 @@ void checkWorkflow(String main, String tagged) {
   expect(main, contains('default: true'));
   expect(main, contains('group: sdk_flutter_release_\${{ github.ref }}'));
   expect(main, contains('WORKDIR: uinterface/sdk_flutter'));
-  expect(main, contains('# RELEASE_SHA: \${{ github.sha }}'));
-  expect(main, isNot(contains('\n  RELEASE_SHA: \${{ github.sha }}')));
-  expect(main, isNot(contains('\n          ref: \${{ env.RELEASE_SHA }}')));
+  expect(main, contains('GA_WORKSPACE: \${{ github.workspace }}'));
+  expect(main, contains('RELEASE_SHA: \${{ github.sha }}'));
+  expect(main, contains('PUBLIC_REPOSITORY: v-modal/vmodal_sdk_flutter'));
+  expect(main, contains('DOCS_REPOSITORY: v-modal/vmodal_sdk_flutter'));
   expect(
     main,
-    isNot(
-      contains('\n          test "\$(git rev-parse HEAD)" = "\$RELEASE_SHA"'),
+    contains('DOCS_URL: https://v-modal.github.io/vmodal_sdk_flutter'),
+  );
+  expect(main, contains('GA_RELEASE_DIR: \${{ runner.temp }}'));
+  expect(main, contains('VMODAL_ENV: prd'));
+  expect(
+    main,
+    contains(
+      'VMODAL_API_KEY: \${{ secrets.TEST_CLIENT_CLERK_USER_API_TOKEN }}',
     ),
   );
+  expect(main, contains('RELEASE_TOKEN: \${{ secrets.GH_TOKEN }}'));
+  expect(main, contains('GH_TOKEN: \${{ secrets.GH_TOKEN }}'));
+  expect(main, contains('PUBLISH_PUB_DEV: \${{ inputs.publish_pub_dev }}'));
+  expect(main, isNot(contains('\n          ref: \${{ env.RELEASE_SHA }}')));
+  expect(main, isNot(contains('run: |')));
+
+  final runs = RegExp(r'^\s+run:\s*(.+)$', multiLine: true).allMatches(main);
+  expect(runs, isNotEmpty);
+  for (final run in runs) {
+    expect(run.group(1), contains('ga_release.sh'));
+  }
   expect(
     main,
     contains('secret_detection:\n    $publishDocs\n    runs-on: ubuntu-latest'),
@@ -81,7 +100,6 @@ void checkWorkflow(String main, String tagged) {
       '[secret_detection, offline_test, example_android, example_ios, live_test, pub_package]',
     ),
   );
-  expect(main, contains('pub.dev publication requires source export.'));
   expect(
     main,
     contains(
@@ -89,46 +107,53 @@ void checkWorkflow(String main, String tagged) {
     ),
   );
   expect(main, contains('environment: sdk-flutter-production'));
-  expect(main, contains('gitleaks_'));
-  expect(main, contains('--source "\$WORKDIR"'));
-  expect(main, contains('run: bash security_check.sh secrets'));
-  expect(main, contains('cd example/05_framebase_userlogin'));
-  expect(main, contains('flutter_bin)" analyze'));
-  expect(main, contains('flutter_bin)" test'));
+  expect(main, contains('ga_release.sh" ga_secret_detection'));
+  expect(main, contains('ga_release.sh" ga_offline_test'));
+  expect(main, contains('ga_release.sh" ga_example_android'));
+  expect(main, contains('ga_release.sh" ga_example_ios'));
+  expect(main, contains('ga_release.sh" ga_live_test "\$GITHUB_STEP_SUMMARY"'));
+  expect(main, contains('ga_release.sh" ga_source_package'));
+  expect(main, contains('ga_release.sh" ga_public_publish'));
+  expect(main, contains('ga_release.sh" ga_docs_build'));
+  expect(main, contains('ga_release.sh" ga_docs_publish'));
+  expect(main, contains('ga_release.sh" ga_pub_dev_verify'));
   expect(main, isNot(contains('--log-opts=')));
-  expect(main, contains('SHA256SUMS'));
-  expect(main, contains('SOURCE_MANIFEST.sha256'));
+
+  expect(script, contains('ga_secret_detection()'));
+  expect(script, contains('bash security_check.sh secrets'));
+  expect(script, contains('ga_offline_test()'));
+  expect(script, contains('cd example/05_framebase_userlogin'));
+  expect(script, contains('flutter_bin)" analyze'));
+  expect(script, contains('flutter_bin)" test'));
+  expect(script, contains('ga_source_package()'));
+  expect(script, contains('SHA256SUMS'));
+  expect(script, contains('SOURCE_MANIFEST.sha256'));
   expect(
-    main,
+    script,
     contains('run tool/release_manifest.dart export "\$export_dir"'),
   );
-  expect(main, contains('sha256sum --check SOURCE_MANIFEST.sha256'));
+  expect(script, contains('sha256sum --check SOURCE_MANIFEST.sha256'));
   expect(
-    main,
-    contains('git ls-files --error-unmatch install.sh build.sh run.sh test.sh'),
-  );
-  expect(
-    main,
+    script,
     contains(
       'sha256sum example/01_full_app/build/app/outputs/flutter-apk/app-debug.apk',
     ),
   );
-  expect(main, contains("find example/01_full_app/build/ios -name '*.app'"));
+  expect(script, contains("find example/01_full_app/build/ios -name '*.app'"));
   expect(
-    main,
+    script,
     contains(
       'sha256sum example/05_framebase_userlogin/build/app/outputs/flutter-apk/app-debug.apk',
     ),
   );
   expect(
-    main,
+    script,
     contains("find example/05_framebase_userlogin/build/ios -name '*.app'"),
   );
-  expect(main, isNot(contains('sha256sum example/build/')));
-  expect(main, isNot(contains('find example/build/ios')));
-  expect(main, contains('RELEASE_TOKEN: \${{ secrets.GH_TOKEN }}'));
+  expect(script, isNot(contains('sha256sum example/build/')));
+  expect(script, isNot(contains('find example/build/ios')));
   expect(main, isNot(contains('FLUTTER_SDK_APP_')));
-  expect(main, contains('git push --atomic'));
+  expect(script, contains('git push --atomic'));
   expect(
     main,
     contains(
@@ -147,69 +172,69 @@ void checkWorkflow(String main, String tagged) {
       'publish_sdk_docs:\n    needs: sdk_docs_artifact\n    $publishBuiltDocs',
     ),
   );
-  expect(main, contains('python "\$WORKDIR/docs.py" generate'));
-  expect(main, contains('python "\$WORKDIR/docs.py" check'));
-  expect(main, contains('bash "\$WORKDIR/install.sh" install'));
+  expect(script, contains('python "\$GA_SCRIPT_DIR/docs.py" generate'));
+  expect(script, contains('python "\$GA_SCRIPT_DIR/docs.py" check'));
+  expect(script, contains('bash "\$GA_SCRIPT_DIR/install.sh" install'));
   expect(
-    main,
+    script,
     contains('python -m pip install --disable-pip-version-check fire==0.7.1'),
   );
-  expect(main, contains('path: \${{ env.WORKDIR }}/docs_sdk'));
+  expect(main, contains('path: \${{ env.WORKDIR }}/doc'));
   expect(
     main,
     contains('sdk-flutter-docs-\${{ github.run_id }}-\${{ github.sha }}'),
   );
-  expect(main, contains('"\$WORKDIR/docs_sdk/index.html"'));
-  expect(main, contains('"\$WORKDIR/docs_sdk/index.json"'));
+  expect(script, contains('"\$GA_SCRIPT_DIR/doc/index.html"'));
+  expect(script, contains('"\$GA_SCRIPT_DIR/doc/index.json"'));
   expect(
-    main,
-    contains('"\$WORKDIR/docs_sdk/vmodal_sdk_flutter/VmodalClient-class.html"'),
+    script,
+    contains(
+      '"\$GA_SCRIPT_DIR/doc/vmodal_sdk_flutter/VmodalClient-class.html"',
+    ),
   );
   for (final name in <String>['VModal', 'VModalProject', 'VModalScope']) {
     expect(
-      main,
-      contains('"\$WORKDIR/docs_sdk/vmodal_sdk_flutter/$name-class.html"'),
+      script,
+      contains('"\$GA_SCRIPT_DIR/doc/vmodal_sdk_flutter/$name-class.html"'),
     );
     expect(
-      main,
-      contains(
-        '"\$RUNNER_TEMP/sdk-docs-site/vmodal_sdk_flutter/$name-class.html"',
-      ),
+      script,
+      contains('"\$site_dir/vmodal_sdk_flutter/$name-class.html"'),
     );
   }
   expect(main, isNot(contains('PyYAML')));
   expect(main, isNot(contains('openapi-spec-validator')));
   expect(main.toLowerCase(), isNot(contains('swagger')));
   expect(main, contains('include-hidden-files: true'));
-  expect(main, contains('DOCS_REPOSITORY: v-modal/vmodal_sdk_flutter'));
+  expect(script, isNot(contains('gh repo create "\$DOCS_REPOSITORY"')));
+  expect(script, contains('git push origin HEAD:gh-pages'));
+  expect(script, contains('build_type:"legacy"'));
+  expect(script, contains('repos/\$DOCS_REPOSITORY/pages'));
+  expect(script, contains('"\$DOCS_URL/RELEASE_SHA"'));
+  expect(script, contains('for attempt in {1..30}'));
+  expect(script, contains('https://pub.dev/api/packages/vmodal_sdk_flutter'));
+  expect(script, contains("grep -Fx 'lib/vmodal_sdk_flutter.dart'"));
+  expect(script, contains('dartdoc_options.yaml'));
+  expect(script, contains('README.md release_note.md CHANGELOG.md'));
+  expect(script, contains("--exclude='todo'"));
+  expect(script, contains('git add -f pubspec.lock'));
   expect(
-    main,
-    contains('DOCS_URL: https://v-modal.github.io/vmodal_sdk_flutter'),
-  );
-  expect(main, isNot(contains('gh repo create "\$DOCS_REPOSITORY"')));
-  expect(main, contains('git push origin HEAD:gh-pages'));
-  expect(main, contains('build_type:"legacy"'));
-  expect(main, contains('repos/\$DOCS_REPOSITORY/pages'));
-  expect(main, contains('"\$DOCS_URL/RELEASE_SHA"'));
-  expect(main, contains('for attempt in {1..30}'));
-  expect(main, contains('https://pub.dev/api/packages/vmodal_sdk_flutter'));
-  expect(main, contains('dartdoc_options.yaml'));
-  expect(main, contains('README.md release_note.md CHANGELOG.md'));
-  expect(main, contains("--exclude='todo'"));
-  expect(
-    main,
-    contains(
-      'git add -f pubspec.lock example/01_full_app/pubspec.lock '
-      'example/02_users/pubspec.lock example/03_cctv/pubspec.lock',
-    ),
-  );
-  expect(
-    main,
+    script,
     contains(
       'git add -f example/05_framebase_userlogin/lib '
       'example/05_framebase_userlogin/pubspec.lock',
     ),
   );
+  expect(script, contains('ga_require_env GA_RELEASE_DIR'));
+  expect(script, contains('ga_require_env RELEASE_SHA'));
+  expect(script, contains('ga_require_env RELEASE_TOKEN'));
+  expect(script, contains('ga_require_env PUBLISH_PUB_DEV'));
+  expect(script, contains('ga_require_env GH_TOKEN'));
+  expect(script, contains('ga_require_env PUBLIC_REPOSITORY'));
+  expect(script, contains('ga_require_env DOCS_REPOSITORY'));
+  expect(script, contains('ga_require_env DOCS_URL'));
+  expect(script, isNot(contains('GITHUB_SHA')));
+  expect(script, isNot(contains('RUNNER_TEMP')));
 
   final actions = RegExp(
     r'uses:\s+[^\s]+@([^\s]+)',
@@ -229,9 +254,9 @@ void checkWorkflow(String main, String tagged) {
     main.toLowerCase(),
     isNot(matches(RegExp(r'maven|\bosv\b|\bsbom\b|security_policy'))),
   );
-  expect(main, isNot(contains('git merge')));
-  expect(main, isNot(contains('git push --force')));
-  expect(main, isNot(contains('--skip-validation')));
+  expect('$main\n$script', isNot(contains('git merge')));
+  expect('$main\n$script', isNot(contains('git push --force')));
+  expect('$main\n$script', isNot(contains('--skip-validation')));
 
   expect(tagged, contains('name: publish_pub_dev'));
   expect(tagged, contains("- 'v[0-9]+.[0-9]+.[0-9]+'"));
@@ -259,7 +284,7 @@ void main() {
 
   test('release workflows enforce tested-source causality', () {
     if (internal.isEmpty) return;
-    checkWorkflow(internal, public);
+    checkWorkflow(internal, release, public);
   });
 
   test('floating action pin mutation fails', () {
@@ -268,7 +293,10 @@ void main() {
       RegExp(r'actions/checkout@[0-9a-f]{40}'),
       'actions/checkout@v4',
     );
-    expect(() => checkWorkflow(bad, public), throwsA(isA<TestFailure>()));
+    expect(
+      () => checkWorkflow(bad, release, public),
+      throwsA(isA<TestFailure>()),
+    );
   });
 
   test('publication shortcut mutation fails', () {
@@ -278,21 +306,30 @@ void main() {
           '[secret_detection, offline_test, example_android, example_ios, live_test, pub_package]',
       'publish_sdk_flutter:\n    needs: offline_test',
     );
-    expect(() => checkWorkflow(bad, public), throwsA(isA<TestFailure>()));
+    expect(
+      () => checkWorkflow(bad, release, public),
+      throwsA(isA<TestFailure>()),
+    );
   });
 
   test('source export mutation fails', () {
     if (internal.isEmpty) return;
-    final bad = internal.replaceFirst(
+    final bad = release.replaceFirst(
       'run tool/release_manifest.dart export "\$export_dir"',
       'run tool/release_manifest.dart check',
     );
-    expect(() => checkWorkflow(bad, public), throwsA(isA<TestFailure>()));
+    expect(
+      () => checkWorkflow(internal, bad, public),
+      throwsA(isA<TestFailure>()),
+    );
   });
 
   test('stored publication token mutation fails', () {
     if (internal.isEmpty) return;
     final bad = '$public\n      PUB_TOKEN: \${{ secrets.PUB_TOKEN }}\n';
-    expect(() => checkWorkflow(internal, bad), throwsA(isA<TestFailure>()));
+    expect(
+      () => checkWorkflow(internal, release, bad),
+      throwsA(isA<TestFailure>()),
+    );
   });
 }

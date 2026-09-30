@@ -40,18 +40,30 @@ class _LoginPageState extends State<LoginPage> {
                     const LinearProgressIndicator(),
                     const SizedBox(height: 16),
                     const Text('Loading your library…'),
-                  ] else if (state == SessionState.denied ||
+                  ] else if (state == SessionState.recoverable ||
+                      state == SessionState.denied ||
                       state == SessionState.error) ...[
                     Text(widget.session.message),
                     const SizedBox(height: 16),
-                    FilledButton(
-                      onPressed: widget.session.retry,
-                      child: const Text('Retry'),
-                    ),
-                    TextButton(
-                      onPressed: widget.session.signOut,
-                      child: const Text('Sign out'),
-                    ),
+                    if (widget.session.failureKind ==
+                            SessionFailureKind.firebaseIdentityExpired ||
+                        widget.session.failureKind ==
+                            SessionFailureKind.vmodalUnauthorized)
+                      FilledButton(
+                        onPressed: widget.session.signOut,
+                        child: const Text('Sign in again'),
+                      )
+                    else ...[
+                      if (widget.session.canRetry)
+                        FilledButton(
+                          onPressed: widget.session.retry,
+                          child: const Text('Retry'),
+                        ),
+                      TextButton(
+                        onPressed: widget.session.signOut,
+                        child: const Text('Sign out'),
+                      ),
+                    ],
                   ] else ...[
                     const Text(
                       'Sign in to your street library',
@@ -126,6 +138,10 @@ class ProfileSheet extends StatelessWidget {
             'Upload and prepare: ${session.canWrite ? 'allowed' : 'unavailable'}',
           ),
           const SizedBox(height: 16),
+          const Text(
+            'Signing out keeps videos on this device and in the cloud.',
+          ),
+          const SizedBox(height: 12),
           FilledButton(
             key: const Key('sign_out'),
             onPressed: () {

@@ -5,29 +5,88 @@ import 'package:framebase/main.dart';
 import 'package:framebase/data/archive_controller.dart';
 import 'package:framebase/data/search_gateway.dart';
 import 'package:framebase/user/auth_adapter.dart';
+import 'package:framebase/user/login_page.dart';
 import 'package:framebase/user/mock_firebase_auth.dart';
 import 'package:framebase/user/user_session_controller.dart';
 import 'package:framebase/user/vmodal_credential.dart';
 import 'package:vmodal_sdk_flutter/vmodal_sdk_flutter.dart';
 
 class FakeGateway extends SearchGateway {
-  FakeGateway(super.keys, super.collectionUserId);
+  FakeGateway(super.keys, super.scopeId);
   @override
   Future<void> connect(String expectedUserId) async {
     accountId = expectedUserId;
     version = 1;
   }
+
+  @override
+  Future<DeleteCollectionResponse> previewLibraryDeletion(
+    CancellationToken cancellation,
+  ) async => DeleteCollectionResponse({
+    'status': 'dry_run',
+    'group_name': collection,
+    'mode': 'vid_file',
+    'scope': 'all',
+    'removed_bytes': 20,
+    'sql_rows_deleted': 2,
+  });
+
+  @override
+  Future<DeleteCollectionResponse> deleteLibrary(
+    CancellationToken cancellation,
+  ) async => DeleteCollectionResponse({
+    'status': 'ok',
+    'group_name': collection,
+    'mode': 'vid_file',
+    'scope': 'all',
+  });
+}
+
+class LifecycleArchive extends ArchiveController {
+  LifecycleArchive() : super(persist: false);
+  int stopCalls = 0;
+  int invalidateCalls = 0;
+
+  @override
+  void stopWork() {
+    stopCalls++;
+    super.stopWork();
+  }
+
+  @override
+  void invalidateSearch() {
+    invalidateCalls++;
+    super.invalidateSearch();
+  }
 }
 
 VmodalCredential fixture() => VmodalCredential(
+  contractVersion: 1,
+  sessionId: 'widget-session',
+  issuedAt: DateTime.now().toUtc(),
   apiToken: 'test-only-placeholder',
   expiresAt: DateTime.now().toUtc().add(const Duration(hours: 1)),
   firebaseUid: 'alice',
   vmodalUserId: 'vmodal-alice',
-  collectionUserId: 'alice',
+  scopeId: 'scope_7K3A',
   allowed: true,
   permissions: {'library:read', 'library:write'},
 );
+
+FrameMatch frameMatch({
+  required String name,
+  required int offsetMs,
+  double distance = .7,
+  String? assetId,
+}) {
+  final raw = <String, Object?>{
+    'file_name': name,
+    'playback_offset_ms': offsetMs,
+    'distance': distance,
+  };
+  if (assetId != null) raw['asset_id'] = assetId;
+  return FrameMatch(hit: VideoSearchHit(raw));
+}
 
 void main() {
   testWidgets(
@@ -37,12 +96,7 @@ void main() {
       c.batch = SearchBatch(
         matches: [
           for (final second in [0, 10, 20, 30, 40])
-            FrameMatch(
-              row: const {'score': .7},
-              filename: 'neighborhood_crossing',
-              timestamp: '$second',
-              seconds: second.toDouble(),
-            ),
+            frameMatch(name: 'neighborhood_crossing', offsetMs: second * 1000),
         ],
         total: 5,
         serverMs: 10,
@@ -76,6 +130,52 @@ void main() {
     expect(find.byKey(const Key('sign_in')), findsOneWidget);
     expect(find.byType(VideoRow), findsNothing);
     expect(find.byKey(const Key('api_key')), findsNothing);
+    session.dispose();
+    c.dispose();
+  });
+  testWidgets('lifecycle exit cancels work without replay on resume', (
+    tester,
+  ) async {
+    final c = LifecycleArchive();
+    final session = UserSessionController(
+      auth: MockFirebaseAuth(),
+      credentials: MockVmodalCredentialSource(),
+      archive: c,
+    );
+    await tester.pumpWidget(FramebaseApp(controller: c, session: session));
+    await tester.pumpAndSettle();
+    final stopped = c.stopCalls;
+    final invalidated = c.invalidateCalls;
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+    expect(c.stopCalls, stopped);
+    expect(c.invalidateCalls, invalidated);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    await tester.pump();
+    expect(c.stopCalls, stopped + 1);
+    expect(c.invalidateCalls, invalidated + 1);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump();
+    expect(c.stopCalls, stopped + 2);
+    expect(c.invalidateCalls, invalidated + 2);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    await tester.pump();
+    expect(c.stopCalls, stopped + 3);
+    expect(c.invalidateCalls, invalidated + 3);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    expect(c.stopCalls, stopped + 3);
+    expect(c.invalidateCalls, invalidated + 3);
+    expect(c.busy, isFalse);
+    expect(c.searching, isFalse);
+
+    await tester.pumpWidget(const SizedBox.shrink());
     session.dispose();
     c.dispose();
   });
@@ -171,40 +271,255 @@ void main() {
     session.dispose();
     c.dispose();
   });
+  testWidgets('recoverable session shows safe retry and sign-out actions', (
+    tester,
+  ) async {
+    final c = ArchiveController(persist: false);
+    final session = UserSessionController(
+      auth: MockFirebaseAuth(),
+      credentials: MockVmodalCredentialSource(),
+      archive: c,
+    );
+    await tester.pump();
+    session.state = SessionState.recoverable;
+    session.failureKind = SessionFailureKind.transient;
+    session.message =
+        'Connection interrupted. Retry to reconnect your library.';
+
+    await tester.pumpWidget(MaterialApp(home: LoginPage(session: session)));
+
+    expect(find.text(session.message), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+    expect(find.text('Sign out'), findsOneWidget);
+    expect(find.textContaining('CredentialTransient'), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    session.dispose();
+    c.dispose();
+  });
+  testWidgets('expired identity and VMODAL 401 show sign in again', (
+    tester,
+  ) async {
+    for (final kind in [
+      SessionFailureKind.firebaseIdentityExpired,
+      SessionFailureKind.vmodalUnauthorized,
+    ]) {
+      final c = ArchiveController(persist: false);
+      final session = UserSessionController(
+        auth: MockFirebaseAuth(initial: const AppUser('alice')),
+        credentials: MockVmodalCredentialSource(),
+        archive: c,
+      );
+      await tester.pump();
+      session.state = SessionState.error;
+      session.failureKind = kind;
+      session.message = kind == SessionFailureKind.firebaseIdentityExpired
+          ? 'Your sign-in expired. Sign in again.'
+          : 'Your library session expired. Sign in again.';
+
+      await tester.pumpWidget(MaterialApp(home: LoginPage(session: session)));
+
+      expect(find.text(session.message), findsOneWidget);
+      expect(find.text('Sign in again'), findsOneWidget);
+      expect(find.text('Retry'), findsNothing);
+      await tester.tap(find.text('Sign in again'));
+      await tester.pumpAndSettle();
+      expect(session.state, SessionState.signedOut);
+      expect(find.byKey(const Key('sign_in')), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+      session.dispose();
+      c.dispose();
+    }
+  });
+  testWidgets('denial, VMODAL 403, and contract failures cannot retry', (
+    tester,
+  ) async {
+    for (final kind in [
+      SessionFailureKind.credentialDenied,
+      SessionFailureKind.vmodalForbidden,
+      SessionFailureKind.contract,
+    ]) {
+      final c = ArchiveController(persist: false);
+      final session = UserSessionController(
+        auth: MockFirebaseAuth(),
+        credentials: MockVmodalCredentialSource(),
+        archive: c,
+      );
+      await tester.pump();
+      session.state = kind == SessionFailureKind.contract
+          ? SessionState.error
+          : SessionState.denied;
+      session.failureKind = kind;
+      session.message = kind == SessionFailureKind.contract
+          ? 'The library connection is not configured correctly.'
+          : 'Access to this library is unavailable.';
+
+      await tester.pumpWidget(MaterialApp(home: LoginPage(session: session)));
+
+      expect(find.text(session.message), findsOneWidget);
+      expect(find.text('Retry'), findsNothing);
+      expect(find.text('Sign out'), findsOneWidget);
+      expect(find.textContaining('raw issuer detail'), findsNothing);
+      await tester.pumpWidget(const SizedBox.shrink());
+      session.dispose();
+      c.dispose();
+    }
+  });
   test(
     'nearby moments collapse per video while relevance order is preserved',
     () {
-      FrameMatch hit(String name, double time) => FrameMatch(
-        row: const {'score': .7},
-        filename: name,
-        timestamp: '$time',
-        seconds: time,
-      );
       final grouped = groupMoments([
-        hit('one', 35),
-        hit('one', 36),
-        hit('two', 35),
-        hit('one', 22),
-        hit('one', 23),
+        frameMatch(name: 'one-a.mp4', offsetMs: 35000, assetId: 'asset-one'),
+        frameMatch(name: 'one-b.mp4', offsetMs: 36000, assetId: 'asset-one'),
+        frameMatch(name: 'two.mp4', offsetMs: 35000, assetId: 'asset-two'),
+        frameMatch(name: 'one-a.mp4', offsetMs: 22000, assetId: 'asset-one'),
+        frameMatch(name: 'one-b.mp4', offsetMs: 23000, assetId: 'asset-one'),
       ]);
-      expect(grouped.keys, ['one', 'two']);
-      expect(grouped['one']!.map((m) => m.seconds), [35, 22]);
-      expect(grouped['two'], hasLength(1));
+      expect(grouped.keys, ['asset-one', 'asset-two']);
+      expect(grouped['asset-one']!.map((m) => m.seconds), [35, 22]);
+      expect(grouped['asset-two'], hasLength(1));
     },
   );
   test('relative video timestamps and score meaning', () {
-    expect(timestamp13({'ts_unix': '0000000035000'}), '0000000035000');
-    expect(hitSeconds({'ts_unix': '0000000035000'}), 35);
-    expect(hitSeconds({'ts_unix': '1788510000000'}), isNull);
-    expect(hitSeconds({'ts_unix': '-5'}), isNull);
-    const hit = FrameMatch(
-      row: {'score': .92, 'score_ui': 1.0},
-      filename: 'test',
-      timestamp: '0',
+    final hit = FrameMatch(
+      hit: VideoSearchHit(const <String, Object?>{
+        'file_name': 'test',
+        'playback_offset_ms': 35000,
+        'score': .92,
+        'score_ui': 1.0,
+      }),
     );
+    expect(hit.seconds, 35);
     expect(hit.distance, .92);
+    expect(
+      VideoSearchHit(const <String, Object?>{
+        'ts_unix': '1788510000000',
+      }).playbackOffsetMs,
+      isNull,
+    );
     expect(timeLabel(75), '01:15');
     expect(indexDone('success'), isTrue);
     expect(indexFailed('failed'), isTrue);
+  });
+
+  testWidgets('storage deletion previews before final confirmation', (
+    tester,
+  ) async {
+    final c = ArchiveController(
+      persist: false,
+      supportDirectory: Directory.systemTemp,
+    );
+    final gateway = FakeGateway(
+      MutableApiKeyProvider('fixture-delete'),
+      'scope_7K3A',
+    );
+    await c.activate('scope_7K3A', gateway, canRead: true, canWrite: true);
+    await tester.pumpWidget(MaterialApp(home: StorageDeletionPage(archive: c)));
+    expect(
+      find.text('Signing out keeps videos on this device and in the cloud.'),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('delete_cloud_library')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Delete cloud library?'), findsOneWidget);
+    expect(
+      find.textContaining('Videos stored on this device remain'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Preview deletion'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Deletion preview'), findsOneWidget);
+    expect(find.textContaining('20 bytes'), findsOneWidget);
+    expect(
+      find.byKey(const Key('confirm_delete_cloud_library')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('confirm_delete_cloud_library')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(c.notice, 'Cloud library deleted. Videos on this device were kept.');
+    c.dispose();
+    await gateway.close();
+  });
+
+  testWidgets('uploaded local removal explains cloud retention', (
+    tester,
+  ) async {
+    final root = Directory.systemTemp.createTempSync('widget_remove_');
+    addTearDown(() => root.deleteSync(recursive: true));
+    final file = File('${root.path}/clip.mp4')..writeAsBytesSync([1]);
+    final c = ArchiveController(persist: false);
+    final clip = ArchiveClip(
+      id: 'clip',
+      title: 'Clip',
+      location: 'Test',
+      duration: 1,
+      asset: '',
+      poster: '',
+      path: file.path,
+      remoteAssetId: 'asset-clip',
+      uploaded: true,
+      bundled: false,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: RecordingSheet(archive: c, clip: clip),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('remove_local_copy')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(
+      find.textContaining('cloud copy remains searchable'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Cancel'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(file.existsSync(), isTrue);
+    c.dispose();
+  });
+
+  testWidgets('remote-only row never opens local playback', (tester) async {
+    final c = ArchiveController(persist: false);
+    final session = UserSessionController(
+      auth: MockFirebaseAuth(),
+      credentials: MockVmodalCredentialSource(),
+      archive: c,
+    );
+    await tester.pump();
+    c.clips = [
+      ArchiveClip(
+        id: 'remote',
+        title: 'Remote',
+        location: 'Test',
+        duration: 1,
+        asset: '',
+        poster: '',
+        remoteAssetId: 'asset-remote',
+        uploaded: true,
+        bundled: false,
+      ),
+    ];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LibraryPage(controller: c, session: session),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Cloud only'), findsOneWidget);
+    await tester.tap(find.byType(VideoRow));
+    await tester.pump();
+    expect(
+      find.text('This video is in the cloud but is not stored on this device.'),
+      findsOneWidget,
+    );
+    expect(find.byType(RecordingSheet), findsNothing);
+    session.dispose();
+    c.dispose();
   });
 }

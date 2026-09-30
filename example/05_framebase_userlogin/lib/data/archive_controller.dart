@@ -18,15 +18,19 @@ class ArchiveClip {
     required this.asset,
     required this.poster,
     this.path,
+    this.remoteAssetId,
     this.uploaded = false,
     this.bundled = true,
   });
   final String id, title, location, asset, poster;
   final double duration;
   String? path;
+  String? remoteAssetId;
   bool uploaded;
   final bool bundled;
   String get filename => '$id.mp4';
+  bool get hasLocalCopy => path != null;
+  bool get remoteOnly => !bundled && path == null && uploaded;
   Map<String, Object?> toJson() => {
     'id': id,
     'title': title,
@@ -35,6 +39,7 @@ class ArchiveClip {
     'asset': asset,
     'poster': poster,
     'path': path,
+    'remoteAssetId': remoteAssetId,
     'uploaded': uploaded,
     'bundled': bundled,
   };
@@ -46,9 +51,41 @@ class ArchiveClip {
     asset: r['asset'] as String,
     poster: r['poster'] as String,
     path: r['path'] as String?,
+    remoteAssetId: _archiveAssetId(r['remoteAssetId']),
     uploaded: r['uploaded'] == true,
     bundled: r['bundled'] == true,
   );
+
+  ArchiveClip copy() => ArchiveClip.fromJson(toJson());
+}
+
+String? _archiveAssetId(Object? value) {
+  if (value is! String) return null;
+  final clean = value.trim();
+  return clean.isEmpty ? null : clean;
+}
+
+enum LocalRemovalResult { removed, partial, unavailable }
+
+enum CloudDeletionResult { deleted, partial, failed }
+
+class LibraryDeletionPreview {
+  const LibraryDeletionPreview({
+    required this.removedBytes,
+    required this.sqlRowsDeleted,
+    required this.executionTimeMs,
+  });
+
+  final int removedBytes;
+  final int sqlRowsDeleted;
+  final double executionTimeMs;
+}
+
+class _ArchiveSnapshot {
+  _ArchiveSnapshot(this.clips, this.pendingJob, this.events);
+  final List<ArchiveClip> clips;
+  final String pendingJob;
+  final List<ArchiveEvent> events;
 }
 
 List<ArchiveClip> streetClips() => [
@@ -110,12 +147,15 @@ class ArchiveController extends ChangeNotifier {
   int _searchGeneration = 0;
   int _generation = 0;
   bool _disposed = false;
-  String _collectionUserId = '';
+  String _scopeId = '';
   bool canRead = false, canWrite = false;
   Future<void> _saveQueue = Future<void>.value();
+  final Map<String, _ArchiveSnapshot> _pendingReconciliation = {};
   bool get connected => _gateway != null;
   bool get ready => connected && indexVersion != null;
   bool get hasPendingUploads => clips.any((c) => !c.uploaded);
+  bool get canDeleteCloudLibrary =>
+      connected && canWrite && !busy && pendingJob.isEmpty;
 
   void emit() {
     if (!_disposed) notifyListeners();
@@ -127,14 +167,14 @@ class ArchiveController extends ChangeNotifier {
   }
 
   Future<void> activate(
-    String collectionUserId,
+    String scopeId,
     SearchGateway gateway, {
     required bool canRead,
     required bool canWrite,
   }) async {
     deactivate();
     final generation = _generation;
-    _collectionUserId = collectionUserId;
+    _scopeId = scopeId;
     this.canRead = canRead;
     this.canWrite = canWrite;
     _gateway = gateway;
@@ -142,7 +182,7 @@ class ArchiveController extends ChangeNotifier {
     try {
       final root = supportDirectory ?? await getApplicationSupportDirectory();
       if (generation != _generation) return;
-      _directory = Directory('${root.path}/accounts/$collectionUserId');
+      _directory = Directory('${root.path}/accounts/$scopeId');
       if (persist) {
         final state = File('${_directory!.path}/archive.json');
         if (await state.exists()) {
@@ -155,11 +195,13 @@ class ArchiveController extends ChangeNotifier {
               )
               .toList();
           if (generation != _generation) return;
+          for (final clip in saved) {
+            if (clip.path != null && !File(clip.path!).existsSync()) {
+              clip.path = null;
+            }
+          }
           clips = saved
-              .where(
-                (c) =>
-                    c.bundled || (c.path != null && File(c.path!).existsSync()),
-              )
+              .where((c) => c.bundled || c.path != null || c.uploaded)
               .toList();
           if (clips.isEmpty) clips = streetClips();
           pendingJob = data['pendingJob'] as String? ?? '';
@@ -174,6 +216,21 @@ class ArchiveController extends ChangeNotifier {
               ),
             );
           }
+        }
+      }
+      final reconciliation = _pendingReconciliation[scopeId];
+      if (reconciliation != null && generation == _generation) {
+        clips = reconciliation.clips.map((c) => c.copy()).toList();
+        pendingJob = reconciliation.pendingJob;
+        events
+          ..clear()
+          ..addAll(reconciliation.events);
+        try {
+          await _saveStrict(_directory!, clips, pendingJob, events);
+          _pendingReconciliation.remove(scopeId);
+        } on Object {
+          notice =
+              'Cloud status is restored in memory but could not be saved locally.';
         }
       }
     } on Object {
@@ -191,7 +248,7 @@ class ArchiveController extends ChangeNotifier {
     invalidateSearch();
     _gateway = null;
     _directory = null;
-    _collectionUserId = '';
+    _scopeId = '';
     canRead = false;
     canWrite = false;
     clips = streetClips();
@@ -208,26 +265,60 @@ class ArchiveController extends ChangeNotifier {
   }
 
   Future<void> save() {
-    if (!persist || _directory == null || _collectionUserId.isEmpty) {
+    if (!persist || _directory == null || _scopeId.isEmpty) {
       return Future<void>.value();
     }
     // Snapshot and serialize writes so progress events cannot truncate each other.
     // Never serialize the client, key, response rows or signed URLs.
-    final snapshot = jsonEncode({
-      'clips': clips.map((c) => c.toJson()).toList(),
-      'pendingJob': pendingJob,
-      'events': events.take(40).map((e) => e.toJson()).toList(),
-    });
+    final snapshot = _manifestJson(clips, pendingJob, events);
     final path = '${_directory!.path}/archive.json';
-    _saveQueue = _saveQueue.then((_) async {
-      try {
-        await File(path).parent.create(recursive: true);
-        await File(path).writeAsString(snapshot, flush: true);
-      } on Object {
-        /* Optional history must not cancel network work. */
-      }
+    final write = _saveQueue.catchError((_) {}).then((_) async {
+      if (_disposed) return;
+      await _writeManifest(path, snapshot);
+    });
+    _saveQueue = write.catchError((_) {
+      /* Optional history must not cancel network work. */
     });
     return _saveQueue;
+  }
+
+  String _manifestJson(
+    List<ArchiveClip> savedClips,
+    String savedJob,
+    List<ArchiveEvent> savedEvents,
+  ) => jsonEncode({
+    'clips': savedClips.map((c) => c.toJson()).toList(),
+    'pendingJob': savedJob,
+    'events': savedEvents.take(40).map((e) => e.toJson()).toList(),
+  });
+
+  Future<void> _writeManifest(String path, String snapshot) async {
+    final target = File(path);
+    await target.parent.create(recursive: true);
+    final temp = File('$path.${DateTime.now().microsecondsSinceEpoch}.tmp');
+    try {
+      await temp.writeAsString(snapshot, flush: true);
+      await temp.rename(path);
+    } on Object {
+      if (await temp.exists()) await temp.delete();
+      rethrow;
+    }
+  }
+
+  Future<void> _saveStrict(
+    Directory directory,
+    List<ArchiveClip> savedClips,
+    String savedJob,
+    List<ArchiveEvent> savedEvents,
+  ) async {
+    if (!persist) return;
+    final snapshot = _manifestJson(savedClips, savedJob, savedEvents);
+    final path = '${directory.path}/archive.json';
+    final write = _saveQueue
+        .catchError((_) {})
+        .then((_) => _writeManifest(path, snapshot));
+    _saveQueue = write.catchError((_) {});
+    await write;
   }
 
   void record(String title, String detail, {bool error = false}) {
@@ -244,7 +335,7 @@ class ArchiveController extends ChangeNotifier {
     if (!clip.bundled) {
       throw const FileSystemException('Recording no longer available');
     }
-    if (_directory == null || _collectionUserId.isEmpty) {
+    if (_directory == null || _scopeId.isEmpty) {
       throw const FileSystemException('No active library');
     }
     final file = File('${_directory!.path}/${clip.filename}');
@@ -258,6 +349,78 @@ class ArchiveController extends ChangeNotifier {
     }
     clip.path = file.path;
     return file;
+  }
+
+  Future<LocalRemovalResult> removeLocalCopy(ArchiveClip clip) async {
+    final directory = _directory;
+    final scope = _scopeId;
+    final generation = _generation;
+    final path = clip.path;
+    if (directory == null ||
+        scope.isEmpty ||
+        busy ||
+        pendingJob.isNotEmpty ||
+        clip.bundled ||
+        path == null ||
+        !clips.contains(clip)) {
+      return LocalRemovalResult.unavailable;
+    }
+    final target = File(path);
+    try {
+      final rootPath = await directory.resolveSymbolicLinks();
+      final targetPath = await target.resolveSymbolicLinks();
+      final prefix = rootPath.endsWith(Platform.pathSeparator)
+          ? rootPath
+          : '$rootPath${Platform.pathSeparator}';
+      if (!targetPath.startsWith(prefix) ||
+          generation != _generation ||
+          scope != _scopeId ||
+          directory.path != _directory?.path) {
+        notice = 'The video could not be removed from this device.';
+        emit();
+        return LocalRemovalResult.unavailable;
+      }
+      await target.delete();
+    } on Object {
+      if (generation == _generation && scope == _scopeId) {
+        notice = 'The video could not be removed from this device.';
+        emit();
+      }
+      return LocalRemovalResult.unavailable;
+    }
+
+    if (generation != _generation || scope != _scopeId) {
+      return LocalRemovalResult.removed;
+    }
+    if (clip.uploaded) {
+      clip.path = null;
+    } else {
+      clips.remove(clip);
+    }
+    invalidateSearch();
+    events.insert(
+      0,
+      ArchiveEvent(
+        'Device copy removed',
+        clip.uploaded
+            ? '${clip.title} · cloud copy kept'
+            : '${clip.title} · local-only recording removed',
+      ),
+    );
+    if (events.length > 40) events.removeLast();
+    notice = clip.uploaded
+        ? 'Device copy removed. The cloud copy remains searchable.'
+        : 'Video removed from this device.';
+    emit();
+    try {
+      await _saveStrict(directory, clips, pendingJob, events);
+      return LocalRemovalResult.removed;
+    } on Object {
+      notice =
+          'The video was removed, but the local library status could not be saved.';
+      emit();
+      return LocalRemovalResult.partial;
+    }
   }
 
   Future<void> importFile(String path, double duration) async {
@@ -287,9 +450,17 @@ class ArchiveController extends ChangeNotifier {
     record('Recording added', '$sourceName · stored on device only');
   }
 
-  ArchiveClip? clipFor(String filename) {
-    final clean = basename(filename).toLowerCase();
+  ArchiveClip? clipFor(VideoSearchHit hit) {
+    final assetId = hit.assetId;
+    if (assetId != null) {
+      for (final clip in clips) {
+        if (clip.remoteAssetId == assetId) return clip;
+      }
+    }
+    final clean = basename(hit.fileName ?? '').toLowerCase();
+    if (clean.isEmpty) return null;
     for (final clip in clips) {
+      if (assetId != null && clip.remoteAssetId != null) continue;
       if (clean == clip.id.toLowerCase() ||
           clean == clip.filename.toLowerCase() ||
           clean.startsWith('${clip.id.toLowerCase()}.')) {
@@ -297,6 +468,142 @@ class ArchiveController extends ChangeNotifier {
       }
     }
     return null;
+  }
+
+  Future<LibraryDeletionPreview?> previewCloudLibraryDeletion() async {
+    final gateway = _gateway;
+    if (gateway == null || !canDeleteCloudLibrary) return null;
+    final generation = _generation;
+    final scope = _scopeId;
+    busy = true;
+    phase = 'Checking cloud library';
+    notice = '';
+    invalidateSearch();
+    final token = CancellationToken();
+    _work = token;
+    emit();
+    try {
+      final response = await gateway.previewLibraryDeletion(token);
+      token.throwIfCanceled();
+      _validateDeletion(response, 'dry_run', scope);
+      final raw = response.raw;
+      return LibraryDeletionPreview(
+        removedBytes: _safeInt(raw['removed_bytes']),
+        sqlRowsDeleted: _safeInt(raw['sql_rows_deleted']),
+        executionTimeMs: _safeDouble(raw['execution_time_ms']),
+      );
+    } on Object catch (error) {
+      if (generation == _generation && scope == _scopeId) {
+        notice = error is MalformedResponse
+            ? 'The deletion preview could not be verified. Nothing was deleted.'
+            : _cloudDeletionError(error, preview: true);
+        emit();
+      }
+      return null;
+    } finally {
+      if (generation == _generation && scope == _scopeId) {
+        busy = false;
+        phase = '';
+        _work = null;
+        emit();
+      }
+    }
+  }
+
+  Future<CloudDeletionResult> deleteCloudLibrary() async {
+    final gateway = _gateway;
+    final directory = _directory;
+    if (gateway == null || directory == null || !canDeleteCloudLibrary) {
+      return CloudDeletionResult.failed;
+    }
+    final generation = _generation;
+    final scope = _scopeId;
+    final savedClips = clips.map((c) => c.copy()).toList();
+    final savedEvents = List<ArchiveEvent>.from(events);
+    busy = true;
+    phase = 'Deleting cloud library';
+    notice = '';
+    invalidateSearch();
+    final token = CancellationToken();
+    _work = token;
+    emit();
+    try {
+      final response = await gateway.deleteLibrary(token);
+      _validateDeletion(response, 'ok', scope);
+
+      for (final clip in savedClips) {
+        clip.uploaded = false;
+        clip.remoteAssetId = null;
+      }
+      savedClips.removeWhere((clip) => !clip.bundled && clip.path == null);
+      savedEvents.insert(
+        0,
+        ArchiveEvent(
+          'Cloud library deleted',
+          'All cloud videos, metadata, and search indexes removed; device videos kept',
+        ),
+      );
+      if (savedEvents.length > 40) savedEvents.removeLast();
+      gateway.version = null;
+
+      final current = generation == _generation && scope == _scopeId;
+      if (current) {
+        clips = savedClips;
+        events
+          ..clear()
+          ..addAll(savedEvents);
+        pendingJob = '';
+        indexVersion = null;
+        activeQuery = '';
+        batch = null;
+        notice = 'Cloud library deleted. Videos on this device were kept.';
+        emit();
+      }
+      try {
+        await _saveStrict(directory, savedClips, '', savedEvents);
+        _pendingReconciliation.remove(scope);
+        return CloudDeletionResult.deleted;
+      } on Object {
+        _pendingReconciliation[scope] = _ArchiveSnapshot(
+          savedClips.map((c) => c.copy()).toList(),
+          '',
+          List<ArchiveEvent>.from(savedEvents),
+        );
+        if (current) {
+          notice =
+              'Cloud library was deleted, but local status could not be saved. Your device videos were kept.';
+          emit();
+        }
+        return CloudDeletionResult.partial;
+      }
+    } on Object catch (error) {
+      if (generation == _generation && scope == _scopeId) {
+        notice = _cloudDeletionError(error);
+        emit();
+      }
+      return CloudDeletionResult.failed;
+    } finally {
+      if (generation == _generation && scope == _scopeId) {
+        busy = false;
+        phase = '';
+        _work = null;
+        emit();
+      }
+    }
+  }
+
+  void _validateDeletion(
+    DeleteCollectionResponse response,
+    String expectedStatus,
+    String scope,
+  ) {
+    final raw = response.raw;
+    if ('${raw['status'] ?? ''}' != expectedStatus ||
+        raw.containsKey('group_name') && '${raw['group_name']}' != scope ||
+        raw.containsKey('mode') && '${raw['mode']}' != 'vid_file' ||
+        raw.containsKey('scope') && '${raw['scope']}' != 'all') {
+      throw const MalformedResponse('Unverified collection deletion');
+    }
   }
 
   Future<void> uploadAndIndex() async {
@@ -330,6 +637,7 @@ class ArchiveController extends ChangeNotifier {
           final result = await task.result;
           token.throwIfCanceled();
           if (!result.uploaded) throw const TransportException();
+          if (result.assetId != null) clip.remoteAssetId = result.assetId;
           clip.uploaded = true;
           record(
             'Uploaded',
@@ -520,6 +828,27 @@ String safeError(Object error) {
     return 'The local video could not be read. Import it again.';
   }
   return 'The operation could not finish. Check the connection and try again.';
+}
+
+int _safeInt(Object? value) =>
+    value is num ? value.toInt() : int.tryParse('$value') ?? 0;
+
+double _safeDouble(Object? value) =>
+    value is num ? value.toDouble() : double.tryParse('$value') ?? 0;
+
+String _cloudDeletionError(Object error, {bool preview = false}) {
+  if (error is SdkException && error.statusCode == 409) {
+    return 'Cloud processing is still running. Wait for it to finish, then retry.';
+  }
+  if (error is SdkException &&
+      error.statusCode == 500 &&
+      '${error.body}'.toLowerCase().contains('partial delete failure')) {
+    return 'Cloud deletion may be incomplete. Local videos were kept. Reconnect and verify before retrying.';
+  }
+  if (preview) {
+    return 'The deletion preview could not be verified. Nothing was deleted.';
+  }
+  return 'Cloud deletion could not be confirmed. Local videos were kept. Reconnect and verify before retrying.';
 }
 
 String timeLabel(double seconds) {

@@ -3,95 +3,32 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:vmodal_sdk_flutter/vmodal_sdk_flutter.dart';
-import '../user/user_collection.dart';
+import '../user/library_scope.dart';
 
-const archiveStream = userStream;
-
-String firstText(Map<String, Object?> row, List<String> fields) {
-  for (final field in fields) {
-    final text = '${row[field] ?? ''}'.trim();
-    if (text.isNotEmpty) return text;
-  }
-  return '';
-}
+const archiveStream = 'street_study';
 
 String basename(String path) => path.replaceAll('\\', '/').split('/').last;
 
-String hitFilename(Map<String, Object?> row) {
-  final name = firstText(row, const [
-    'filename',
-    'filename_sanitized',
-    'video_filename',
-    'video',
-    'source_path',
-    'path',
-    'title',
-  ]);
-  if (name.isNotEmpty) return basename(name);
-  var id = firstText(row, const ['item_id']);
-  final stream = firstText(row, const ['stream', 'stream_name']);
-  final ts = firstText(row, const ['ts_unix', 'ts_unix_13digits']);
-  if (stream.isNotEmpty && id.startsWith('$stream-')) {
-    id = id.substring(stream.length + 1);
-  }
-  if (ts.isNotEmpty && id.endsWith('-$ts')) {
-    id = id.substring(0, id.length - ts.length - 1);
-  }
-  return basename(id);
-}
-
-String timestamp13(Map<String, Object?> row) {
-  final text = firstText(row, const [
-    'ts_unix_13digits',
-    'ts_unix',
-    'timestamp_ms',
-  ]);
-  final value = num.tryParse(text);
-  if (value == null || !value.isFinite || value < 0) return '';
-  final digits = value.toInt().toString();
-  if (digits.length >= 13) return digits.substring(0, 13);
-  if (digits.length == 10) return '${value.toInt() * 1000}';
-  return digits.padLeft(13, '0');
-}
-
-double? hitSeconds(Map<String, Object?> row) {
-  for (final field in [
-    'video_time_seconds',
-    'timestamp_seconds',
-    'time_seconds',
-    'start_seconds',
-    'offset_seconds',
-    'seconds',
-    'time_sec',
-  ]) {
-    final n = num.tryParse('${row[field]}');
-    if (n != null && n.isFinite && n >= 0) return n.toDouble();
-  }
-  // The live video index returns zero-padded relative milliseconds in ts_unix.
-  // Epoch values are deliberately not interpreted as playback positions.
-  final ms = num.tryParse(
-    firstText(row, const ['ts_unix_13digits', 'ts_unix', 'timestamp_ms']),
-  );
-  if (ms != null && ms.isFinite && ms >= 0 && ms < 86400000) return ms / 1000;
-  return null;
-}
-
 class FrameMatch {
-  const FrameMatch({
-    required this.row,
-    required this.filename,
-    required this.timestamp,
-    this.imageUrl,
-    this.imageBytes,
-    this.seconds,
-  });
-  final Map<String, Object?> row;
-  final String filename;
-  final String timestamp;
+  const FrameMatch({required this.hit, this.imageUrl, this.imageBytes});
+  final VideoSearchHit hit;
   final String? imageUrl;
   final Uint8List? imageBytes;
-  final double? seconds;
-  double? get distance => num.tryParse('${row['score']}')?.toDouble();
+  String? get assetId => hit.assetId;
+  String get fileName => hit.fileName ?? '';
+  String get sourceKey => hit.assetId ?? hit.fileName ?? '';
+  double? get seconds =>
+      hit.playbackOffsetMs == null ? null : hit.playbackOffsetMs! / 1000;
+  double? get distance => hit.distance;
+}
+
+bool trustedPreviewUrl(String value) {
+  final uri = Uri.tryParse(value);
+  return uri != null &&
+      (uri.scheme == 'https' ||
+          (!uri.hasScheme &&
+              !uri.hasAuthority &&
+              uri.path == '/api/external/v1/image/get_image'));
 }
 
 class SearchBatch {
@@ -114,10 +51,10 @@ class SearchBatch {
 class SearchGateway {
   SearchGateway(
     this.keys,
-    String collectionUserId, {
+    String scopeId, {
     VmodalTransport? transport,
     Future<void> Function()? ensureFresh,
-  }) : collection = encodedUserCollection(collectionUserId),
+  }) : collection = validateLibraryScope(scopeId),
        // ignore: prefer_initializing_formals
        _ensureFresh = ensureFresh {
     client = VmodalClient(
@@ -181,6 +118,32 @@ class SearchGateway {
     );
   }
 
+  Future<DeleteCollectionResponse> previewLibraryDeletion(
+    CancellationToken cancellation,
+  ) => _call(
+    () => client.collections.delete(
+      groupName: collection,
+      mode: 'vid_file',
+      scope: 'all',
+      dryRun: true,
+      confirm: false,
+      cancellation: cancellation,
+    ),
+  );
+
+  Future<DeleteCollectionResponse> deleteLibrary(
+    CancellationToken cancellation,
+  ) => _call(
+    () => client.collections.delete(
+      groupName: collection,
+      mode: 'vid_file',
+      scope: 'all',
+      dryRun: false,
+      confirm: true,
+      cancellation: cancellation,
+    ),
+  );
+
   Future<UploadTask<VideoUploadResponse>> upload(File file) async {
     await _fresh();
     return client.collections.videoUpload(
@@ -242,34 +205,40 @@ class SearchGateway {
       ),
     );
     final searchMs = timer.elapsedMilliseconds;
-    final rows = response.data
-        .whereType<Map>()
-        .map((r) => r.map((k, v) => MapEntry('$k', v)))
-        .toList();
     // Enforce the displayed cutoff defensively on returned rows as well.
     // A client-filtered result is distinct from the raw server result count.
-    final usable = rows.where((r) {
-      final distance = num.tryParse('${r['score']}');
-      return hitFilename(r).isNotEmpty &&
-          distance != null &&
-          distance.isFinite &&
-          distance <= maxDistance;
+    final usable = response.videoHits.where((hit) {
+      final distance = hit.distance;
+      return (hit.assetId ?? hit.fileName ?? '').trim().isNotEmpty &&
+          (distance == null || distance <= maxDistance);
     }).toList();
     final urls = <int, String>{};
     final imageBytes = <int, Uint8List>{};
-    if (usable.isNotEmpty) {
+    for (var i = 0; i < usable.length; i++) {
+      final preview = usable[i].previewImageUrl;
+      if (preview != null && trustedPreviewUrl(preview)) urls[i] = preview;
+    }
+    final lookupIndexes = <int>[
+      for (var i = 0; i < usable.length; i++)
+        if (usable[i].previewImageUrl == null &&
+            (usable[i].fileName?.isNotEmpty ?? false))
+          i,
+    ];
+    if (lookupIndexes.isNotEmpty) {
       final resolved = await _call(
         () => client.images.getUrlBulk(
-          usable
+          lookupIndexes
               .map(
-                (row) => <String, Object?>{
+                (index) => <String, Object?>{
                   'mode': 'vid_file',
                   'group_name': collection,
                   'modality': 'vid_img',
                   'stream_name': archiveStream,
-                  'filename': hitFilename(row),
-                  if (timestamp13(row).isNotEmpty)
-                    'ts_unix_13digits': timestamp13(row),
+                  'filename': usable[index].fileName,
+                  if (usable[index].playbackOffsetMs != null)
+                    'ts_unix_13digits': usable[index].playbackOffsetMs
+                        .toString()
+                        .padLeft(13, '0'),
                 },
               )
               .toList(),
@@ -280,52 +249,46 @@ class SearchGateway {
         final row = resolved.records[i];
         final rawIndex = row['input_index'];
         final parsed = num.tryParse('$rawIndex');
-        final index = rawIndex == null
+        final recordIndex = rawIndex == null
             ? i
             : parsed != null && parsed.isFinite && parsed == parsed.toInt()
             ? parsed.toInt()
             : null;
         final url = '${row['url_pre_signed'] ?? ''}';
-        final uri = Uri.tryParse(url);
-        final valid =
-            uri != null &&
-            (uri.scheme == 'https' ||
-                (!uri.hasScheme &&
-                    !uri.hasAuthority &&
-                    uri.path == '/api/external/v1/image/get_image'));
-        if (index != null &&
-            index >= 0 &&
-            index < usable.length &&
+        if (recordIndex != null &&
+            recordIndex >= 0 &&
+            recordIndex < lookupIndexes.length &&
             row['found'] != false &&
-            valid) {
+            trustedPreviewUrl(url)) {
+          final index = lookupIndexes[recordIndex];
           urls.putIfAbsent(index, () => url);
         }
       }
-      // The beta gateway returns relative signed image routes. Its supported
-      // image-byte resource resolves those without guessing an absolute origin.
-      if (urls.isNotEmpty) {
-        final downloaded = await _call(
-          () => client.images.getImageBulkFromUrls(
-            urls.values.toList(),
-            cancellation: token,
-          ),
-        );
-        final byUrl = <String, Uint8List>{};
-        for (final row in downloaded.records) {
-          final url = '${row['url_pre_signed'] ?? ''}';
-          final encoded = '${row['content_base64'] ?? ''}';
-          if (url.isNotEmpty && encoded.isNotEmpty) {
-            try {
-              byUrl[url] = base64Decode(encoded);
-            } on FormatException {
-              /* Keep a per-card placeholder. */
-            }
+    }
+    // Relative signed routes are downloaded through the SDK without guessing
+    // an absolute origin. A malformed image remains local to its result card.
+    if (urls.isNotEmpty) {
+      final downloaded = await _call(
+        () => client.images.getImageBulkFromUrls(
+          urls.values.toList(),
+          cancellation: token,
+        ),
+      );
+      final byUrl = <String, Uint8List>{};
+      for (final row in downloaded.records) {
+        final url = '${row['url_pre_signed'] ?? ''}';
+        final encoded = '${row['content_base64'] ?? ''}';
+        if (url.isNotEmpty && encoded.isNotEmpty) {
+          try {
+            byUrl[url] = base64Decode(encoded);
+          } on FormatException {
+            /* Keep a per-card placeholder. */
           }
         }
-        for (final entry in urls.entries) {
-          if (byUrl[entry.value] != null) {
-            imageBytes[entry.key] = byUrl[entry.value]!;
-          }
+      }
+      for (final entry in urls.entries) {
+        if (byUrl[entry.value] != null) {
+          imageBytes[entry.key] = byUrl[entry.value]!;
         }
       }
     }
@@ -334,12 +297,9 @@ class SearchGateway {
       matches: [
         for (var i = 0; i < usable.length; i++)
           FrameMatch(
-            row: usable[i],
-            filename: hitFilename(usable[i]),
-            timestamp: timestamp13(usable[i]),
+            hit: usable[i],
             imageUrl: urls[i]?.startsWith('https://') == true ? urls[i] : null,
             imageBytes: imageBytes[i],
-            seconds: hitSeconds(usable[i]),
           ),
       ],
       total: response.cntTotal,

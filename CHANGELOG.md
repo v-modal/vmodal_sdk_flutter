@@ -1,4 +1,22 @@
 ----------------------------------------------------------
+----------------------------------------------------------
+date: 2026-09-30
+commit_hash: pending
+title: Harden the account-scoped Framebase example
+summary:
+  - Added opaque server-issued library scopes, typed credential failures with bounded recovery, and versioned in-memory credential contracts.
+  - Added typed video search hits, stable asset matching, lifecycle cancellation, and explicit local/cloud/index retention behavior.
+  - Added previewed full-library deletion, immutable production pin guidance, and regression coverage for the complete user lifecycle.
+
+----------------------------------------------------------
+date: 2026-09-27
+commit_hash: pending
+title: Repair pub.dev Dartdoc archive
+summary:
+  - Explicitly retain the package public library tree during publication.
+  - Verify the uploaded pub.dev archive contains the Dart entrypoint.
+
+----------------------------------------------------------
 date: 2026-09-24
 commit_hash: pending
 title: Explain Framebase user login and video flows
@@ -21,6 +39,12 @@ title: Restore and validate the Sightline Flutter example
 summary:
   - Restored the omitted Sightline application sources in the public SDK export.
   - Added dependency, analysis, formatting, test, and manifest coverage for example 04.
+
+## 1.2.3
+
+- Reissued the package after explicitly retaining the public `lib/` tree in
+  the publish manifest, so pub.dev can discover and document
+  `vmodal_sdk_flutter`.
 
 ## 1.2.2
 

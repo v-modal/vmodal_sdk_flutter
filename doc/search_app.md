@@ -25,23 +25,41 @@ Use `versionLancedb` in `ScopedSearchOptions` when your application tracks a
 specific index version. Collection and stream cannot be overridden per search,
 so overlapping searches retain the organization with which they started.
 
-Search hits contain stored image coordinates, not public image URLs. Convert
-each usable hit into one bulk lookup record with these fields:
+Use `result.videoHits` as the recommended parsing path. Each `VideoSearchHit`
+exposes nullable `assetId`, `fileName`, `playbackOffsetMs`, `distance`, and
+`previewImageUrl` fields while retaining the complete service map in `raw`:
+
+```dart
+for (final hit in result.videoHits) {
+  final seconds = hit.playbackOffsetMs == null
+      ? null
+      : hit.playbackOffsetMs! / 1000;
+  print('${hit.assetId} ${hit.fileName} $seconds ${hit.distance}');
+}
+```
+
+`playbackOffsetMs` is elapsed time from the beginning of the source video.
+`distance` is the raw lower-is-better distance, not similarity or confidence.
+`assetId` is stable only when the server supplies canonical `asset_id`; legacy
+responses legitimately expose a null identity.
+
+When `previewImageUrl` is present, validate it at the application boundary and
+reuse it. Otherwise convert each usable typed hit into one bulk lookup record
+with these fields:
 
 ```text
 mode                 vid_file
 group_name           selected authenticated collection
 modality             image
 stream_name          hit stream, or selected stream as fallback
-filename             basename of the first supported filename/path field
-ts_unix_13digits     normalized timestamp, when present
+filename             hit.fileName
+ts_unix_13digits     zero-padded hit.playbackOffsetMs, when present
 ```
 
-The supported filename fields, in order, are `filename`,
-`filename_sanitized`, `video_filename`, `video`, `source_path`, and `path`.
-Normalize timestamps from `ts_unix_13digits`, `ts_unix`, or `timestamp_ms`:
-truncate values longer than 13 digits, multiply 10-digit seconds by 1000, and
-left-pad other nonblank numeric values to 13 digits.
+For backward compatibility, `result.data` remains unchanged and callers may
+still inspect raw maps. The typed model already handles the documented legacy
+filename, seconds, relative-millisecond, score, and preview aliases. New code
+should not repeat those aliases or derive a filename from `item_id`.
 
 Image URL resolution remains an advanced low-level resource. When a result
 flow needs it, create `VmodalClient` first, pass it to `VModal.fromClient`, and

@@ -421,17 +421,114 @@ class HealthResponse extends JsonBackedResponse {
   final Object? dependencies;
 }
 
+/// Typed fields for one video-search hit.
+///
+/// Unknown and future service fields remain available through [raw]. A missing
+/// [assetId] is not inferred from a filename, path, item identifier, or time.
+class VideoSearchHit extends JsonBackedResponse {
+  VideoSearchHit(super.raw)
+    : assetId = stringValueOrNull(raw['asset_id']),
+      fileName = _videoHitFileName(raw),
+      playbackOffsetMs = _videoHitPlaybackOffsetMs(raw),
+      distance = _videoHitDistance(raw),
+      previewImageUrl = _firstVideoHitText(raw, const <String>[
+        'preview_image_url',
+        'image_url',
+        'thumbnail_url',
+      ]);
+
+  /// Stable source-asset identity, when supplied by the server.
+  final String? assetId;
+
+  /// Display and legacy-compatibility basename, not stable identity.
+  final String? fileName;
+
+  /// Elapsed milliseconds from the beginning of the source video.
+  final int? playbackOffsetMs;
+
+  /// Raw lower-is-better search distance.
+  final double? distance;
+
+  /// Optional absolute or relative preview-image URL.
+  final String? previewImageUrl;
+}
+
+String? _firstVideoHitText(Map<String, Object?> raw, List<String> fields) {
+  for (final field in fields) {
+    final value = stringValueOrNull(raw[field]);
+    if (value != null) return value;
+  }
+  return null;
+}
+
+String? _videoHitFileName(Map<String, Object?> raw) {
+  final value = _firstVideoHitText(raw, const <String>[
+    'file_name',
+    'filename',
+    'filename_sanitized',
+    'video_filename',
+    'video',
+    'source_path',
+    'path',
+    'title',
+  ]);
+  if (value == null) return null;
+  return stringValueOrNull(value.replaceAll('\\', '/').split('/').last);
+}
+
+int? _videoHitPlaybackOffsetMs(Map<String, Object?> raw) {
+  final canonical = intValueOrNull(raw['playback_offset_ms']);
+  if (canonical != null && canonical >= 0) return canonical;
+
+  for (final field in const <String>[
+    'video_time_seconds',
+    'timestamp_seconds',
+    'time_seconds',
+    'start_seconds',
+    'offset_seconds',
+    'seconds',
+    'time_sec',
+  ]) {
+    final seconds = doubleValueOrNull(raw[field]);
+    final milliseconds = seconds == null ? null : seconds * 1000;
+    if (milliseconds != null && milliseconds.isFinite && milliseconds >= 0) {
+      return milliseconds.round();
+    }
+  }
+  for (final field in const <String>[
+    'ts_unix_13digits',
+    'ts_unix',
+    'timestamp_ms',
+  ]) {
+    final milliseconds = intValueOrNull(raw[field]);
+    if (milliseconds != null && milliseconds >= 0 && milliseconds < 86400000) {
+      return milliseconds;
+    }
+  }
+  return null;
+}
+
+double? _videoHitDistance(Map<String, Object?> raw) {
+  for (final field in const <String>['distance', 'score', '_distance']) {
+    final value = doubleValueOrNull(raw[field]);
+    if (value != null && value >= 0) return value;
+  }
+  return null;
+}
+
 /// Search results, counts, and execution timing.
 class SearchResponse extends JsonBackedResponse {
   SearchResponse(super.raw)
     : data = raw['data'] is List
           ? List<Object?>.from(raw['data']! as List)
           : <Object?>[],
+      videoHits = objectList(raw['data']).map(VideoSearchHit.new).toList(),
       cntActual = intValue(raw['cnt_actual']),
       cntTotal = intValue(raw['cnt_total']),
       executionTimeMs = doubleValue(raw['execution_time_ms']);
 
   final List<Object?> data;
+  final List<VideoSearchHit> videoHits;
   final int cntActual;
   final int cntTotal;
   final double executionTimeMs;
@@ -573,7 +670,8 @@ class UploadResponse extends JsonBackedResponse {
 /// Detailed result of one signed video upload.
 class VideoUploadResponse extends JsonBackedResponse {
   VideoUploadResponse(super.raw)
-    : userId = '${raw['user_id'] ?? ''}',
+    : assetId = stringValueOrNull(raw['asset_id']),
+      userId = '${raw['user_id'] ?? ''}',
       key = '${raw['key'] ?? ''}',
       url = '${raw['url'] ?? ''}',
       method = '${raw['method'] ?? 'PUT'}',
@@ -600,6 +698,9 @@ class VideoUploadResponse extends JsonBackedResponse {
       sourceSizeBytes = intValue(raw['source_size_bytes']),
       temporaryFileDeleted = raw['temporary_file_deleted'] == true,
       temporaryFileReused = raw['temporary_file_reused'] == true;
+
+  /// Stable uploaded-asset identity, when supplied by finalization.
+  final String? assetId;
 
   final String userId;
   final String key;

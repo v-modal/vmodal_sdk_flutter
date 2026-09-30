@@ -302,7 +302,7 @@ final class ScopedSearchOptions {
     this.queryMetadataText,
     this.imageQuery,
     this.mode = 'vid_file',
-    this.searchSources = const <String>['ocr', 'asr', 'image'],
+    this.searchSources = const <String>['image'],
     this.searchCombineMode = 'union',
     this.startDate,
     this.endDate,

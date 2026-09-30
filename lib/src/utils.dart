@@ -134,6 +134,30 @@ int intValue(Object? value) {
   return 0;
 }
 
+String? stringValueOrNull(Object? value) {
+  if (value == null) return null;
+  final text = '$value'.trim();
+  return text.isEmpty ? null : text;
+}
+
+int? intValueOrNull(Object? value) {
+  if (value is int) return value;
+  if (value is num && value.isFinite && value == value.roundToDouble()) {
+    return value.toInt();
+  }
+  if (value is String) return int.tryParse(value.trim());
+  return null;
+}
+
+double? doubleValueOrNull(Object? value) {
+  if (value is num && value.isFinite) return value.toDouble();
+  if (value is String) {
+    final parsed = double.tryParse(value.trim());
+    return parsed != null && parsed.isFinite ? parsed : null;
+  }
+  return null;
+}
+
 double doubleValue(Object? value) {
   if (value is num && value.isFinite) return value.toDouble();
   if (value is String) {

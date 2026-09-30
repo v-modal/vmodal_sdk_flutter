@@ -3,7 +3,7 @@
 The generated class and method reference is published at
 `https://v-modal.github.io/vmodal_sdk_flutter/` and is built from the public
 Dart declarations in `lib/vmodal_sdk_flutter.dart`. The monorepo release
-pipeline builds the Pages artifact in `docs_sdk/`; that generated tree is not
+pipeline builds the Pages artifact in `doc/`; that generated tree is not
 part of the standalone package. Backend hosts, wire paths, and implementation
 bodies are intentionally excluded; mobile applications should use the typed
 resources described there.

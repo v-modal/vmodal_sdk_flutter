@@ -7,7 +7,7 @@ coverage/
 docs/todo/
 docs/dev_plan.md
 docs/dev_plan_step.md
-docs_sdk/
+docs/
 docs.py
 release/
 test/routes_gen_test.dart
@@ -17,3 +17,8 @@ tool/routes_manifest.dart
 utils.py
 SOURCE_MANIFEST.sha256
 *.iml
+!lib/
+!lib/**
+AGENTS.md
+README_PRIVATE.md
+example/

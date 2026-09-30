@@ -21,6 +21,7 @@
 |---|---|---|
 | 💬 | **Discord support** | [Join the V-Modal AI Discord](https://discord.gg/XGxgBQqkaY) |
 | 📚 | **SDK documentation** | [Read the Flutter SDK reference](https://v-modal.github.io/vmodal_sdk_flutter/) |
+| 📦 | **pub.dev package** | [Install vmodal_sdk_flutter](https://pub.dev/packages/vmodal_sdk_flutter) |
 | 📱 | **Demo app and community** | [Visit r/v_modal on Reddit](https://www.reddit.com/r/v_modal/) |
 | 🔑 | **Get an API key** | [Request a VModal API key](https://v-modal.com/page/contact.ts) |
 
@@ -82,15 +83,29 @@ next command I should run.
     
 
 
-The public package source is available on GitHub. Add it to your app:
+For production, prefer the exact published pub.dev version when it is
+available:
+
+```yaml
+dependencies:
+  vmodal_sdk_flutter: 1.2.3
+```
+
+For a Git install, pin an immutable public revision. Use the version tag only
+after a pub.dev release has actually created it:
 
 ```yaml
 dependencies:
   vmodal_sdk_flutter:
     git:
       url: https://github.com/v-modal/vmodal_sdk_flutter.git
-      ref: main
+      ref: v1.2.3
 ```
+
+The default source-only public workflow does not create that tag. For such a
+release, replace the `ref` above with the full 40-character commit SHA from the
+public repository. The `main` branch is suitable for evaluation and development
+only; it is not a production pin.
 
 Then run:
 
@@ -140,10 +155,19 @@ final results = await favorites.search(
 );
 
 print('${results.cntActual} moments found');
-for (final moment in results.data) {
-  print(moment);
+for (final hit in results.videoHits) {
+  print(
+    '${hit.assetId ?? 'legacy asset'} · ${hit.fileName ?? 'unnamed'} · '
+    '${hit.playbackOffsetMs ?? 'unknown'} ms · distance ${hit.distance}',
+  );
 }
 ```
+
+`VideoSearchHit.distance` is the raw lower-is-better distance; it is not a
+similarity or confidence score. `assetId` remains `null` when an older server
+does not return `asset_id`—the SDK never invents stable identity from a
+filename, path, frame identifier, or timestamp. The original entries remain
+available through `results.data` and each hit's `raw` map for compatibility.
 
 Collection access is key-scoped. A logical name copied from another account or
 environment can return HTTP 404 even when the search route is healthy. Use

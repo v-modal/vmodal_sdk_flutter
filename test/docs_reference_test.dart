@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-final docsRoot = Directory('docs_sdk');
+final docsRoot = Directory('doc');
 final internalDocs = docsRoot.existsSync() && File('docs.py').existsSync();
 
 final requiredDocs = <String>[
@@ -146,7 +146,7 @@ void main() {
       expect(text, isNot(contains('swagger')), reason: path);
       expect(text, isNot(contains('openapi')), reason: path);
       expect(text, isNot(contains('docs_swagger')), reason: path);
-      expect(text, contains('docs_sdk'), reason: path);
+      expect(text, contains('doc'), reason: path);
     }
   });
 }

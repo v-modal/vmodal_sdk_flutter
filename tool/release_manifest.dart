@@ -128,7 +128,7 @@ Future<void> _export(Directory root, Directory destination) async {
   final docs = Directory('${root.path}/docs').existsSync() ? 'docs' : 'doc';
   await _copyDirectory(
     Directory('${root.path}/$docs'),
-    Directory('${destination.path}/doc'),
+    Directory('${destination.path}/docs'),
     excluded: const <String>{'todo'},
   );
   final publish = File('${root.path}/release/public_publish.yml').existsSync()

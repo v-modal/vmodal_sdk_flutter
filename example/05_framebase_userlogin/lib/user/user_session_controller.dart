@@ -8,12 +8,29 @@ import '../data/search_gateway.dart';
 import 'auth_adapter.dart';
 import 'vmodal_credential.dart';
 
-enum SessionState { loading, signedOut, resolving, ready, denied, error }
+enum SessionState {
+  loading,
+  signedOut,
+  resolving,
+  ready,
+  recoverable,
+  denied,
+  error,
+}
+
+enum SessionFailureKind {
+  transient,
+  firebaseIdentityExpired,
+  credentialDenied,
+  vmodalUnauthorized,
+  vmodalForbidden,
+  contract,
+}
 
 typedef GatewayFactory =
     SearchGateway Function(
       MutableApiKeyProvider provider,
-      String collectionUserId,
+      String scopeId,
       Future<void> Function() ensureFresh,
     );
 
@@ -24,21 +41,38 @@ class UserSessionController extends ChangeNotifier {
     required this.archive,
     GatewayFactory? gatewayFactory,
     DateTime Function()? clock,
+    Future<void> Function(Duration)? delay,
   }) : gatewayFactory =
            gatewayFactory ??
            ((provider, id, fresh) =>
                SearchGateway(provider, id, ensureFresh: fresh)),
-       clock = clock ?? DateTime.now {
+       clock = clock ?? DateTime.now,
+       delay = delay ?? Future<void>.delayed {
     _subscription = auth.users.listen(_onUser);
   }
+
+  static const _transientMessage =
+      'Connection interrupted. Retry to reconnect your library.';
+  static const _identityMessage = 'Your sign-in expired. Sign in again.';
+  static const _deniedMessage = 'Access to this library is unavailable.';
+  static const _unauthorizedMessage =
+      'Your library session expired. Sign in again.';
+  static const _contractMessage =
+      'The library connection is not configured correctly.';
+  static const _backoff = [
+    Duration(milliseconds: 250),
+    Duration(milliseconds: 500),
+  ];
 
   final FirebaseAuthAdapter auth;
   final VmodalCredentialSource credentials;
   final ArchiveController archive;
   final GatewayFactory gatewayFactory;
   final DateTime Function() clock;
+  final Future<void> Function(Duration) delay;
   late final StreamSubscription<AppUser?> _subscription;
   SessionState state = SessionState.loading;
+  SessionFailureKind? failureKind;
   AppUser? user;
   VmodalCredential? _credential;
   MutableApiKeyProvider? _provider;
@@ -50,6 +84,7 @@ class UserSessionController extends ChangeNotifier {
   int _generation = 0;
   bool _disposed = false;
 
+  bool get canRetry => failureKind == SessionFailureKind.transient;
   bool get canRead =>
       state == SessionState.ready &&
       (_credential?.permissions.contains('library:read') ?? false);
@@ -80,6 +115,7 @@ class UserSessionController extends ChangeNotifier {
     if (next?.uid == user?.uid && state != SessionState.loading) return;
     _teardown();
     user = next;
+    failureKind = null;
     message = '';
     state = next == null ? SessionState.signedOut : SessionState.resolving;
     _notify();
@@ -89,25 +125,64 @@ class UserSessionController extends ChangeNotifier {
   bool _current(AppUser account, int generation) =>
       !_disposed && generation == _generation && user?.uid == account.uid;
 
+  Future<VmodalCredential> _acquire(
+    AppUser account,
+    int generation, {
+    VmodalCredential? previous,
+  }) async {
+    Object? failure;
+    for (var attempt = 0; attempt < 3; attempt++) {
+      if (!_current(account, generation)) {
+        throw failure ?? const CredentialDenied();
+      }
+      try {
+        final firebaseToken = await auth.idToken(account);
+        if (!_current(account, generation)) {
+          throw const CredentialDenied();
+        }
+        final credential = await credentials.acquire(account, firebaseToken);
+        if (!_current(account, generation)) {
+          throw const CredentialDenied();
+        }
+        credential.validate(account, clock(), previous: previous);
+        return credential;
+      } on FirebaseIdentityTransient catch (error) {
+        failure = error;
+      } on CredentialTransient catch (error) {
+        failure = error;
+      }
+      if (attempt == 2) throw failure;
+      if (!_current(account, generation)) throw failure;
+      await delay(_backoff[attempt]);
+      if (!_current(account, generation)) throw failure;
+    }
+    throw failure!;
+  }
+
   Future<void> _resolve(AppUser account, int generation) async {
     SearchGateway? next;
     try {
-      final firebaseToken = await auth.idToken(account);
+      final credential = await _acquire(account, generation);
       if (!_current(account, generation)) return;
-      final credential = await credentials.acquire(account, firebaseToken);
-      if (!_current(account, generation)) return;
-      credential.validate(account, clock());
       final provider = MutableApiKeyProvider(credential.apiToken!);
       _provider = provider;
       _credential = credential;
-      next = gatewayFactory(
-        provider,
-        credential.collectionUserId!,
-        ensureFresh,
-      );
+      next = gatewayFactory(provider, credential.scopeId!, ensureFresh);
       next.onAccessFailure = (status) {
         if (_current(account, generation)) {
-          _fail(status == 403 ? SessionState.denied : SessionState.error);
+          if (status == 403) {
+            _fail(
+              SessionState.denied,
+              SessionFailureKind.vmodalForbidden,
+              _deniedMessage,
+            );
+          } else {
+            _fail(
+              SessionState.error,
+              SessionFailureKind.vmodalUnauthorized,
+              _unauthorizedMessage,
+            );
+          }
         }
       };
       await next.connect(credential.vmodalUserId!);
@@ -117,30 +192,72 @@ class UserSessionController extends ChangeNotifier {
       }
       gateway = next;
       await archive.activate(
-        credential.collectionUserId!,
+        credential.scopeId!,
         next,
         canRead: credential.permissions.contains('library:read'),
         canWrite: credential.permissions.contains('library:write'),
       );
       if (!_current(account, generation)) return;
       state = SessionState.ready;
+      failureKind = null;
+      message = '';
       _schedule();
       _notify();
-    } on CredentialDenied {
-      if (_current(account, generation)) _fail(SessionState.denied);
+    } on FirebaseIdentityTransient {
+      if (_current(account, generation)) _recover();
       if (next != null && next != gateway) await next.close();
-    } on Object {
-      if (_current(account, generation)) _fail(SessionState.error);
+    } on CredentialTransient {
+      if (_current(account, generation)) _recover();
+      if (next != null && next != gateway) await next.close();
+    } on Object catch (error) {
+      if (_current(account, generation)) _failFor(error);
       if (next != null && next != gateway) await next.close();
     }
   }
 
-  void _fail(SessionState next) {
+  void _recover() {
+    state = SessionState.recoverable;
+    failureKind = SessionFailureKind.transient;
+    message = _transientMessage;
+    _notify();
+  }
+
+  void _failFor(Object error) {
+    if (error is FirebaseIdentityExpired) {
+      _fail(
+        SessionState.error,
+        SessionFailureKind.firebaseIdentityExpired,
+        _identityMessage,
+      );
+    } else if (error is CredentialDenied) {
+      _fail(
+        SessionState.denied,
+        SessionFailureKind.credentialDenied,
+        _deniedMessage,
+      );
+    } else if (error is AuthException ||
+        error is ApiException && error.statusCode == 401) {
+      _fail(
+        SessionState.error,
+        SessionFailureKind.vmodalUnauthorized,
+        _unauthorizedMessage,
+      );
+    } else if (error is ApiException && error.statusCode == 403) {
+      _fail(
+        SessionState.denied,
+        SessionFailureKind.vmodalForbidden,
+        _deniedMessage,
+      );
+    } else {
+      _fail(SessionState.error, SessionFailureKind.contract, _contractMessage);
+    }
+  }
+
+  void _fail(SessionState next, SessionFailureKind kind, String safeMessage) {
     _teardown();
     state = next;
-    message = next == SessionState.denied
-        ? 'Access to this library is unavailable.'
-        : 'Could not connect your library. Please retry.';
+    failureKind = kind;
+    message = safeMessage;
     _notify();
   }
 
@@ -148,9 +265,9 @@ class UserSessionController extends ChangeNotifier {
     _timer?.cancel();
     final expiry = _credential?.expiresAt;
     if (expiry == null) return;
-    final delay =
+    final wait =
         expiry.difference(clock().toUtc()) - const Duration(seconds: 60);
-    _timer = Timer(delay.isNegative ? Duration.zero : delay, () {
+    _timer = Timer(wait.isNegative ? Duration.zero : wait, () {
       unawaited(ensureFresh().catchError((Object _) {}));
     });
   }
@@ -166,6 +283,10 @@ class UserSessionController extends ChangeNotifier {
     )) {
       return Future.value();
     }
+    return _startRefresh(account);
+  }
+
+  Future<void> _startRefresh(AppUser account) {
     final current = _refreshing;
     if (current != null) return current;
     final task = _refresh(account, _generation);
@@ -183,17 +304,27 @@ class UserSessionController extends ChangeNotifier {
 
   Future<void> _refresh(AppUser account, int generation) async {
     try {
-      final firebaseToken = await auth.idToken(account);
+      final renewed = await _acquire(
+        account,
+        generation,
+        previous: _credential,
+      );
       if (!_current(account, generation)) throw const CredentialDenied();
-      final renewed = await credentials.acquire(account, firebaseToken);
-      if (!_current(account, generation)) throw const CredentialDenied();
-      renewed.validate(account, clock(), previous: _credential);
       _provider!.rotate(renewed.apiToken!);
       _credential = renewed;
+      state = SessionState.ready;
+      failureKind = null;
+      message = '';
       _schedule();
       _notify();
-    } on Object {
-      if (_current(account, generation)) _fail(SessionState.error);
+    } on FirebaseIdentityTransient {
+      if (_current(account, generation)) _recover();
+      rethrow;
+    } on CredentialTransient {
+      if (_current(account, generation)) _recover();
+      rethrow;
+    } on Object catch (error) {
+      if (_current(account, generation)) _failFor(error);
       rethrow;
     }
   }
@@ -215,18 +346,28 @@ class UserSessionController extends ChangeNotifier {
 
   Future<void> retry() async {
     final account = user;
-    if (account == null) return;
-    _teardown();
+    if (account == null || failureKind != SessionFailureKind.transient) return;
+    final established = _credential != null && _provider != null;
     state = SessionState.resolving;
+    failureKind = null;
     message = '';
     _notify();
-    await _resolve(account, _generation);
+    if (!established) {
+      await _resolve(account, _generation);
+      return;
+    }
+    try {
+      await _startRefresh(account);
+    } on Object {
+      // The typed failure has already updated the recoverable or terminal UI.
+    }
   }
 
   Future<void> signOut() async {
     _teardown();
     user = null;
     state = SessionState.signedOut;
+    failureKind = null;
     message = '';
     _notify();
     await auth.signOut();

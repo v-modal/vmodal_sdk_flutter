@@ -352,6 +352,125 @@ void main() {
     expect(groups.findGroup('travel', mode: 'img_file'), isNull);
   });
 
+  test('canonical video hits expose typed fields and preserve raw data', () {
+    final raw = <String, Object?>{
+      'asset_id': 'asset-7',
+      'file_name': 'camera.mp4',
+      'playback_offset_ms': '35000',
+      'distance': '0.42',
+      'preview_image_url': '/api/external/v1/image/get_image?sig=test',
+      'extension_field': <String>['kept'],
+    };
+    final hit = VideoSearchHit(raw);
+    expect(hit.assetId, 'asset-7');
+    expect(hit.fileName, 'camera.mp4');
+    expect(hit.playbackOffsetMs, 35000);
+    expect(hit.distance, .42);
+    expect(hit.previewImageUrl, '/api/external/v1/image/get_image?sig=test');
+    expect(hit.raw, same(raw));
+    expect(hit.raw['extension_field'], <String>['kept']);
+    expect(
+      VideoSearchHit(const <String, Object?>{
+        'playback_offset_ms': 1200,
+      }).playbackOffsetMs,
+      1200,
+    );
+  });
+
+  test(
+    'search response adds ordered map-only video hits without changing data',
+    () {
+      final rows = <Object?>[
+        <String, Object?>{'asset_id': 'first'},
+        'unchanged scalar',
+        <Object?, Object?>{'asset_id': 'second'},
+      ];
+      final response = SearchResponse(<String, Object?>{'data': rows});
+      expect(response.data, rows);
+      expect(response.data[1], 'unchanged scalar');
+      expect(response.videoHits.map((hit) => hit.assetId), ['first', 'second']);
+    },
+  );
+
+  test(
+    'legacy video hit aliases normalize filename time distance and preview',
+    () {
+      final hit = VideoSearchHit(const <String, Object?>{
+        'source_path': r'C:\archive\camera.mp4',
+        'timestamp_seconds': '35.1256',
+        'score': .73,
+        'image_url': 'https://images.test/frame.jpg',
+      });
+      expect(hit.fileName, 'camera.mp4');
+      expect(hit.playbackOffsetMs, 35126);
+      expect(hit.distance, .73);
+      expect(hit.previewImageUrl, 'https://images.test/frame.jpg');
+      expect(
+        VideoSearchHit(const <String, Object?>{'score': .92}).distance,
+        .92,
+      );
+      expect(
+        VideoSearchHit(const <String, Object?>{'score_ui': .98}).distance,
+        isNull,
+      );
+    },
+  );
+
+  test(
+    'malformed video hit fields stay null and identity is never invented',
+    () {
+      for (final raw in <Map<String, Object?>>[
+        <String, Object?>{'ts_unix': '1788510000000'},
+        <String, Object?>{'playback_offset_ms': -1},
+        <String, Object?>{'playback_offset_ms': 1.5},
+        <String, Object?>{'playback_offset_ms': 'bad'},
+        <String, Object?>{'playback_offset_ms': double.infinity},
+      ]) {
+        expect(VideoSearchHit(raw).playbackOffsetMs, isNull);
+      }
+      for (final value in <Object?>[-1, 'bad', double.nan, double.infinity]) {
+        expect(
+          VideoSearchHit(<String, Object?>{'distance': value}).distance,
+          isNull,
+        );
+      }
+      final blank = VideoSearchHit(const <String, Object?>{
+        'asset_id': '  ',
+        'path': 'folder/',
+        'preview_image_url': '',
+        'item_id': 'frame-123',
+      });
+      expect(blank.assetId, isNull);
+      expect(blank.fileName, isNull);
+      expect(blank.previewImageUrl, isNull);
+      expect(
+        VideoSearchHit(const <String, Object?>{
+          'item_id': 'frame-123',
+          'filename': 'camera.mp4',
+        }).assetId,
+        isNull,
+      );
+    },
+  );
+
+  test('video upload asset identity is canonical-only', () {
+    expect(
+      VideoUploadResponse(const <String, Object?>{
+        'asset_id': 'asset-uploaded',
+      }).assetId,
+      'asset-uploaded',
+    );
+    expect(
+      VideoUploadResponse(const <String, Object?>{
+        'filename': 'camera.mp4',
+        'video_filename': 'camera.mp4',
+        'key': 'uploads/camera.mp4',
+        'dest_path': 'bucket/camera.mp4',
+      }).assetId,
+      isNull,
+    );
+  });
+
   test('gateway bulk image payload removes nested identity fields', () async {
     final fake = FakeTransport()..addResponse(jsonResponse('{"records":[]}'));
     final client = VmodalClient(

@@ -85,6 +85,8 @@ void main() {
     );
     if (Directory('docs').existsSync()) {
       expect(File('tool/live_test.dart').existsSync(), isTrue);
+    }
+    if (File('test/routes_gen_test.dart').existsSync()) {
       expect(File('tool/gen_routes.dart').existsSync(), isTrue);
       expect(File('tool/routes_manifest.dart').existsSync(), isTrue);
     }
@@ -120,13 +122,16 @@ void main() {
     final text = File('.pubignore').readAsStringSync();
     for (final path in <String>[
       'docs/todo/',
-      'docs_sdk/',
+      'docs/',
       'docs.py',
       'utils.py',
       'test/routes_gen_test.dart',
       'tool/gen_routes.dart',
       'tool/routes_manifest.dart',
     ]) {
+      expect(text, contains(path), reason: path);
+    }
+    for (final path in <String>['!lib/', '!lib/**']) {
       expect(text, contains(path), reason: path);
     }
     expect(text, isNot(contains('dartdoc_options.yaml')));
@@ -200,10 +205,10 @@ void main() {
         'example/05_framebase_userlogin/lib/data/search_gateway.dart',
         'example/05_framebase_userlogin/lib/data/archive_controller.dart',
         'example/05_framebase_userlogin/test/user_session_controller_test.dart',
-        'doc/search_app.md',
-        'doc/sdk_doc.md',
-        'doc/manage_api_key.md',
-        'doc/sdk_contract.md',
+        'docs/search_app.md',
+        'docs/sdk_doc.md',
+        'docs/manage_api_key.md',
+        'docs/sdk_contract.md',
       ]) {
         expect(File('${dir.path}/$path').existsSync(), isTrue, reason: path);
       }
@@ -211,7 +216,7 @@ void main() {
         '${dir.path}/example/01_full_app/README.md',
       ).readAsStringSync();
       final searchGuide = File(
-        '${dir.path}/doc/search_app.md',
+        '${dir.path}/docs/search_app.md',
       ).readAsStringSync();
       expect(exampleReadme, contains('client.images.getUrlBulk'));
       expect(exampleReadme, contains('responsive result grid'));
@@ -236,8 +241,8 @@ void main() {
         'example/05_framebase_userlogin/.dart_tool',
         'example/05_framebase_userlogin/build',
         'example/05_framebase_userlogin/android/local.properties',
-        'doc/todo/sdk_doc.md',
-        'docs_sdk',
+        'docs/todo/sdk_doc.md',
+        'doc',
         'docs.py',
         'utils.py',
         'test/routes_gen_test.dart',

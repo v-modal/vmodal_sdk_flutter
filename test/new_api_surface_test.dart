@@ -406,8 +406,10 @@ void main() {
     expect(api.requests, hasLength(2));
     expect(requestValues(api.requests[0])['group_name'], 'app__user_1');
     expect(requestValues(api.requests[0])['stream_name'], 'camera');
+    expect(requestValues(api.requests[0])['search_sources'], <String>['image']);
     expect(requestValues(api.requests[1])['group_name'], 'app__user_2');
     expect(requestValues(api.requests[1])['stream_name'], 'favorites');
+    expect(requestValues(api.requests[1])['search_sources'], <String>['image']);
 
     waits['second']!.complete(
       jsonResponse('{"data":[],"cnt_actual":2,"cnt_total":2}'),

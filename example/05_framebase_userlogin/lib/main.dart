@@ -38,7 +38,8 @@ class FramebaseApp extends StatefulWidget {
   State<FramebaseApp> createState() => _FramebaseAppState();
 }
 
-class _FramebaseAppState extends State<FramebaseApp> {
+class _FramebaseAppState extends State<FramebaseApp>
+    with WidgetsBindingObserver {
   late final ArchiveController archive;
   late final UserSessionController session;
   @override
@@ -52,10 +53,22 @@ class _FramebaseAppState extends State<FramebaseApp> {
           credentials: MockVmodalCredentialSource(),
           archive: archive,
         );
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      archive.stopWork();
+      archive.invalidateSearch();
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     if (widget.session == null) session.dispose();
     if (widget.controller == null) archive.dispose();
     super.dispose();
@@ -280,6 +293,14 @@ class _LibraryPageState extends State<LibraryPage> {
                   ),
                 );
               }
+              if (value == 'storage') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) => StorageDeletionPage(archive: archive),
+                  ),
+                );
+              }
               if (value == 'prepare' && widget.session.canWrite) {
                 prepareArchive(context, archive);
               }
@@ -294,6 +315,10 @@ class _LibraryPageState extends State<LibraryPage> {
               const PopupMenuItem(
                 value: 'history',
                 child: Text('Sync history'),
+              ),
+              const PopupMenuItem(
+                value: 'storage',
+                child: Text('Storage & deletion'),
               ),
             ],
           ),
@@ -325,7 +350,19 @@ class _LibraryPageState extends State<LibraryPage> {
           for (final clip in archive.clips)
             VideoRow(
               clip: clip,
-              onTap: () => showRecording(context, archive, clip),
+              onTap: () {
+                if (clip.remoteOnly) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'This video is in the cloud but is not stored on this device.',
+                      ),
+                    ),
+                  );
+                } else {
+                  showRecording(context, archive, clip);
+                }
+              },
             ),
           if (archive.busy) ...[
             const SizedBox(height: 12),
@@ -494,7 +531,9 @@ class VideoRow extends StatelessWidget {
     padding: const EdgeInsets.only(bottom: 14),
     child: Semantics(
       button: true,
-      label: 'Play ${clip.title}',
+      label: clip.remoteOnly
+          ? '${clip.title}, cloud only, not on this device'
+          : 'Play ${clip.title}',
       child: ClipRRect(
         borderRadius: BorderRadius.circular(18),
         child: AspectRatio(
@@ -539,7 +578,9 @@ class VideoRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      city(clip),
+                      clip.remoteOnly
+                          ? 'Cloud only · Not on this device'
+                          : city(clip),
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFFDFE5DF),
@@ -564,8 +605,10 @@ class VideoRow extends StatelessWidget {
                         width: .7,
                       ),
                     ),
-                    child: const Icon(
-                      Icons.play_arrow_rounded,
+                    child: Icon(
+                      clip.remoteOnly
+                          ? Icons.cloud_done_outlined
+                          : Icons.play_arrow_rounded,
                       color: Colors.white,
                       size: 24,
                     ),
@@ -637,7 +680,7 @@ class TimeBadge extends StatelessWidget {
 Map<String, List<FrameMatch>> groupMoments(List<FrameMatch> hits) {
   final groups = <String, List<FrameMatch>>{};
   for (final hit in hits) {
-    final moments = groups.putIfAbsent(hit.filename, () => []);
+    final moments = groups.putIfAbsent(hit.sourceKey, () => []);
     final t = hit.seconds;
     if (moments.any(
       (m) => t != null && m.seconds != null && (t - m.seconds!).abs() < 6,
@@ -833,7 +876,10 @@ class _SearchPageState extends State<SearchPage> {
                     ),
                     for (final entry in groups.entries) ...[
                       Text(
-                        archive.clipFor(entry.key)?.title ?? entry.key,
+                        archive.clipFor(entry.value.first.hit)?.title ??
+                            (entry.value.first.fileName.isNotEmpty
+                                ? entry.value.first.fileName
+                                : entry.key),
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w500,
@@ -841,9 +887,9 @@ class _SearchPageState extends State<SearchPage> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        archive.clipFor(entry.key) == null
+                        archive.clipFor(entry.value.first.hit) == null
                             ? 'Not stored on this device'
-                            : city(archive.clipFor(entry.key)!),
+                            : city(archive.clipFor(entry.value.first.hit)!),
                         style: const TextStyle(color: secondary, fontSize: 13),
                       ),
                       const SizedBox(height: 12),
@@ -867,8 +913,10 @@ class _SearchPageState extends State<SearchPage> {
                               key: Key('moment_${entry.key}_$i'),
                               hit: entry.value[i],
                               onTap: () {
-                                final clip = archive.clipFor(entry.key);
-                                if (clip != null) {
+                                final clip = archive.clipFor(
+                                  entry.value[i].hit,
+                                );
+                                if (clip != null && !clip.remoteOnly) {
                                   showRecording(
                                     context,
                                     archive,
@@ -880,7 +928,7 @@ class _SearchPageState extends State<SearchPage> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text(
-                                        'This video is not stored on this device.',
+                                        'This video is in the cloud but is not stored on this device.',
                                       ),
                                     ),
                                   );
@@ -1048,6 +1096,50 @@ class _RecordingSheetState extends State<RecordingSheet> {
     }
   }
 
+  Future<void> removeLocalCopy() async {
+    final uploaded = widget.clip.uploaded;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remove device copy?'),
+        content: Text(
+          uploaded
+              ? 'This removes only the copy on this device. The cloud copy remains searchable until you delete the complete cloud library.'
+              : 'This removes the copy on this device and removes this local-only video from the library.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const Key('confirm_remove_local_copy'),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Remove device copy'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final old = player;
+    old?.removeListener(refresh);
+    await old?.pause();
+    await old?.dispose();
+    player = null;
+    final result = await widget.archive.removeLocalCopy(widget.clip);
+    if (!mounted) return;
+    if (result == LocalRemovalResult.unavailable) {
+      setState(
+        () => error = 'The video could not be removed from this device.',
+      );
+      unawaited(load());
+      return;
+    }
+    Navigator.pop(context);
+    messenger.showSnackBar(SnackBar(content: Text(widget.archive.notice)));
+  }
+
   void refresh() {
     if (mounted) setState(() {});
   }
@@ -1130,6 +1222,23 @@ class _RecordingSheetState extends State<RecordingSheet> {
               ),
               if (error != null)
                 Padding(padding: const EdgeInsets.all(16), child: Text(error!)),
+              if (!widget.clip.bundled && widget.clip.path != null)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    key: const Key('remove_local_copy'),
+                    onPressed:
+                        widget.archive.busy ||
+                            widget.archive.pendingJob.isNotEmpty
+                        ? null
+                        : removeLocalCopy,
+                    icon: const Icon(Icons.delete_outline),
+                    label: const Text('Remove device copy'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
               if (p != null) ...[
                 if (widget.moments.length > 1) ...[
                   const SizedBox(height: 16),
@@ -1313,6 +1422,139 @@ class WorkStatus extends StatelessWidget {
   );
 }
 
+class StorageDeletionPage extends StatelessWidget {
+  const StorageDeletionPage({super.key, required this.archive});
+  final ArchiveController archive;
+
+  Future<void> deleteCloudLibrary(BuildContext context) async {
+    final previewApproved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete cloud library?'),
+        content: const Text(
+          'This affects all cloud videos, metadata, and search indexes in this issued library scope. Videos stored on this device remain.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Preview deletion'),
+          ),
+        ],
+      ),
+    );
+    if (previewApproved != true || !context.mounted) return;
+    final preview = await archive.previewCloudLibraryDeletion();
+    if (!context.mounted) return;
+    if (preview == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(archive.notice)));
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Deletion preview'),
+        content: Text(
+          'Cloud data selected: ${preview.removedBytes} bytes\n'
+          'Metadata rows selected: ${preview.sqlRowsDeleted}\n'
+          'Preview time: ${preview.executionTimeMs.toStringAsFixed(0)} ms\n\n'
+          'Deleting removes the complete cloud library and search indexes. Device videos remain.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const Key('confirm_delete_cloud_library'),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete cloud library'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    await archive.deleteCloudLibrary();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(archive.notice)));
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: archive,
+    builder: (context, _) => Scaffold(
+      appBar: AppBar(title: const Text('Storage & deletion')),
+      body: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          const Text(
+            'Your videos have three separate retention domains:',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 16),
+          const ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.phone_android),
+            title: Text('Device MP4 and manifest'),
+            subtitle: Text(
+              'Kept until explicit local removal, app uninstall or platform cleanup, or operating-system storage eviction where applicable.',
+            ),
+          ),
+          const ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.cloud_outlined),
+            title: Text('Cloud video and metadata'),
+            subtitle: Text(
+              'Removing a device copy does not remove its uploaded cloud copy.',
+            ),
+          ),
+          const ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.manage_search),
+            title: Text('Derived search index'),
+            subtitle: Text(
+              'Complete cloud deletion also removes the searchable index.',
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Signing out keeps videos on this device and in the cloud.',
+          ),
+          const SizedBox(height: 20),
+          if (archive.pendingJob.isNotEmpty)
+            const Text(
+              'Cloud processing is still running. Wait for it to finish before deletion.',
+            ),
+          if (archive.busy) WorkStatus(archive: archive),
+          FilledButton.icon(
+            key: const Key('delete_cloud_library'),
+            onPressed: archive.canDeleteCloudLibrary
+                ? () => deleteCloudLibrary(context)
+                : null,
+            icon: const Icon(Icons.delete_forever_outlined),
+            label: const Text('Delete cloud library'),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Stopping the wait cannot undo a deletion already committed by the server.',
+            style: TextStyle(color: secondary, fontSize: 12),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 class HistoryPage extends StatelessWidget {
   const HistoryPage({super.key, required this.archive});
   final ArchiveController archive;
@@ -1377,7 +1619,7 @@ Future<void> showSearchDetails(
               ),
               const SizedBox(height: 16),
               const Text(
-                'Nearby frames from the same video are combined in the results. Distance is similarity, not confidence.',
+                'Nearby frames from the same video are combined in the results. Distance is lower-is-better; it is not similarity or confidence.',
               ),
             ],
           ],

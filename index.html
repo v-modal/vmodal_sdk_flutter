@@ -78,6 +78,11 @@
 <td><a href="https://v-modal.github.io/vmodal_sdk_flutter/">Read the Flutter SDK reference</a></td>
 </tr>
 <tr>
+<td>📦</td>
+<td><strong>pub.dev package</strong></td>
+<td><a href="https://pub.dev/packages/vmodal_sdk_flutter">Install vmodal_sdk_flutter</a></td>
+</tr>
+<tr>
 <td>📱</td>
 <td><strong>Demo app and community</strong></td>
 <td><a href="https://www.reddit.com/r/v_modal/">Visit r/v_modal on Reddit</a></td>
@@ -158,13 +163,23 @@ next command I should run.
 <p>Get an API Key : <a href="https://v-modal.com/page/contact.ts">API Key</a></p>
 <h2 id="start-in-minutes">Start in minutes</h2>
 <p><a href="https://v-modal.github.io/vmodal_sdk_flutter/">SDK docs: v-modal.github.io/vmodal_sdk_flutter/</a></p>
-<p>The public package source is available on GitHub. Add it to your app:</p>
+<p>For production, prefer the exact published pub.dev version when it is
+available:</p>
+<pre class="language-yaml"><code class="language-yaml">dependencies:
+  vmodal_sdk_flutter: 1.2.3
+</code></pre>
+<p>For a Git install, pin an immutable public revision. Use the version tag only
+after a pub.dev release has actually created it:</p>
 <pre class="language-yaml"><code class="language-yaml">dependencies:
   vmodal_sdk_flutter:
     git:
       url: https://github.com/v-modal/vmodal_sdk_flutter.git
-      ref: main
+      ref: v1.2.3
 </code></pre>
+<p>The default source-only public workflow does not create that tag. For such a
+release, replace the <code>ref</code> above with the full 40-character commit SHA from the
+public repository. The <code>main</code> branch is suitable for evaluation and development
+only; it is not a production pin.</p>
 <p>Then run:</p>
 <pre class="language-bash"><code class="language-bash">flutter pub get
 </code></pre>
@@ -205,10 +220,18 @@ final results = await favorites.search(
 );
 
 print('${results.cntActual} moments found');
-for (final moment in results.data) {
-  print(moment);
+for (final hit in results.videoHits) {
+  print(
+    '${hit.assetId ?? 'legacy asset'} · ${hit.fileName ?? 'unnamed'} · '
+    '${hit.playbackOffsetMs ?? 'unknown'} ms · distance ${hit.distance}',
+  );
 }
 </code></pre>
+<p><code>VideoSearchHit.distance</code> is the raw lower-is-better distance; it is not a
+similarity or confidence score. <code>assetId</code> remains <code>null</code> when an older server
+does not return <code>asset_id</code>—the SDK never invents stable identity from a
+filename, path, frame identifier, or timestamp. The original entries remain
+available through <code>results.data</code> and each hit's <code>raw</code> map for compatibility.</p>
 <p>Collection access is key-scoped. A logical name copied from another account or
 environment can return HTTP 404 even when the search route is healthy. Use
 <code>ScopedSearchOptions(versionLancedb: version)</code> when your application tracks a
@@ -518,7 +541,7 @@ The framework supports unified cross-platform logic, ensuring identical integrat
 <footer>
   <span class="no-break">
     vmodal_sdk_flutter
-      1.2.2
+      1.2.3
   </span>
   
 </footer>

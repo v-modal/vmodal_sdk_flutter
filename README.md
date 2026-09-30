@@ -7,7 +7,7 @@ The generated Flutter SDK class and method reference is published at:
 The site is hosted by GitHub Pages from the `gh-pages` branch of
 `v-modal/vmodal_sdk_flutter`. Its source is the public Dart API in
 `uinterface/sdk_flutter/lib/`; the generated site is stored in this
-`docs_sdk/` directory. Do not edit the generated HTML, JavaScript, or index
+`doc/` directory. Do not edit the generated HTML, JavaScript, or index
 files by hand. This README is the maintainer note that `docs.py` preserves
 when it regenerates the rest of the directory.
 
@@ -28,7 +28,7 @@ The workflow:
 
 1. Installs the pinned Flutter toolchain.
 2. Runs `python uinterface/sdk_flutter/docs.py generate` and `check`.
-3. Uploads `docs_sdk/` as an immutable workflow artifact.
+3. Uploads `doc/` as an immutable workflow artifact.
 4. Replaces the public repository's `gh-pages` branch with that artifact.
 5. Enables branch-based GitHub Pages and verifies the deployed `RELEASE_SHA`.
 
@@ -47,11 +47,11 @@ From the monorepo root:
 ```bash
 ./cli.sh flutter docs_generate
 ./cli.sh flutter docs_check
-python -m http.server 8000 --directory uinterface/sdk_flutter/docs_sdk
+python -m http.server 8000 --directory uinterface/sdk_flutter/doc
 ```
 
 Then open `http://localhost:8000/`. Commit public API comments, generator
-changes, this README, and regenerated `docs_sdk/` output together.
+changes, this README, and regenerated `doc/` output together.
 
 ## Pre-commit regeneration
 
@@ -65,4 +65,4 @@ The local hook in `.pre-commit-config.yaml` runs
 `./cli.sh flutter docs_precommit` whenever staged files under
 `uinterface/sdk_flutter/` change. It regenerates and verifies the reference. If
 the generated tree changes, the hook stops the commit so you can stage
-`uinterface/sdk_flutter/docs_sdk/` and commit again.
+`uinterface/sdk_flutter/doc/` and commit again.

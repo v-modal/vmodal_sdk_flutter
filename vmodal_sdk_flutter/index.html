@@ -202,6 +202,14 @@ indicators and whose <a href="../vmodal_sdk_flutter/UploadTask/cancel.html">Uplo
   Collection discovery, mutation, and media-upload operations.
 </dd>
 
+          <dt id="ContentMapping">
+  <span class="name "><a href="../vmodal_sdk_flutter/ContentMapping-class.html">ContentMapping</a></span> 
+
+</dt>
+<dd>
+  A frozen host-authenticated mapping to one exact backend stream and mode.
+</dd>
+
           <dt id="DeleteCollectionRequest">
   <span class="name "><a href="../vmodal_sdk_flutter/DeleteCollectionRequest-class.html">DeleteCollectionRequest</a></span> 
 
@@ -216,6 +224,14 @@ indicators and whose <a href="../vmodal_sdk_flutter/UploadTask/cancel.html">Uplo
 </dt>
 <dd>
   Result or preview of collection deletion.
+</dd>
+
+          <dt id="DurableJobReference">
+  <span class="name "><a href="../vmodal_sdk_flutter/DurableJobReference-class.html">DurableJobReference</a></span> 
+
+</dt>
+<dd>
+  Serializable ownership metadata, never sufficient by itself to prove a job.
 </dd>
 
           <dt id="ExternalUploadSignedUrlResponse">
@@ -666,6 +682,55 @@ indicators and whose <a href="../vmodal_sdk_flutter/UploadTask/cancel.html">Uplo
   One untyped search result with forward-compatible <a href="../vmodal_sdk_flutter/JsonBackedResponse/raw.html">raw</a> data.
 </dd>
 
+          <dt id="SessionAsset">
+  <span class="name "><a href="../vmodal_sdk_flutter/SessionAsset-class.html">SessionAsset</a></span> 
+
+</dt>
+<dd>
+  A live resource minted by a validated operation. It expires on session close.
+</dd>
+
+          <dt id="SessionContext">
+  <span class="name "><a href="../vmodal_sdk_flutter/SessionContext-class.html">SessionContext</a></span> 
+
+</dt>
+<dd>
+  Immutable ownership. Stable keys deliberately exclude credential versions.
+</dd>
+
+          <dt id="SessionJob">
+  <span class="name "><a href="../vmodal_sdk_flutter/SessionJob-class.html">SessionJob</a></span> 
+
+</dt>
+<dd>
+  Live job provenance, created or discovered within an exact allowed stream.
+</dd>
+
+          <dt id="SessionSearchResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/SessionSearchResponse-class.html">SessionSearchResponse</a></span> 
+
+</dt>
+<dd>
+  Safe search data; media selectors and raw service capabilities stay private.
+</dd>
+
+          <dt id="SessionStorageLease">
+  <span class="name "><a href="../vmodal_sdk_flutter/SessionStorageLease-class.html">SessionStorageLease</a></span> 
+
+</dt>
+<dd>
+  An owner-bound host storage barrier, retired by logout or host deactivation.
+Host code must capture its path/payload and check before publishing files.
+</dd>
+
+          <dt id="SessionUploadResponse">
+  <span class="name "><a href="../vmodal_sdk_flutter/SessionUploadResponse-class.html">SessionUploadResponse</a></span> 
+
+</dt>
+<dd>
+  Safe upload summary and its optional owner-bound asset handle.
+</dd>
+
           <dt id="SignedUploadResult">
   <span class="name "><a href="../vmodal_sdk_flutter/SignedUploadResult-class.html">SignedUploadResult</a></span> 
 
@@ -688,6 +753,39 @@ indicators and whose <a href="../vmodal_sdk_flutter/UploadTask/cancel.html">Uplo
 </dt>
 <dd>
   Disabled SQL compatibility surface.
+</dd>
+
+          <dt id="TenantCredential">
+  <span class="name "><a href="../vmodal_sdk_flutter/TenantCredential-class.html">TenantCredential</a></span> 
+
+</dt>
+<dd>
+  A credential returned by the host's trusted tenant issuer/resolver.
+The resolver must verify these binding fields; they are not app-user claims.
+</dd>
+
+          <dt id="TenantCredentialSnapshot">
+  <span class="name "><a href="../vmodal_sdk_flutter/TenantCredentialSnapshot-class.html">TenantCredentialSnapshot</a></span> 
+
+</dt>
+<dd>
+  Immutable accepted tenant credential, captured before request construction.
+</dd>
+
+          <dt id="TenantCredentialSource">
+  <span class="name "><a href="../vmodal_sdk_flutter/TenantCredentialSource-class.html">TenantCredentialSource</a></span> 
+
+</dt>
+<dd>
+  Shared tenant renewal coordinator, independent of app-user lifetimes.
+</dd>
+
+          <dt id="TenantSessionApiKeyProvider">
+  <span class="name "><a href="../vmodal_sdk_flutter/TenantSessionApiKeyProvider-class.html">TenantSessionApiKeyProvider</a></span> 
+
+</dt>
+<dd>
+  A private session provider subscribed to one shared tenant binding.
 </dd>
 
           <dt id="TranscodeResult">
@@ -768,6 +866,38 @@ indicators and whose <a href="../vmodal_sdk_flutter/UploadTask/cancel.html">Uplo
 </dt>
 <dd>
   Identity and permissions resolved for the current credential.
+</dd>
+
+          <dt id="UserScope">
+  <span class="name "><a href="../vmodal_sdk_flutter/UserScope-class.html">UserScope</a></span> 
+
+</dt>
+<dd>
+  Restricted operations bound to a frozen mapping and originating session.
+</dd>
+
+          <dt id="UserSession">
+  <span class="name "><a href="../vmodal_sdk_flutter/UserSession-class.html">UserSession</a></span> 
+
+</dt>
+<dd>
+  Private resources and a fresh runtime lease for one app-user activation.
+</dd>
+
+          <dt id="UserSessionManager">
+  <span class="name "><a href="../vmodal_sdk_flutter/UserSessionManager-class.html">UserSessionManager</a></span> 
+
+</dt>
+<dd>
+  One active application identity flow using a shared tenant credential.
+</dd>
+
+          <dt id="UserSessionPolicy">
+  <span class="name "><a href="../vmodal_sdk_flutter/UserSessionPolicy-class.html">UserSessionPolicy</a></span> 
+
+</dt>
+<dd>
+  Identity and policy resolved by the host from its authenticated app user.
 </dd>
 
           <dt id="VideoSearchHit">
@@ -880,6 +1010,14 @@ indicators and whose <a href="../vmodal_sdk_flutter/UploadTask/cancel.html">Uplo
     <section class="summary offset-anchor" id="enums">
       <h2>Enums</h2>
       <dl>
+          <dt id="ScopeRepresentation">
+  <span class="name "><a href="../vmodal_sdk_flutter/ScopeRepresentation.html">ScopeRepresentation</a></span> 
+
+</dt>
+<dd>
+  Explicit mapping representation; opaque selectors are never prefixed.
+</dd>
+
           <dt id="UploadDeviceMemory">
   <span class="name "><a href="../vmodal_sdk_flutter/UploadDeviceMemory.html">UploadDeviceMemory</a></span> 
 
@@ -910,6 +1048,14 @@ indicators and whose <a href="../vmodal_sdk_flutter/UploadTask/cancel.html">Uplo
 </dt>
 <dd>
   Lifecycle state of an <a href="../vmodal_sdk_flutter/UploadTask-class.html">UploadTask</a>.
+</dd>
+
+          <dt id="UserAction">
+  <span class="name "><a href="../vmodal_sdk_flutter/UserAction.html">UserAction</a></span> 
+
+</dt>
+<dd>
+  Local permitted operations. These are client guardrails, not server grants.
 </dd>
 
           <dt id="VmodalResponseMode">
@@ -1097,12 +1243,29 @@ indicators and whose <a href="../vmodal_sdk_flutter/UploadTask/cancel.html">Uplo
   Base class for failures intentionally surfaced by the SDK.
 </dd>
 
+          <dt id="SessionInvalidated">
+  <span class="name "><a href="../vmodal_sdk_flutter/SessionInvalidated-class.html">SessionInvalidated</a></span> 
+
+</dt>
+<dd>
+  An operation belongs to a session which is no longer active.
+</dd>
+
           <dt id="SignedUploadFailure">
   <span class="name "><a href="../vmodal_sdk_flutter/SignedUploadFailure-class.html">SignedUploadFailure</a></span> 
 
 </dt>
 <dd>
   Transport failure that retains partial-upload integrity information.
+</dd>
+
+          <dt id="TenantAuthException">
+  <span class="name "><a href="../vmodal_sdk_flutter/TenantAuthException-class.html">TenantAuthException</a></span> 
+
+</dt>
+<dd>
+  Tenant connection failure. This does not invalidate host app-user identity.
+No server body, credential, or issuer error is attached to this failure.
 </dd>
 
           <dt id="TransportException">
@@ -1150,7 +1313,7 @@ indicators and whose <a href="../vmodal_sdk_flutter/UploadTask/cancel.html">Uplo
 <footer>
   <span class="no-break">
     vmodal_sdk_flutter
-      1.2.3
+      1.3.0
   </span>
   
 </footer>

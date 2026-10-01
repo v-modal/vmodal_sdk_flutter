@@ -180,6 +180,10 @@ after a pub.dev release has actually created it:</p>
 release, replace the <code>ref</code> above with the full 40-character commit SHA from the
 public repository. The <code>main</code> branch is suitable for evaluation and development
 only; it is not a production pin.</p>
+<p>The opt-in user-session API below is part of the <strong>1.3.0 source release</strong>.
+Use that released public source revision for it; the <code>1.2.3</code> package and tag
+shown above do not contain these additions. A source-only GitHub Actions export
+does not publish <code>1.3.0</code> to pub.dev or create a version tag.</p>
 <p>Then run:</p>
 <pre class="language-bash"><code class="language-bash">flutter pub get
 </code></pre>
@@ -203,8 +207,83 @@ collection names cannot contain the reserved <code>__</code> separator, and thei
 backend value is also limited to 80 characters. The SDK performs that encoding
 internally.</p>
 <blockquote>
-<p>The SDK never owns your login screen or persists your API key. Authentication identity is separate from project, collection, and stream organization.</p>
+<p>The SDK never owns your login screen or persists your API key. Authentication identity is separate from project, collection, and stream organization. <code>VModalProject</code> and <code>VmodalClient</code> provide tenant-scoped access; use <code>UserSessionManager</code> below for app-user isolation.</p>
 </blockquote>
+<h2 id="isolate-signed-in-app-users-sharing-one-tenant-key">Isolate signed-in app users sharing one tenant key</h2>
+<p>Your authenticated host app resolves a stable user ID and its allowed content
+mapping. VModal's API key and <code>auth.me()</code> identify the tenant principal; A and B
+may use exactly the same key and principal. Neither value identifies the app
+user. Keep app-user identity out of <code>SdkConfig.userId</code> and <code>X-User-Id</code>.</p>
+<pre class="language-dart"><code class="language-dart">import 'package:vmodal_sdk_flutter/vmodal_sdk_flutter.dart';
+
+Future&lt;void&gt; openLibrary({
+  required String runtimeTenantKey,
+  required String tenantId,
+  required String tenantPrincipal,
+  required String authenticatedAppUserId,
+  required String issuedCollectionId,
+}) async {
+  final config = SdkConfig(); // gateway mode, existing connection defaults
+  final credentials = TenantCredentialSource(
+    serviceNamespace: SessionContext.serviceNamespaceFor(config),
+    tenantId: tenantId,
+    expectedPrincipal: tenantPrincipal,
+    initialKey: runtimeTenantKey,
+  );
+  final manager = UserSessionManager(
+    config: config,
+    credentialSource: credentials,
+  );
+  final mapping = ContentMapping.opaque(
+    collectionId: issuedCollectionId, // trusted host mapping, unchanged on wire
+    streamName: 'favorites',
+    actions: {UserAction.discover, UserAction.search, UserAction.media},
+  );
+  try {
+    final session = await manager.openUserSession(
+      tenantId: tenantId,
+      appUserId: authenticatedAppUserId,
+      allowedContentMapping: [mapping],
+    );
+    await session.verifyPrincipal(tenantPrincipal); // optional tenant check
+    final collections = await session.listCollections();
+    if (!collections.contains(mapping)) return;
+    final scope = session.scope(mapping);
+    final results = await scope.search('cyclist crossing a bridge');
+    for (final hit in results.videoHits) {
+      print('${hit.fileName}: ${hit.playbackOffsetMs} ms');
+    }
+    if (results.assets.isNotEmpty) {
+      final frame = await scope.imageBytes(results.assets.first);
+      print('${frame.length} image bytes');
+    }
+  } finally {
+    await manager.close();
+    credentials.close();
+  }
+}
+</code></pre>
+<p>Retain one manager for the app's identity flow. Starting another activation or
+calling <code>manager.logout()</code> invalidates the outgoing session synchronously.
+Every activation receives a new runtime <code>sessionId</code>, private provider/client,
+and owned transports. Old scopes cannot dispatch, deliver late search data,
+or forward upload progress after invalidation; cancellation settles even when
+an underlying custom transport ignores it. Host code must also check the view
+generation and clear already displayed images, players, routes, and histories.</p>
+<p><code>ContentMapping.logical(projectId: ..., collectionName: ..., streamName: ...)</code>
+uses the existing <code>project__collection</code> encoding. <code>ContentMapping.opaque(...)</code>
+preserves the backend collection ID. Actions and collection-wide access come
+from trusted host policy. Collection/index deletion requires both
+<code>UserAction.delete</code> and <code>collectionWide: true</code>.</p>
+<p>This is a guarantee for operations through <code>UserSession</code> and <code>UserScope</code>.
+<code>VmodalClient</code>, <code>VModalProject</code>, arbitrary HTTP, and raw media/storage helpers
+bypass it. A modified client holding the shared tenant key can make arbitrary
+tenant-authorized requests; server protection requires separately verified
+app-user authorization. The SDK cannot recall data returned while A was active
+or stop work already accepted by the server. Read the
+<a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/sdk_contract.md">session contract</a>
+and <a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/manage_api_key.md">tenant-key rotation guide</a>
+before integration.</p>
 <h2 id="search-video-with-natural-language">Search video with natural language</h2>
 <pre class="language-dart"><code class="language-dart">final collections = await project.listCollections(mode: 'vid_file');
 if (!collections.contains('user_123')) {
@@ -230,13 +309,17 @@ for (final hit in results.videoHits) {
 <p><code>VideoSearchHit.distance</code> is the raw lower-is-better distance; it is not a
 similarity or confidence score. <code>assetId</code> remains <code>null</code> when an older server
 does not return <code>asset_id</code>—the SDK never invents stable identity from a
-filename, path, frame identifier, or timestamp. The original entries remain
-available through <code>results.data</code> and each hit's <code>raw</code> map for compatibility.</p>
+filename, path, frame identifier, or timestamp. The original entries from the
+tenant-scoped facade remain available through <code>results.data</code> and each hit's
+<code>raw</code> map for compatibility. Session-bound search instead exposes allowlisted
+fields, recomputed returned-row counts, and live <code>SessionAsset</code> handles; signed
+URLs and nested tenant metadata stay private.</p>
 <p>Collection access is key-scoped. A logical name copied from another account or
 environment can return HTTP 404 even when the search route is healthy. Use
 <code>ScopedSearchOptions(versionLancedb: version)</code> when your application tracks a
 specific index version.</p>
-<p>The response stays typed where the contract is stable and preserves the raw JSON so new server fields remain available immediately.</p>
+<p>The tenant-scoped response stays typed where the contract is stable and
+preserves the raw JSON so new server fields remain available immediately.</p>
 <h2 id="upload-with-progress-and-cancellation">Upload with progress and cancellation</h2>
 <p>The SDK reads an app-accessible <code>File</code> as a stream. It does not load the entire video into memory.</p>
 <pre class="language-dart"><code class="language-dart">import 'dart:io';
@@ -312,10 +395,16 @@ for limits, timeout behavior, and the benchmark command.</p>
 <li>Keep file picking, secure storage, background scheduling, and lifecycle UI in the parent app.</li>
 <li>Close network resources deterministically with <code>await project.close()</code>.</li>
 </ul>
-<p>For logout or account switching, cancel active work, clear upload persistence,
-call <code>keys.clear()</code>, close the project, and create a new project and scopes for
-the next identity. Key rotation alone is not an identity, project, collection,
-or stream switch.</p>
+<p>For applications using the session API, call <code>manager.logout()</code> or activate
+the next authenticated policy through the manager, and clear host UI state.
+Owner-partitioned archives and checkpoints remain available for a validated
+return to that user. Install tenant key replacements through
+<code>TenantCredentialSource.install(...)</code>; rotation preserves the active session,
+owner namespace, and policy. A policy or tenant change requires fresh sessions.</p>
+<p>With the older tenant-scoped API, the host owns all isolation: cancel work,
+close its private provider and project, partition checkpoints, and create fresh
+state for the next identity. Closing a client alone does not isolate the default
+process-global multipart checkpoint store.</p>
 <h2 id="common-organization-flows">Common organization flows</h2>
 <pre class="language-text"><code class="language-text">global index       project=video_search  collection=global           stream=uploads
 per-user index     project=food_app      collection=user_123         stream=personal_videos
@@ -541,7 +630,7 @@ The framework supports unified cross-platform logic, ensuring identical integrat
 <footer>
   <span class="no-break">
     vmodal_sdk_flutter
-      1.2.3
+      1.3.0
   </span>
   
 </footer>

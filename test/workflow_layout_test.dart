@@ -12,7 +12,9 @@ final publicFile = File('release/public_publish.yml').existsSync()
     ? File('release/public_publish.yml')
     : File('.github/workflows/publish.yml');
 final public = publicFile.readAsStringSync();
-final release = File('ga_release.sh').readAsStringSync();
+final release = internal.isEmpty
+    ? ''
+    : File('ga_release.sh').readAsStringSync();
 final androidProperties = File(
   'example/01_full_app/android/gradle.properties',
 ).readAsStringSync();

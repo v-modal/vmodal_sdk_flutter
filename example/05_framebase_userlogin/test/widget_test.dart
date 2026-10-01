@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:framebase/main.dart';
@@ -10,12 +12,12 @@ import 'package:framebase/user/mock_firebase_auth.dart';
 import 'package:framebase/user/user_session_controller.dart';
 import 'package:framebase/user/vmodal_credential.dart';
 import 'package:vmodal_sdk_flutter/vmodal_sdk_flutter.dart';
+import 'session_fixture.dart';
 
 class FakeGateway extends SearchGateway {
-  FakeGateway(super.keys, super.scopeId);
+  FakeGateway(super.session, super.scopeId);
   @override
   Future<void> connect(String expectedUserId) async {
-    accountId = expectedUserId;
     version = 1;
   }
 
@@ -60,18 +62,26 @@ class LifecycleArchive extends ArchiveController {
   }
 }
 
-VmodalCredential fixture() => VmodalCredential(
+VmodalCredential fixture([String uid = 'alice']) => VmodalCredential(
   contractVersion: 1,
   sessionId: 'widget-session',
   issuedAt: DateTime.now().toUtc(),
   apiToken: 'test-only-placeholder',
   expiresAt: DateTime.now().toUtc().add(const Duration(hours: 1)),
-  firebaseUid: 'alice',
+  firebaseUid: uid,
   vmodalUserId: 'vmodal-alice',
   scopeId: 'scope_7K3A',
   allowed: true,
   permissions: {'library:read', 'library:write'},
 );
+
+class DelayedFileArchive extends ArchiveController {
+  DelayedFileArchive()
+    : super(persist: false, supportDirectory: Directory.systemTemp);
+  final file = Completer<File>();
+  @override
+  Future<File> localFile(ArchiveClip clip) => file.future;
+}
 
 FrameMatch frameMatch({
   required String name,
@@ -89,6 +99,133 @@ FrameMatch frameMatch({
 }
 
 void main() {
+  testWidgets(
+    'collapsed A B A resets navigation and evicts private memory images',
+    (tester) async {
+      final archive = ArchiveController(
+        persist: false,
+        supportDirectory: Directory.systemTemp,
+      );
+      final auth = MockFirebaseAuth();
+      final session = (await tester.runAsync(
+        () async => UserSessionController(
+          auth: auth,
+          credentials: MockVmodalCredentialSource([
+            fixture('alice'),
+            fixture('bob'),
+            fixture('alice'),
+          ]),
+          archive: archive,
+          transportFactory: (_) => QueueTransport(),
+          gatewayFactory: (session, scope, fresh) =>
+              FakeGateway(session, scope),
+        ),
+      ))!;
+      await tester.pumpWidget(
+        FramebaseApp(controller: archive, session: session),
+      );
+      await tester.pumpAndSettle();
+      await tester.runAsync(() async {
+        auth.setUser(const AppUser('alice'));
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      });
+      await tester.pumpAndSettle();
+      expect(session.state, SessionState.ready);
+      final aSessionId = session.gateway!.session.sessionId;
+      final originalNavigator = tester.state<NavigatorState>(
+        find.byType(Navigator),
+      );
+      unawaited(
+        originalNavigator.push(
+          MaterialPageRoute<void>(
+            builder: (_) => const Scaffold(body: Text('Private A navigation')),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Private A navigation'), findsOneWidget);
+
+      final recorder = ui.PictureRecorder();
+      ui.Canvas(recorder).drawColor(Colors.blue, ui.BlendMode.src);
+      final pixel = (await tester.runAsync(
+        () => recorder.endRecording().toImage(1, 1),
+      ))!;
+      final png = (await tester.runAsync(
+        () => pixel.toByteData(format: ui.ImageByteFormat.png),
+      ))!;
+      final image = MemoryImage(png.buffer.asUint8List());
+      pixel.dispose();
+      final imageContext = tester.element(find.text('Private A navigation'));
+      await tester.runAsync(() => precacheImage(image, imageContext));
+      await tester.pump();
+      final cache = PaintingBinding.instance.imageCache;
+      expect(cache.containsKey(image), isTrue);
+
+      // Resolve both transitions without rendering an intermediate B frame.
+      await tester.runAsync(() async {
+        auth.setUser(const AppUser('bob'));
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        expect(session.state, SessionState.ready);
+        expect(cache.containsKey(image), isFalse);
+        auth.setUser(const AppUser('alice'));
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      });
+      expect(session.state, SessionState.ready);
+      expect(session.user!.uid, 'alice');
+      expect(session.gateway!.session.sessionId, isNot(aSessionId));
+      await tester.pumpAndSettle();
+      expect(find.text('Private A navigation'), findsNothing);
+      expect(
+        tester.state<NavigatorState>(find.byType(Navigator)),
+        isNot(same(originalNavigator)),
+      );
+      expect(cache.containsKey(image), isFalse);
+      await tester.pumpWidget(const SizedBox.shrink());
+      session.dispose();
+      archive.dispose();
+    },
+  );
+
+  testWidgets(
+    'archive invalidation hides a recording while its file load is still pending',
+    (tester) async {
+      final archive = DelayedFileArchive();
+      final gateway = SearchGateway(await testSession(), 'scope_7K3A');
+      await tester.runAsync(
+        () => archive.activate(
+          'scope_7K3A',
+          gateway,
+          canRead: true,
+          canWrite: true,
+          serviceNamespace: gateway.context.serviceNamespace,
+          tenantId: gateway.context.tenantId,
+          appUserId: gateway.context.appUserId,
+          policyRevision: gateway.context.policyRevision,
+        ),
+      );
+      final clip = archive.clips.first;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RecordingSheet(archive: archive, clip: clip),
+        ),
+      );
+      await tester.pump();
+      expect(find.text(clip.title), findsOneWidget);
+      archive.deactivate();
+      await tester.pump();
+      expect(find.text(clip.title), findsNothing);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      archive.file.complete(
+        File('${Directory.systemTemp.path}/stale-never-open.mp4'),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text(clip.title), findsNothing);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      archive.dispose();
+      await gateway.close();
+    },
+  );
   testWidgets(
     'search starts with two moments per video and expands on request',
     (tester) async {
@@ -190,20 +327,27 @@ void main() {
       },
     );
     final source = MockVmodalCredentialSource([fixture()]);
-    final session = UserSessionController(
-      auth: auth,
-      credentials: source,
-      archive: c,
-      gatewayFactory: (provider, id, fresh) => FakeGateway(provider, id),
-    );
+    final session = (await tester.runAsync(
+      () async => UserSessionController(
+        auth: auth,
+        credentials: source,
+        archive: c,
+        transportFactory: (_) => QueueTransport(),
+        gatewayFactory: (session, id, fresh) => FakeGateway(session, id),
+      ),
+    ))!;
     await tester.pumpWidget(FramebaseApp(controller: c, session: session));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('email')), 'alice@example.com');
     await tester.enterText(find.byKey(const Key('password')), 'password');
-    await tester.tap(find.byKey(const Key('sign_in')));
+    await tester.runAsync(() async {
+      await tester.tap(find.byKey(const Key('sign_in')));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    });
     for (var i = 0; i < 200 && session.state == SessionState.resolving; i++) {
       await tester.pump(const Duration(milliseconds: 10));
     }
+    expect(session.state, SessionState.ready);
     await tester.pumpAndSettle();
     expect(session.state, SessionState.ready);
     expect(find.text('Framebase'), findsOneWidget);
@@ -225,14 +369,14 @@ void main() {
     await tester.tap(find.text('Profile'));
     await tester.pumpAndSettle();
     expect(find.text('VMODAL connected'), findsOneWidget);
-    final keys = session.gateway!.keys;
+    final sdkSession = session.gateway!.session;
     await tester.tap(find.byKey(const Key('sign_out')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('sign_in')), findsOneWidget);
     expect(find.byType(VideoRow), findsNothing);
     expect(c.connected, isFalse);
     expect(session.gateway, isNull);
-    expect(() => keys.current(), throwsA(isA<AuthException>()));
+    expect(sdkSession.isActive, isFalse);
     session.dispose();
     c.dispose();
   });
@@ -296,40 +440,54 @@ void main() {
     session.dispose();
     c.dispose();
   });
-  testWidgets('expired identity and VMODAL 401 show sign in again', (
-    tester,
-  ) async {
-    for (final kind in [
-      SessionFailureKind.firebaseIdentityExpired,
-      SessionFailureKind.vmodalUnauthorized,
-    ]) {
-      final c = ArchiveController(persist: false);
-      final session = UserSessionController(
-        auth: MockFirebaseAuth(initial: const AppUser('alice')),
-        credentials: MockVmodalCredentialSource(),
-        archive: c,
-      );
-      await tester.pump();
-      session.state = SessionState.error;
-      session.failureKind = kind;
-      session.message = kind == SessionFailureKind.firebaseIdentityExpired
-          ? 'Your sign-in expired. Sign in again.'
-          : 'Your library session expired. Sign in again.';
+  testWidgets(
+    'identity expiry signs in again and tenant 401 offers connection retry',
+    (tester) async {
+      for (final kind in [
+        SessionFailureKind.firebaseIdentityExpired,
+        SessionFailureKind.vmodalUnauthorized,
+      ]) {
+        final c = ArchiveController(persist: false);
+        final session = UserSessionController(
+          auth: MockFirebaseAuth(initial: const AppUser('alice')),
+          credentials: MockVmodalCredentialSource(),
+          archive: c,
+        );
+        await tester.pump();
+        final expiredIdentity =
+            kind == SessionFailureKind.firebaseIdentityExpired;
+        session.state = expiredIdentity
+            ? SessionState.error
+            : SessionState.recoverable;
+        session.failureKind = kind;
+        session.message = kind == SessionFailureKind.firebaseIdentityExpired
+            ? 'Your sign-in expired. Sign in again.'
+            : 'The tenant connection needs recovery. Retry to reconnect your library.';
 
-      await tester.pumpWidget(MaterialApp(home: LoginPage(session: session)));
+        await tester.pumpWidget(MaterialApp(home: LoginPage(session: session)));
 
-      expect(find.text(session.message), findsOneWidget);
-      expect(find.text('Sign in again'), findsOneWidget);
-      expect(find.text('Retry'), findsNothing);
-      await tester.tap(find.text('Sign in again'));
-      await tester.pumpAndSettle();
-      expect(session.state, SessionState.signedOut);
-      expect(find.byKey(const Key('sign_in')), findsOneWidget);
-      await tester.pumpWidget(const SizedBox.shrink());
-      session.dispose();
-      c.dispose();
-    }
-  });
+        expect(find.text(session.message), findsOneWidget);
+        expect(
+          find.text('Sign in again'),
+          expiredIdentity ? findsOneWidget : findsNothing,
+        );
+        expect(
+          find.text('Retry'),
+          expiredIdentity ? findsNothing : findsOneWidget,
+        );
+        if (!expiredIdentity) expect(session.user!.uid, 'alice');
+        await tester.tap(
+          find.text(expiredIdentity ? 'Sign in again' : 'Sign out'),
+        );
+        await tester.pumpAndSettle();
+        expect(session.state, SessionState.signedOut);
+        expect(find.byKey(const Key('sign_in')), findsOneWidget);
+        await tester.pumpWidget(const SizedBox.shrink());
+        session.dispose();
+        c.dispose();
+      }
+    },
+  );
   testWidgets('denial, VMODAL 403, and contract failures cannot retry', (
     tester,
   ) async {
@@ -408,11 +566,19 @@ void main() {
       persist: false,
       supportDirectory: Directory.systemTemp,
     );
-    final gateway = FakeGateway(
-      MutableApiKeyProvider('fixture-delete'),
-      'scope_7K3A',
+    final gateway = FakeGateway(await testSession(), 'scope_7K3A');
+    await tester.runAsync(
+      () => c.activate(
+        'scope_7K3A',
+        gateway,
+        canRead: true,
+        canWrite: true,
+        serviceNamespace: gateway.context.serviceNamespace,
+        tenantId: gateway.context.tenantId,
+        appUserId: gateway.context.appUserId,
+        policyRevision: gateway.context.policyRevision,
+      ),
     );
-    await c.activate('scope_7K3A', gateway, canRead: true, canWrite: true);
     await tester.pumpWidget(MaterialApp(home: StorageDeletionPage(archive: c)));
     expect(
       find.text('Signing out keeps videos on this device and in the cloud.'),

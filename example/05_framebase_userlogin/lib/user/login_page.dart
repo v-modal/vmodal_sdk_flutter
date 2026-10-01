@@ -46,9 +46,7 @@ class _LoginPageState extends State<LoginPage> {
                     Text(widget.session.message),
                     const SizedBox(height: 16),
                     if (widget.session.failureKind ==
-                            SessionFailureKind.firebaseIdentityExpired ||
-                        widget.session.failureKind ==
-                            SessionFailureKind.vmodalUnauthorized)
+                        SessionFailureKind.firebaseIdentityExpired)
                       FilledButton(
                         onPressed: widget.session.signOut,
                         child: const Text('Sign in again'),

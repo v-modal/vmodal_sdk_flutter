@@ -52,4 +52,5 @@ export 'src/transport.dart'
         guessContentType,
         streamPart;
 export 'src/upload.dart';
+export 'src/user_session.dart';
 export 'src/vmodal.dart';

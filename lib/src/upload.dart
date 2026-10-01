@@ -249,9 +249,14 @@ class UploadTask<T> {
   void cancel() {
     if (_state != UploadTaskState.running) return;
     _state = UploadTaskState.canceled;
-    cancellation.cancel();
-    if (!_result.isCompleted) _result.completeError(const OperationCanceled());
-    unawaited(_progress.close());
+    try {
+      cancellation.cancel();
+    } finally {
+      if (!_result.isCompleted) {
+        _result.completeError(const OperationCanceled());
+      }
+      unawaited(_progress.close());
+    }
   }
 
   Future<void> _start(UploadRunner<T> runner) async {

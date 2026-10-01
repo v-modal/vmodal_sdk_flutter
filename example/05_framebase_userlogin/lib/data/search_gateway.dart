@@ -1,34 +1,23 @@
 import 'dart:io';
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:vmodal_sdk_flutter/vmodal_sdk_flutter.dart';
 import '../user/library_scope.dart';
 
 const archiveStream = 'street_study';
-
 String basename(String path) => path.replaceAll('\\', '/').split('/').last;
 
 class FrameMatch {
-  const FrameMatch({required this.hit, this.imageUrl, this.imageBytes});
+  const FrameMatch({required this.hit, this.imageBytes});
   final VideoSearchHit hit;
-  final String? imageUrl;
   final Uint8List? imageBytes;
+  String? get imageUrl => null;
   String? get assetId => hit.assetId;
   String get fileName => hit.fileName ?? '';
   String get sourceKey => hit.assetId ?? hit.fileName ?? '';
   double? get seconds =>
       hit.playbackOffsetMs == null ? null : hit.playbackOffsetMs! / 1000;
   double? get distance => hit.distance;
-}
-
-bool trustedPreviewUrl(String value) {
-  final uri = Uri.tryParse(value);
-  return uri != null &&
-      (uri.scheme == 'https' ||
-          (!uri.hasScheme &&
-              !uri.hasAuthority &&
-              uri.path == '/api/external/v1/image/get_image'));
 }
 
 class SearchBatch {
@@ -46,38 +35,46 @@ class SearchBatch {
   final int imageMs;
 }
 
-/// One session, one application-owned collection. No credentials or signed URLs
-/// are persisted. The low-level SDK is used consistently for collection selectors.
+/// Every cloud operation uses the same immutable SDK app-user session.
 class SearchGateway {
   SearchGateway(
-    this.keys,
+    this.session,
     String scopeId, {
-    VmodalTransport? transport,
     Future<void> Function()? ensureFresh,
   }) : collection = validateLibraryScope(scopeId),
+       // Public constructor keeps the host renewal callback named consistently.
        // ignore: prefer_initializing_formals
        _ensureFresh = ensureFresh {
-    client = VmodalClient(
-      config: SdkConfig(
-        apiKeyProvider: keys,
-        timeout: const Duration(seconds: 60),
+    scope = session.scope(
+      ContentMapping.opaque(
+        collectionId: collection,
+        streamName: archiveStream,
       ),
-      transport: transport,
     );
   }
 
-  final MutableApiKeyProvider keys;
+  final UserSession session;
+  late final UserScope scope;
   final String collection;
   final Future<void> Function()? _ensureFresh;
   void Function(int status)? onAccessFailure;
-  late final VmodalClient client;
-  String accountId = '';
+  String get accountId => session.context.appUserId;
+  SessionContext get context => session.context;
   int? version;
 
-  Future<void> _fresh() async => await _ensureFresh?.call();
+  void _active() {
+    if (!session.isActive) throw const SessionInvalidated();
+  }
+
+  Future<void> _fresh() async {
+    _active();
+    await _ensureFresh?.call();
+    _active();
+  }
 
   void reportFailure(Object error) {
-    if (error is SdkException &&
+    if (session.isActive &&
+        error is SdkException &&
         (error.statusCode == 401 || error.statusCode == 403)) {
       onAccessFailure?.call(error.statusCode);
     }
@@ -86,47 +83,34 @@ class SearchGateway {
   Future<T> _call<T>(Future<T> Function() run) async {
     await _fresh();
     try {
-      return await run();
+      final result = await run();
+      _active();
+      return result;
     } on SdkException catch (error) {
       reportFailure(error);
       rethrow;
     }
   }
 
-  Future<void> connect(String expectedUserId) async {
-    final profile = await client.auth.me();
-    if (profile.userId != expectedUserId) {
-      throw const AuthException('No authenticated identity');
-    }
-    accountId = profile.userId!;
+  Future<void> connect(String expectedPrincipal) async {
+    await session.verifyPrincipal(expectedPrincipal);
     await refreshVersion();
-    await listJobs();
+    if (scope.mapping.actions.contains(UserAction.indexation)) await listJobs();
   }
 
   Future<void> refreshVersion() async {
-    final groups = await _call(
-      () => client.collections.listGroups(mode: 'vid_file'),
-    );
-    version = groups
-        .findGroup(collection, mode: 'vid_file')
-        ?.latestLancedbVersion;
+    final next = await _call(() => scope.latestVersion());
+    _active();
+    version = next;
   }
 
-  Future<void> listJobs() async {
-    await _call(
-      () => client.indexes.jobsList(mode: 'vid_file', groupName: collection),
-    );
-  }
+  Future<void> listJobs() async => await _call(() => scope.listIndexJobs());
 
   Future<DeleteCollectionResponse> previewLibraryDeletion(
     CancellationToken cancellation,
   ) => _call(
-    () => client.collections.delete(
-      groupName: collection,
-      mode: 'vid_file',
-      scope: 'all',
-      dryRun: true,
-      confirm: false,
+    () => scope.deleteCollection(
+      options: const ScopedDeleteCollectionOptions(dryRun: true),
       cancellation: cancellation,
     ),
   );
@@ -134,51 +118,35 @@ class SearchGateway {
   Future<DeleteCollectionResponse> deleteLibrary(
     CancellationToken cancellation,
   ) => _call(
-    () => client.collections.delete(
-      groupName: collection,
-      mode: 'vid_file',
-      scope: 'all',
-      dryRun: false,
-      confirm: true,
+    () => scope.deleteCollection(
+      options: const ScopedDeleteCollectionOptions(confirm: true),
       cancellation: cancellation,
     ),
   );
 
   Future<UploadTask<VideoUploadResponse>> upload(File file) async {
     await _fresh();
-    return client.collections.videoUpload(
-      UploadSource.fromFile(file),
-      collectionName: collection,
-      subCollectionName: archiveStream,
-    );
+    return scope.upload(UploadSource.fromFile(file));
   }
 
-  Future<IndexationSubmitResponse> createIndex(
-    CancellationToken cancellation,
-  ) async {
-    return _call(
-      () => client.indexes.createIndex(
-        IndexationSubmitRequest(
-          mode: 'vid_file',
-          groupName: collection,
-          streamName: archiveStream,
-          indexType: 'vid_img_emb',
-          modality: 'vid_img_emb',
-          reProcess: true,
-        ),
-        cancellation: cancellation,
+  Future<SessionJob> createIndex(CancellationToken cancellation) => _call(
+    () => scope.createIndex(
+      options: const ScopedCreateIndexOptions(
+        indexType: 'vid_img_emb',
+        modality: 'vid_img_emb',
+        reProcess: true,
       ),
-    );
-  }
+      cancellation: cancellation,
+    ),
+  );
 
   Future<IndexationStatusResponse> indexStatus(
-    String job,
+    SessionJob job,
     CancellationToken cancellation,
-  ) async {
-    return _call(
-      () => client.indexes.indexStatus(job, cancellation: cancellation),
-    );
-  }
+  ) => _call(() => scope.indexStatus(job, cancellation: cancellation));
+
+  Future<SessionJob> rebindJob(DurableJobReference reference) =>
+      _call(() => scope.rebindJob(reference));
 
   Future<SearchBatch> search(
     String query, {
@@ -189,14 +157,10 @@ class SearchGateway {
     final token = cancellation ?? CancellationToken();
     final timer = Stopwatch()..start();
     final response = await _call(
-      () => client.searches.searchVideo(
-        SearchRequest(
-          queryText: query,
+      () => scope.search(
+        query,
+        options: ScopedSearchOptions(
           imageQuery: imageQuery,
-          mode: 'vid_file',
-          groupName: collection,
-          streamName: archiveStream,
-          searchSources: const ['image'],
           limit: 30,
           imageEmbScoreMin: maxDistance,
           versionLancedb: version,
@@ -205,114 +169,42 @@ class SearchGateway {
       ),
     );
     final searchMs = timer.elapsedMilliseconds;
-    // Enforce the displayed cutoff defensively on returned rows as well.
-    // A client-filtered result is distinct from the raw server result count.
-    final usable = response.videoHits.where((hit) {
-      final distance = hit.distance;
-      return (hit.assetId ?? hit.fileName ?? '').trim().isNotEmpty &&
-          (distance == null || distance <= maxDistance);
-    }).toList();
-    final urls = <int, String>{};
-    final imageBytes = <int, Uint8List>{};
-    for (var i = 0; i < usable.length; i++) {
-      final preview = usable[i].previewImageUrl;
-      if (preview != null && trustedPreviewUrl(preview)) urls[i] = preview;
-    }
-    final lookupIndexes = <int>[
-      for (var i = 0; i < usable.length; i++)
-        if (usable[i].previewImageUrl == null &&
-            (usable[i].fileName?.isNotEmpty ?? false))
-          i,
-    ];
-    if (lookupIndexes.isNotEmpty) {
-      final resolved = await _call(
-        () => client.images.getUrlBulk(
-          lookupIndexes
-              .map(
-                (index) => <String, Object?>{
-                  'mode': 'vid_file',
-                  'group_name': collection,
-                  'modality': 'vid_img',
-                  'stream_name': archiveStream,
-                  'filename': usable[index].fileName,
-                  if (usable[index].playbackOffsetMs != null)
-                    'ts_unix_13digits': usable[index].playbackOffsetMs
-                        .toString()
-                        .padLeft(13, '0'),
-                },
-              )
-              .toList(),
-          cancellation: token,
-        ),
-      );
-      for (var i = 0; i < resolved.records.length; i++) {
-        final row = resolved.records[i];
-        final rawIndex = row['input_index'];
-        final parsed = num.tryParse('$rawIndex');
-        final recordIndex = rawIndex == null
-            ? i
-            : parsed != null && parsed.isFinite && parsed == parsed.toInt()
-            ? parsed.toInt()
-            : null;
-        final url = '${row['url_pre_signed'] ?? ''}';
-        if (recordIndex != null &&
-            recordIndex >= 0 &&
-            recordIndex < lookupIndexes.length &&
-            row['found'] != false &&
-            trustedPreviewUrl(url)) {
-          final index = lookupIndexes[recordIndex];
-          urls.putIfAbsent(index, () => url);
+    final matches = <FrameMatch>[];
+    for (var i = 0; i < response.videoHits.length; i++) {
+      final hit = response.videoHits[i];
+      if ((hit.assetId ?? hit.fileName ?? '').trim().isEmpty ||
+          (hit.distance != null && hit.distance! > maxDistance)) {
+        continue;
+      }
+      Uint8List? bytes;
+      if (i < response.assets.length) {
+        try {
+          bytes = await _call(
+            () => scope.imageBytes(
+              response.assets[i],
+              maxBytes: 8 * 1024 * 1024,
+              cancellation: token,
+            ),
+          );
+        } on FeatureDisabled {
+          // Unavailable media retains its local result-card placeholder.
         }
       }
-    }
-    // Relative signed routes are downloaded through the SDK without guessing
-    // an absolute origin. A malformed image remains local to its result card.
-    if (urls.isNotEmpty) {
-      final downloaded = await _call(
-        () => client.images.getImageBulkFromUrls(
-          urls.values.toList(),
-          cancellation: token,
-        ),
-      );
-      final byUrl = <String, Uint8List>{};
-      for (final row in downloaded.records) {
-        final url = '${row['url_pre_signed'] ?? ''}';
-        final encoded = '${row['content_base64'] ?? ''}';
-        if (url.isNotEmpty && encoded.isNotEmpty) {
-          try {
-            byUrl[url] = base64Decode(encoded);
-          } on FormatException {
-            /* Keep a per-card placeholder. */
-          }
-        }
-      }
-      for (final entry in urls.entries) {
-        if (byUrl[entry.value] != null) {
-          imageBytes[entry.key] = byUrl[entry.value]!;
-        }
-      }
+      _active();
+      matches.add(FrameMatch(hit: hit, imageBytes: bytes));
     }
     token.throwIfCanceled();
+    _active();
     return SearchBatch(
-      matches: [
-        for (var i = 0; i < usable.length; i++)
-          FrameMatch(
-            hit: usable[i],
-            imageUrl: urls[i]?.startsWith('https://') == true ? urls[i] : null,
-            imageBytes: imageBytes[i],
-          ),
-      ],
-      total: response.cntTotal,
+      matches: List<FrameMatch>.unmodifiable(matches),
+      total: matches.length,
       serverMs: response.executionTimeMs,
       roundTripMs: searchMs,
       imageMs: timer.elapsedMilliseconds - searchMs,
     );
   }
 
-  Future<void> close() async {
-    keys.close();
-    await client.close();
-  }
+  Future<void> close() => session.close();
 }
 
 bool indexDone(String state) => const {

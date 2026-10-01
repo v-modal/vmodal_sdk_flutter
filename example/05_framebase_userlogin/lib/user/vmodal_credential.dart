@@ -13,12 +13,20 @@ class VmodalCredential {
     required this.scopeId,
     required this.allowed,
     required this.permissions,
+    this.tenantId,
+    this.collectionWide = false,
   });
   final int? contractVersion;
   final String? sessionId, apiToken, firebaseUid, vmodalUserId, scopeId;
   final DateTime? issuedAt, expiresAt;
   final bool allowed;
   final Set<String> permissions;
+  final String? tenantId;
+  final bool collectionWide;
+
+  /// Version 1 issuers used their VModal principal as the tenant binding.
+  /// It never identifies the Firebase app user.
+  String get tenantBinding => tenantId ?? vmodalUserId!;
 
   factory VmodalCredential.fromJson(Map<String, Object?> data) {
     final issued = data['issued_at'];
@@ -40,6 +48,10 @@ class VmodalCredential {
       vmodalUserId: data['vmodal_user_id'] is String
           ? data['vmodal_user_id'] as String
           : null,
+      tenantId: data['tenant_id'] is String
+          ? data['tenant_id'] as String
+          : null,
+      collectionWide: data['collection_wide'] == true,
       scopeId: data['scope_id'] is String ? data['scope_id'] as String : null,
       allowed: data['allowed'] == true,
       permissions: permissions is List
@@ -68,13 +80,20 @@ class VmodalCredential {
         vmodalUserId!.trim().isEmpty ||
         apiToken == null ||
         apiToken!.trim().isEmpty ||
+        (tenantId != null && tenantId!.trim().isEmpty) ||
         !expiresAt!.toUtc().isAfter(now.toUtc()) ||
         (previous != null &&
             (previous.vmodalUserId != vmodalUserId ||
-                previous.scopeId != scopeId))) {
+                previous.tenantBinding != tenantBinding))) {
       throw const CredentialContractError();
     }
   }
+
+  bool samePolicy(VmodalCredential other) =>
+      scopeId == other.scopeId &&
+      collectionWide == other.collectionWide &&
+      permissions.length == other.permissions.length &&
+      permissions.containsAll(other.permissions);
 }
 
 class CredentialDenied implements Exception {

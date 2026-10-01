@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'api_key_provider.dart';
 import 'config.dart';
 import 'errors.dart';
 import 'transport.dart';
@@ -19,6 +20,8 @@ class VmodalHttp {
   final SdkConfig config;
   final VmodalTransport transport;
   final DelayStrategy _delay;
+  final Expando<TenantCredentialSnapshot> _credentialSnapshots =
+      Expando<TenantCredentialSnapshot>();
 
   Map<String, String> headers({
     bool forceToken = false,
@@ -43,13 +46,20 @@ class VmodalHttp {
         out['X-User-Email'] = strHeaderValue('email', config.normalizedEmail);
       }
     }
+    TenantCredentialSnapshot? snapshot;
     if (forceToken || config.normalizedMode != 'direct') {
-      final key = config.currentApiKey();
+      final provider = config.apiKeyProvider;
+      if (provider is TenantSessionApiKeyProvider) {
+        snapshot = provider.snapshot();
+      }
+      final key = snapshot?.apiKey ?? config.currentApiKey();
       if (key.isEmpty) throw const AuthException('API key is required');
       out['Authorization'] = 'Bearer $key';
     }
     _assertGatewayHeaders(out);
-    return Map<String, String>.unmodifiable(out);
+    final frozen = Map<String, String>.unmodifiable(out);
+    if (snapshot != null) _credentialSnapshots[frozen] = snapshot;
+    return frozen;
   }
 
   Future<Map<String, Object?>> request(
@@ -193,7 +203,18 @@ class VmodalHttp {
     final normalized = method.toUpperCase();
     final canRetry = normalized == 'GET' || normalized == 'HEAD';
     final uri = _uri(path, params, usersApi: usersApi);
-    for (var attempt = 0; attempt <= config.normalizedMaxRetries; attempt++) {
+    final provider = config.apiKeyProvider;
+    final tenantProvider = provider is TenantSessionApiKeyProvider
+        ? provider
+        : null;
+    var requestHeaders = headers;
+    var snapshot = _credentialSnapshots[requestHeaders];
+    var recovered = false;
+    var retries = 0;
+    final retryBudget =
+        config.normalizedMaxRetries +
+        (canRetry && tenantProvider != null ? 1 : 0);
+    for (var attempt = 0; attempt <= retryBudget; attempt++) {
       cancellation.throwIfCanceled();
       final attemptCancellation = CancellationToken();
       final removeCancel = cancellation.onCancel(attemptCancellation.cancel);
@@ -201,17 +222,45 @@ class VmodalHttp {
         final request = VmodalRequest(
           method: normalized,
           uri: uri,
-          headers: headers,
+          headers: requestHeaders,
           jsonBody: json,
           formFields: data,
           files: files,
           responseMode: responseMode,
           cancellation: attemptCancellation,
         );
+        // Retain this request's headers, but never dispatch after authoritative
+        // revocation or after its session lease has expired.
+        tenantProvider?.snapshot();
         final response = await transport.send(request);
+        if (tenantProvider != null && response.statusCode == 401) {
+          await _discard(response, attemptCancellation);
+          cancellation.throwIfCanceled();
+          if (!canRetry ||
+              recovered ||
+              attempt >= retryBudget ||
+              snapshot == null) {
+            throw const TenantAuthException();
+          }
+          recovered = true;
+          await tenantProvider.recover(snapshot.revision);
+          cancellation.throwIfCanceled();
+          requestHeaders = this.headers(
+            forceToken: usersApi,
+            requireUserId: !usersApi,
+          );
+          snapshot = _credentialSnapshots[requestHeaders];
+          continue;
+        }
+        if (tenantProvider != null && response.statusCode == 403) {
+          await _discard(response, attemptCancellation);
+          throw const ApiException('tenant request denied', statusCode: 403);
+        }
         if (canRetry &&
             const <int>{500, 502, 503, 504}.contains(response.statusCode) &&
-            attempt < config.normalizedMaxRetries) {
+            retries < config.normalizedMaxRetries &&
+            attempt < retryBudget) {
+          retries++;
           await _discard(response, attemptCancellation);
           await _delay(Duration(milliseconds: 50 * (attempt + 1)));
           continue;
@@ -222,15 +271,23 @@ class VmodalHttp {
         final value = await reader(response, attemptCancellation);
         cancellation.throwIfCanceled();
         return value;
-      } on OperationCanceled {
-        if (cancellation.isCanceled) rethrow;
-        if (!canRetry || attempt >= config.normalizedMaxRetries) {
+      } on OperationCanceled catch (error) {
+        if (cancellation.isCanceled || error is SessionInvalidated) rethrow;
+        if (!canRetry ||
+            retries >= config.normalizedMaxRetries ||
+            attempt >= retryBudget) {
           throw const TransportException();
         }
+        retries++;
         await _delay(Duration(milliseconds: 50 * (attempt + 1)));
       } on TransportException {
         if (cancellation.isCanceled) throw const OperationCanceled();
-        if (!canRetry || attempt >= config.normalizedMaxRetries) rethrow;
+        if (!canRetry ||
+            retries >= config.normalizedMaxRetries ||
+            attempt >= retryBudget) {
+          rethrow;
+        }
+        retries++;
         await _delay(Duration(milliseconds: 50 * (attempt + 1)));
       } finally {
         removeCancel();

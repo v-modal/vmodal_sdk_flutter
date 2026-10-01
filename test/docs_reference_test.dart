@@ -26,6 +26,12 @@ final requiredDocs = <String>[
   'vmodal_sdk_flutter/CollectionsResource/listGroups.html',
   'vmodal_sdk_flutter/CollectionUploads/videoUpload.html',
   'vmodal_sdk_flutter/UploadTask-class.html',
+  'vmodal_sdk_flutter/UserSessionManager-class.html',
+  'vmodal_sdk_flutter/UserSession-class.html',
+  'vmodal_sdk_flutter/UserScope-class.html',
+  'vmodal_sdk_flutter/SessionContext-class.html',
+  'vmodal_sdk_flutter/TenantCredentialSource-class.html',
+  'vmodal_sdk_flutter/SessionStorageLease-class.html',
 ];
 
 final forbiddenDocs = <String>[
@@ -104,6 +110,12 @@ void main() {
       'vmodal_sdk_flutter.CollectionUploads.videoUpload',
       'vmodal_sdk_flutter.UploadTask',
       'vmodal_sdk_flutter.SdkException',
+      'vmodal_sdk_flutter.UserSessionManager',
+      'vmodal_sdk_flutter.UserSession',
+      'vmodal_sdk_flutter.UserScope',
+      'vmodal_sdk_flutter.SessionContext',
+      'vmodal_sdk_flutter.TenantCredentialSource',
+      'vmodal_sdk_flutter.SessionStorageLease',
     ];
     stdout.writeln('[docs] index entries=${rows.length}');
     for (final name in expected) {

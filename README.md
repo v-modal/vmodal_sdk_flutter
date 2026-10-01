@@ -107,6 +107,11 @@ release, replace the `ref` above with the full 40-character commit SHA from the
 public repository. The `main` branch is suitable for evaluation and development
 only; it is not a production pin.
 
+The opt-in user-session API below is part of the **1.3.0 source release**.
+Use that released public source revision for it; the `1.2.3` package and tag
+shown above do not contain these additions. A source-only GitHub Actions export
+does not publish `1.3.0` to pub.dev or create a version tag.
+
 Then run:
 
 ```bash
@@ -136,7 +141,89 @@ collection names cannot contain the reserved `__` separator, and their encoded
 backend value is also limited to 80 characters. The SDK performs that encoding
 internally.
 
-> The SDK never owns your login screen or persists your API key. Authentication identity is separate from project, collection, and stream organization.
+> The SDK never owns your login screen or persists your API key. Authentication identity is separate from project, collection, and stream organization. `VModalProject` and `VmodalClient` provide tenant-scoped access; use `UserSessionManager` below for app-user isolation.
+
+## Isolate signed-in app users sharing one tenant key
+
+Your authenticated host app resolves a stable user ID and its allowed content
+mapping. VModal's API key and `auth.me()` identify the tenant principal; A and B
+may use exactly the same key and principal. Neither value identifies the app
+user. Keep app-user identity out of `SdkConfig.userId` and `X-User-Id`.
+
+```dart
+import 'package:vmodal_sdk_flutter/vmodal_sdk_flutter.dart';
+
+Future<void> openLibrary({
+  required String runtimeTenantKey,
+  required String tenantId,
+  required String tenantPrincipal,
+  required String authenticatedAppUserId,
+  required String issuedCollectionId,
+}) async {
+  final config = SdkConfig(); // gateway mode, existing connection defaults
+  final credentials = TenantCredentialSource(
+    serviceNamespace: SessionContext.serviceNamespaceFor(config),
+    tenantId: tenantId,
+    expectedPrincipal: tenantPrincipal,
+    initialKey: runtimeTenantKey,
+  );
+  final manager = UserSessionManager(
+    config: config,
+    credentialSource: credentials,
+  );
+  final mapping = ContentMapping.opaque(
+    collectionId: issuedCollectionId, // trusted host mapping, unchanged on wire
+    streamName: 'favorites',
+    actions: {UserAction.discover, UserAction.search, UserAction.media},
+  );
+  try {
+    final session = await manager.openUserSession(
+      tenantId: tenantId,
+      appUserId: authenticatedAppUserId,
+      allowedContentMapping: [mapping],
+    );
+    await session.verifyPrincipal(tenantPrincipal); // optional tenant check
+    final collections = await session.listCollections();
+    if (!collections.contains(mapping)) return;
+    final scope = session.scope(mapping);
+    final results = await scope.search('cyclist crossing a bridge');
+    for (final hit in results.videoHits) {
+      print('${hit.fileName}: ${hit.playbackOffsetMs} ms');
+    }
+    if (results.assets.isNotEmpty) {
+      final frame = await scope.imageBytes(results.assets.first);
+      print('${frame.length} image bytes');
+    }
+  } finally {
+    await manager.close();
+    credentials.close();
+  }
+}
+```
+
+Retain one manager for the app's identity flow. Starting another activation or
+calling `manager.logout()` invalidates the outgoing session synchronously.
+Every activation receives a new runtime `sessionId`, private provider/client,
+and owned transports. Old scopes cannot dispatch, deliver late search data,
+or forward upload progress after invalidation; cancellation settles even when
+an underlying custom transport ignores it. Host code must also check the view
+generation and clear already displayed images, players, routes, and histories.
+
+`ContentMapping.logical(projectId: ..., collectionName: ..., streamName: ...)`
+uses the existing `project__collection` encoding. `ContentMapping.opaque(...)`
+preserves the backend collection ID. Actions and collection-wide access come
+from trusted host policy. Collection/index deletion requires both
+`UserAction.delete` and `collectionWide: true`.
+
+This is a guarantee for operations through `UserSession` and `UserScope`.
+`VmodalClient`, `VModalProject`, arbitrary HTTP, and raw media/storage helpers
+bypass it. A modified client holding the shared tenant key can make arbitrary
+tenant-authorized requests; server protection requires separately verified
+app-user authorization. The SDK cannot recall data returned while A was active
+or stop work already accepted by the server. Read the
+[session contract](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/sdk_contract.md)
+and [tenant-key rotation guide](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/manage_api_key.md)
+before integration.
 
 ## Search video with natural language
 
@@ -166,15 +253,19 @@ for (final hit in results.videoHits) {
 `VideoSearchHit.distance` is the raw lower-is-better distance; it is not a
 similarity or confidence score. `assetId` remains `null` when an older server
 does not return `asset_id`—the SDK never invents stable identity from a
-filename, path, frame identifier, or timestamp. The original entries remain
-available through `results.data` and each hit's `raw` map for compatibility.
+filename, path, frame identifier, or timestamp. The original entries from the
+tenant-scoped facade remain available through `results.data` and each hit's
+`raw` map for compatibility. Session-bound search instead exposes allowlisted
+fields, recomputed returned-row counts, and live `SessionAsset` handles; signed
+URLs and nested tenant metadata stay private.
 
 Collection access is key-scoped. A logical name copied from another account or
 environment can return HTTP 404 even when the search route is healthy. Use
 `ScopedSearchOptions(versionLancedb: version)` when your application tracks a
 specific index version.
 
-The response stays typed where the contract is stable and preserves the raw JSON so new server fields remain available immediately.
+The tenant-scoped response stays typed where the contract is stable and
+preserves the raw JSON so new server fields remain available immediately.
 
 ## Upload with progress and cancellation
 
@@ -266,10 +357,17 @@ for limits, timeout behavior, and the benchmark command.
 - Keep file picking, secure storage, background scheduling, and lifecycle UI in the parent app.
 - Close network resources deterministically with `await project.close()`.
 
-For logout or account switching, cancel active work, clear upload persistence,
-call `keys.clear()`, close the project, and create a new project and scopes for
-the next identity. Key rotation alone is not an identity, project, collection,
-or stream switch.
+For applications using the session API, call `manager.logout()` or activate
+the next authenticated policy through the manager, and clear host UI state.
+Owner-partitioned archives and checkpoints remain available for a validated
+return to that user. Install tenant key replacements through
+`TenantCredentialSource.install(...)`; rotation preserves the active session,
+owner namespace, and policy. A policy or tenant change requires fresh sessions.
+
+With the older tenant-scoped API, the host owns all isolation: cancel work,
+close its private provider and project, partition checkpoints, and create fresh
+state for the next identity. Closing a client alone does not isolate the default
+process-global multipart checkpoint store.
 
 ## Common organization flows
 

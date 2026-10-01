@@ -36,9 +36,17 @@ class CancellationToken {
     _abort.complete();
     final callbacks = List<void Function()>.from(_callbacks);
     _callbacks.clear();
+    Object? failure;
+    StackTrace? trace;
     for (final callback in callbacks) {
-      callback();
+      try {
+        callback();
+      } on Object catch (error, stack) {
+        failure ??= error;
+        trace ??= stack;
+      }
     }
+    if (failure != null) Error.throwWithStackTrace(failure, trace!);
   }
 
   /// @nodoc

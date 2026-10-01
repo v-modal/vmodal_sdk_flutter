@@ -29,7 +29,7 @@ enum SessionFailureKind {
 
 typedef GatewayFactory =
     SearchGateway Function(
-      MutableApiKeyProvider provider,
+      UserSession session,
       String scopeId,
       Future<void> Function() ensureFresh,
     );
@@ -42,12 +42,15 @@ class UserSessionController extends ChangeNotifier {
     GatewayFactory? gatewayFactory,
     DateTime Function()? clock,
     Future<void> Function(Duration)? delay,
+    SdkConfig? config,
+    this.transportFactory,
   }) : gatewayFactory =
            gatewayFactory ??
            ((provider, id, fresh) =>
                SearchGateway(provider, id, ensureFresh: fresh)),
        clock = clock ?? DateTime.now,
-       delay = delay ?? Future<void>.delayed {
+       delay = delay ?? Future<void>.delayed,
+       config = config ?? SdkConfig(timeout: const Duration(seconds: 60)) {
     _subscription = auth.users.listen(_onUser);
   }
 
@@ -56,7 +59,7 @@ class UserSessionController extends ChangeNotifier {
   static const _identityMessage = 'Your sign-in expired. Sign in again.';
   static const _deniedMessage = 'Access to this library is unavailable.';
   static const _unauthorizedMessage =
-      'Your library session expired. Sign in again.';
+      'The tenant connection needs recovery. Retry to reconnect your library.';
   static const _contractMessage =
       'The library connection is not configured correctly.';
   static const _backoff = [
@@ -70,12 +73,15 @@ class UserSessionController extends ChangeNotifier {
   final GatewayFactory gatewayFactory;
   final DateTime Function() clock;
   final Future<void> Function(Duration) delay;
+  final SdkConfig config;
+  final VmodalTransport Function(SdkConfig)? transportFactory;
   late final StreamSubscription<AppUser?> _subscription;
   SessionState state = SessionState.loading;
   SessionFailureKind? failureKind;
   AppUser? user;
   VmodalCredential? _credential;
-  MutableApiKeyProvider? _provider;
+  TenantCredentialSource? _tenant;
+  UserSessionManager? _manager;
   SearchGateway? gateway;
   Timer? _timer;
   Future<void>? _refreshing;
@@ -84,7 +90,9 @@ class UserSessionController extends ChangeNotifier {
   int _generation = 0;
   bool _disposed = false;
 
-  bool get canRetry => failureKind == SessionFailureKind.transient;
+  bool get canRetry =>
+      failureKind == SessionFailureKind.transient ||
+      failureKind == SessionFailureKind.vmodalUnauthorized;
   bool get canRead =>
       state == SessionState.ready &&
       (_credential?.permissions.contains('library:read') ?? false);
@@ -96,30 +104,131 @@ class UserSessionController extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
-  void _teardown() {
-    _generation++;
+  int _teardown() {
+    final generation = ++_generation;
+    final manager = _manager;
+    final old = gateway;
     _timer?.cancel();
     _timer = null;
-    archive.deactivate();
-    _provider?.clear();
     _refreshing = null;
-    final old = gateway;
     gateway = null;
-    _provider = null;
     _credential = null;
-    if (old != null) unawaited(old.close());
+    final closing = manager?.logout();
+    if (closing != null) _observeClose(closing);
+    if (old != null) _observeClose(Future<void>.sync(old.close));
+    if (generation == _generation) archive.deactivate();
+    return generation;
+  }
+
+  void _observeClose(Future<void> cleanup) {
+    unawaited(cleanup.catchError((Object _) {}));
+  }
+
+  ContentMapping _mapping(VmodalCredential credential) => ContentMapping.opaque(
+    collectionId: credential.scopeId!,
+    streamName: archiveStream,
+    actions: {
+      UserAction.discover,
+      UserAction.search,
+      UserAction.media,
+      if (credential.permissions.contains('library:write')) ...{
+        UserAction.upload,
+        UserAction.metadata,
+        UserAction.indexation,
+      },
+      if (credential.collectionWide &&
+          credential.permissions.contains('library:write'))
+        UserAction.delete,
+    },
+    collectionWide: credential.collectionWide,
+  );
+
+  TenantCredential _tenantCredential(VmodalCredential credential) =>
+      TenantCredential(
+        serviceNamespace: SessionContext.serviceNamespaceFor(config),
+        tenantId: credential.tenantBinding,
+        principal: credential.vmodalUserId!,
+        apiKey: credential.apiToken!,
+      );
+
+  void _configureTenant(VmodalCredential credential) {
+    final existing = _tenant;
+    if (existing != null &&
+        existing.tenantId == credential.tenantBinding &&
+        existing.expectedPrincipal == credential.vmodalUserId) {
+      existing.install(_tenantCredential(credential));
+      return;
+    }
+    final old = _manager;
+    if (old != null) _observeClose(old.close());
+    existing?.close();
+    final source = TenantCredentialSource(
+      serviceNamespace: SessionContext.serviceNamespaceFor(config),
+      tenantId: credential.tenantBinding,
+      expectedPrincipal: credential.vmodalUserId!,
+      initialKey: credential.apiToken!,
+      renew: () async {
+        final account = user;
+        final prior = _credential;
+        final generation = _generation;
+        if (account == null || prior == null) throw const CredentialDenied();
+        VmodalCredential renewed;
+        try {
+          renewed = await _acquire(account, generation, previous: prior);
+        } on FirebaseIdentityTransient {
+          if (_current(account, generation)) _recover();
+          rethrow;
+        } on CredentialTransient {
+          if (_current(account, generation)) _recover();
+          rethrow;
+        } on Object catch (error) {
+          if (_current(account, generation)) _failFor(error);
+          rethrow;
+        }
+        if (!prior.samePolicy(renewed)) {
+          // A policy change cannot be installed as a credential-only rotation.
+          if (_current(account, generation)) {
+            final nextGeneration = _teardown();
+            if (!_current(account, nextGeneration)) {
+              throw const SessionInvalidated();
+            }
+            state = SessionState.resolving;
+            _notify();
+            if (_current(account, nextGeneration)) {
+              unawaited(_resolve(account, nextGeneration));
+            }
+          }
+          throw const CredentialContractError();
+        }
+        if (_current(account, generation)) {
+          _credential = renewed;
+          _schedule();
+        }
+        return _tenantCredential(renewed);
+      },
+    );
+    _tenant = source;
+    _manager = UserSessionManager(
+      config: config,
+      credentialSource: source,
+      transportFactory: transportFactory,
+    );
   }
 
   void _onUser(AppUser? next) {
     if (_disposed) return;
     if (next?.uid == user?.uid && state != SessionState.loading) return;
-    _teardown();
+    final generation = _teardown();
+    if (generation != _generation) return;
     user = next;
+    signingIn = false;
     failureKind = null;
     message = '';
     state = next == null ? SessionState.signedOut : SessionState.resolving;
     _notify();
-    if (next != null) unawaited(_resolve(next, _generation));
+    if (next != null && _current(next, generation)) {
+      unawaited(_resolve(next, generation));
+    }
   }
 
   bool _current(AppUser account, int generation) =>
@@ -164,10 +273,21 @@ class UserSessionController extends ChangeNotifier {
     try {
       final credential = await _acquire(account, generation);
       if (!_current(account, generation)) return;
-      final provider = MutableApiKeyProvider(credential.apiToken!);
-      _provider = provider;
+      _configureTenant(credential);
       _credential = credential;
-      next = gatewayFactory(provider, credential.scopeId!, ensureFresh);
+      final sdkSession = await _manager!.openUserSession(
+        tenantId: credential.tenantBinding,
+        appUserId: account.uid,
+        allowedContentMapping: [_mapping(credential)],
+      );
+      if (!_current(account, generation)) {
+        _observeClose(sdkSession.close());
+        return;
+      }
+      next = gatewayFactory(sdkSession, credential.scopeId!, () {
+        if (!_current(account, generation)) throw const SessionInvalidated();
+        return ensureFresh();
+      });
       next.onAccessFailure = (status) {
         if (_current(account, generation)) {
           if (status == 403) {
@@ -177,17 +297,16 @@ class UserSessionController extends ChangeNotifier {
               _deniedMessage,
             );
           } else {
-            _fail(
-              SessionState.error,
-              SessionFailureKind.vmodalUnauthorized,
-              _unauthorizedMessage,
-            );
+            state = SessionState.recoverable;
+            failureKind = SessionFailureKind.vmodalUnauthorized;
+            message = _unauthorizedMessage;
+            _notify();
           }
         }
       };
       await next.connect(credential.vmodalUserId!);
       if (!_current(account, generation)) {
-        await next.close();
+        _observeClose(Future<void>.sync(next.close));
         return;
       }
       gateway = next;
@@ -196,6 +315,10 @@ class UserSessionController extends ChangeNotifier {
         next,
         canRead: credential.permissions.contains('library:read'),
         canWrite: credential.permissions.contains('library:write'),
+        serviceNamespace: sdkSession.context.serviceNamespace,
+        tenantId: sdkSession.context.tenantId,
+        appUserId: sdkSession.context.appUserId,
+        policyRevision: sdkSession.context.policyRevision,
       );
       if (!_current(account, generation)) return;
       state = SessionState.ready;
@@ -205,13 +328,19 @@ class UserSessionController extends ChangeNotifier {
       _notify();
     } on FirebaseIdentityTransient {
       if (_current(account, generation)) _recover();
-      if (next != null && next != gateway) await next.close();
+      if (next != null && next != gateway) {
+        _observeClose(Future<void>.sync(next.close));
+      }
     } on CredentialTransient {
       if (_current(account, generation)) _recover();
-      if (next != null && next != gateway) await next.close();
+      if (next != null && next != gateway) {
+        _observeClose(Future<void>.sync(next.close));
+      }
     } on Object catch (error) {
       if (_current(account, generation)) _failFor(error);
-      if (next != null && next != gateway) await next.close();
+      if (next != null && next != gateway) {
+        _observeClose(Future<void>.sync(next.close));
+      }
     }
   }
 
@@ -238,7 +367,7 @@ class UserSessionController extends ChangeNotifier {
     } else if (error is AuthException ||
         error is ApiException && error.statusCode == 401) {
       _fail(
-        SessionState.error,
+        SessionState.recoverable,
         SessionFailureKind.vmodalUnauthorized,
         _unauthorizedMessage,
       );
@@ -254,7 +383,8 @@ class UserSessionController extends ChangeNotifier {
   }
 
   void _fail(SessionState next, SessionFailureKind kind, String safeMessage) {
-    _teardown();
+    final generation = _teardown();
+    if (generation != _generation) return;
     state = next;
     failureKind = kind;
     message = safeMessage;
@@ -275,7 +405,7 @@ class UserSessionController extends ChangeNotifier {
   Future<void> ensureFresh() {
     final account = user;
     final credential = _credential;
-    if (account == null || credential == null || _provider == null) {
+    if (account == null || credential == null || _manager?.current == null) {
       return Future.error(const CredentialDenied());
     }
     if (credential.expiresAt!.isAfter(
@@ -304,14 +434,8 @@ class UserSessionController extends ChangeNotifier {
 
   Future<void> _refresh(AppUser account, int generation) async {
     try {
-      final renewed = await _acquire(
-        account,
-        generation,
-        previous: _credential,
-      );
+      await _tenant!.renewCredential();
       if (!_current(account, generation)) throw const CredentialDenied();
-      _provider!.rotate(renewed.apiToken!);
-      _credential = renewed;
       state = SessionState.ready;
       failureKind = null;
       message = '';
@@ -323,6 +447,14 @@ class UserSessionController extends ChangeNotifier {
     } on CredentialTransient {
       if (_current(account, generation)) _recover();
       rethrow;
+    } on TenantAuthException {
+      if (_current(account, generation) && failureKind == null) {
+        state = SessionState.recoverable;
+        failureKind = SessionFailureKind.vmodalUnauthorized;
+        message = _unauthorizedMessage;
+        _notify();
+      }
+      rethrow;
     } on Object catch (error) {
       if (_current(account, generation)) _failFor(error);
       rethrow;
@@ -330,30 +462,37 @@ class UserSessionController extends ChangeNotifier {
   }
 
   Future<void> signIn(String email, String password) async {
+    final generation = _generation;
     signingIn = true;
     message = '';
     _notify();
+    if (_disposed || generation != _generation) return;
     try {
       await auth.signIn(email, password);
     } on Object {
+      if (_disposed || generation != _generation) return;
       message = 'Sign-in failed. Check your details and retry.';
       _notify();
     } finally {
-      signingIn = false;
-      _notify();
+      if (!_disposed && generation == _generation) {
+        signingIn = false;
+        _notify();
+      }
     }
   }
 
   Future<void> retry() async {
+    final generation = _generation;
     final account = user;
-    if (account == null || failureKind != SessionFailureKind.transient) return;
-    final established = _credential != null && _provider != null;
+    if (account == null || !canRetry) return;
+    final established = _credential != null && _manager?.current != null;
     state = SessionState.resolving;
     failureKind = null;
     message = '';
     _notify();
+    if (!_current(account, generation)) return;
     if (!established) {
-      await _resolve(account, _generation);
+      await _resolve(account, generation);
       return;
     }
     try {
@@ -364,12 +503,14 @@ class UserSessionController extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
-    _teardown();
+    final generation = _teardown();
+    if (generation != _generation) return;
     user = null;
     state = SessionState.signedOut;
     failureKind = null;
     message = '';
     _notify();
+    if (_disposed || generation != _generation || user != null) return;
     await auth.signOut();
   }
 
@@ -377,6 +518,9 @@ class UserSessionController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _teardown();
+    final closing = _manager?.close();
+    if (closing != null) _observeClose(closing);
+    _tenant?.close();
     unawaited(_subscription.cancel());
     unawaited(auth.close());
     super.dispose();

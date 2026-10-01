@@ -1,4 +1,17 @@
 ----------------------------------------------------------
+date: 2026-10-02
+commit_hash: e02e2e15a2d2eb6af43125e89dc4e5bef904ce20
+title: Isolate app-user sessions under shared tenant credentials
+summary:
+  - Added immutable app-user contexts, guarded session operations, and synchronous account-switch invalidation.
+  - Coordinated tenant credential rotation independently from app-user identity.
+  - Partitioned checkpoints and Framebase archives by service, tenant, user, and scope.
+
+## 1.3.0
+
+Opt-in app-user sessions with guarded operations and tenant credential rotation.
+
+----------------------------------------------------------
 ----------------------------------------------------------
 date: 2026-09-30
 commit_hash: pending

@@ -42,6 +42,7 @@ class _FramebaseAppState extends State<FramebaseApp>
     with WidgetsBindingObserver {
   late final ArchiveController archive;
   late final UserSessionController session;
+  String? _viewSessionId;
   @override
   void initState() {
     super.initState();
@@ -54,6 +55,16 @@ class _FramebaseAppState extends State<FramebaseApp>
           archive: archive,
         );
     WidgetsBinding.instance.addObserver(this);
+    _viewSessionId = session.gateway?.session.sessionId;
+    session.addListener(_sessionChanged);
+  }
+
+  void _sessionChanged() {
+    final id = session.gateway?.session.sessionId;
+    if (id == _viewSessionId) return;
+    _viewSessionId = id;
+    PaintingBinding.instance.imageCache.clear();
+    PaintingBinding.instance.imageCache.clearLiveImages();
   }
 
   @override
@@ -69,6 +80,7 @@ class _FramebaseAppState extends State<FramebaseApp>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    session.removeListener(_sessionChanged);
     if (widget.session == null) session.dispose();
     if (widget.controller == null) archive.dispose();
     super.dispose();
@@ -78,7 +90,9 @@ class _FramebaseAppState extends State<FramebaseApp>
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: session,
     builder: (context, _) => MaterialApp(
-      key: ValueKey('${session.state}_${session.user?.uid ?? ''}'),
+      key: ValueKey(
+        '${session.state}_${session.user?.uid ?? ''}_${session.gateway?.session.sessionId ?? ''}',
+      ),
       title: 'Framebase',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -190,7 +204,7 @@ class _LibraryPageState extends State<LibraryPage> {
 
   Future<void> importVideo() async {
     if (archive.busy || !widget.session.canWrite) return;
-    final uid = widget.session.user?.uid;
+    final sessionId = widget.session.gateway?.session.sessionId;
     VideoPlayerController? player;
     try {
       final file = await openFile(
@@ -206,24 +220,27 @@ class _LibraryPageState extends State<LibraryPage> {
       if (file == null) return;
       if (!mounted ||
           !widget.session.canWrite ||
-          widget.session.user?.uid != uid) {
+          widget.session.gateway?.session.sessionId != sessionId) {
         return;
       }
       if (await file.length() > 100 * 1024 * 1024) {
         throw const FormatException();
       }
+      if (!mounted || widget.session.gateway?.session.sessionId != sessionId) {
+        return;
+      }
       player = VideoPlayerController.file(File(file.path));
       await player.initialize().timeout(const Duration(seconds: 15));
       if (!mounted ||
           !widget.session.canWrite ||
-          widget.session.user?.uid != uid) {
+          widget.session.gateway?.session.sessionId != sessionId) {
         return;
       }
       await archive.importFile(
         file.path,
         player.value.duration.inMilliseconds / 1000,
       );
-      if (mounted) {
+      if (mounted && widget.session.gateway?.session.sessionId == sessionId) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -233,7 +250,7 @@ class _LibraryPageState extends State<LibraryPage> {
         );
       }
     } on Object {
-      if (mounted) {
+      if (mounted && widget.session.gateway?.session.sessionId == sessionId) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Choose a playable MP4 smaller than 100 MB.'),
@@ -1000,12 +1017,6 @@ class MomentTile extends StatelessWidget {
               fit: BoxFit.cover,
               errorBuilder: (_, _, _) => const MissingFrame(),
             )
-          else if (hit.imageUrl != null)
-            Image.network(
-              hit.imageUrl!,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => const MissingFrame(),
-            )
           else
             const MissingFrame(),
           if (hit.seconds != null)
@@ -1063,19 +1074,36 @@ class RecordingSheet extends StatefulWidget {
 class _RecordingSheetState extends State<RecordingSheet> {
   VideoPlayerController? player;
   String? error;
+  String? _sessionId;
+  bool _retired = false;
+  bool get _current =>
+      mounted && !_retired && widget.archive.sessionId == _sessionId;
   @override
   void initState() {
     super.initState();
+    _sessionId = widget.archive.sessionId;
+    widget.archive.addListener(_sessionChanged);
     unawaited(load());
+  }
+
+  void _sessionChanged() {
+    if (_retired || widget.archive.sessionId == _sessionId) return;
+    _retired = true;
+    final old = player;
+    player = null;
+    old?.removeListener(refresh);
+    unawaited(old?.dispose() ?? Future<void>.value());
+    if (mounted) setState(() {});
   }
 
   Future<void> load() async {
     VideoPlayerController? next;
     try {
       final file = await widget.archive.localFile(widget.clip);
+      if (!_current) return;
       next = VideoPlayerController.file(file);
       await next.initialize().timeout(const Duration(seconds: 20));
-      if (!mounted) {
+      if (!_current) {
         await next.dispose();
         return;
       }
@@ -1084,7 +1112,7 @@ class _RecordingSheetState extends State<RecordingSheet> {
           seconds <= next.value.duration.inMilliseconds / 1000) {
         await next.seekTo(Duration(milliseconds: (seconds * 1000).round()));
       }
-      if (!mounted) {
+      if (!_current) {
         await next.dispose();
         return;
       }
@@ -1092,7 +1120,7 @@ class _RecordingSheetState extends State<RecordingSheet> {
       setState(() => player = next);
     } on Object {
       await next?.dispose();
-      if (mounted) setState(() => error = 'This video could not be opened.');
+      if (_current) setState(() => error = 'This video could not be opened.');
     }
   }
 
@@ -1120,15 +1148,16 @@ class _RecordingSheetState extends State<RecordingSheet> {
         ],
       ),
     );
-    if (confirmed != true || !mounted) return;
+    if (confirmed != true || !mounted || !_current) return;
     final messenger = ScaffoldMessenger.of(context);
     final old = player;
     old?.removeListener(refresh);
     await old?.pause();
     await old?.dispose();
     player = null;
+    if (!mounted || !_current) return;
     final result = await widget.archive.removeLocalCopy(widget.clip);
-    if (!mounted) return;
+    if (!mounted || !_current) return;
     if (result == LocalRemovalResult.unavailable) {
       setState(
         () => error = 'The video could not be removed from this device.',
@@ -1141,11 +1170,12 @@ class _RecordingSheetState extends State<RecordingSheet> {
   }
 
   void refresh() {
-    if (mounted) setState(() {});
+    if (_current) setState(() {});
   }
 
   @override
   void dispose() {
+    widget.archive.removeListener(_sessionChanged);
     player?.removeListener(refresh);
     unawaited(player?.dispose() ?? Future.value());
     super.dispose();
@@ -1153,6 +1183,7 @@ class _RecordingSheetState extends State<RecordingSheet> {
 
   @override
   Widget build(BuildContext context) {
+    if (_retired) return const SizedBox.shrink();
     final p = player;
     final length = p?.value.duration.inMilliseconds.toDouble() ?? 0;
     final position = (p?.value.position.inMilliseconds.toDouble() ?? 0).clamp(
@@ -1366,6 +1397,7 @@ Future<void> prepareArchive(
   ArchiveController archive,
 ) async {
   if (archive.busy || !archive.connected || !archive.canWrite) return;
+  final sessionId = archive.sessionId;
   if (archive.pendingJob.isNotEmpty) {
     unawaited(archive.resumeIndex());
     return;
@@ -1392,7 +1424,9 @@ Future<void> prepareArchive(
       ],
     ),
   );
-  if (confirmed == true) unawaited(archive.uploadAndIndex());
+  if (confirmed == true && context.mounted && archive.sessionId == sessionId) {
+    unawaited(archive.uploadAndIndex());
+  }
 }
 
 class WorkStatus extends StatelessWidget {
@@ -1427,6 +1461,7 @@ class StorageDeletionPage extends StatelessWidget {
   final ArchiveController archive;
 
   Future<void> deleteCloudLibrary(BuildContext context) async {
+    final sessionId = archive.sessionId;
     final previewApproved = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -1446,9 +1481,13 @@ class StorageDeletionPage extends StatelessWidget {
         ],
       ),
     );
-    if (previewApproved != true || !context.mounted) return;
+    if (previewApproved != true ||
+        !context.mounted ||
+        archive.sessionId != sessionId) {
+      return;
+    }
     final preview = await archive.previewCloudLibraryDeletion();
-    if (!context.mounted) return;
+    if (!context.mounted || archive.sessionId != sessionId) return;
     if (preview == null) {
       ScaffoldMessenger.of(
         context,
@@ -1478,9 +1517,13 @@ class StorageDeletionPage extends StatelessWidget {
         ],
       ),
     );
-    if (confirmed != true || !context.mounted) return;
+    if (confirmed != true ||
+        !context.mounted ||
+        archive.sessionId != sessionId) {
+      return;
+    }
     await archive.deleteCloudLibrary();
-    if (!context.mounted) return;
+    if (!context.mounted || archive.sessionId != sessionId) return;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(archive.notice)));

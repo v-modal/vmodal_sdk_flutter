@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -81,13 +82,6 @@ class LibraryDeletionPreview {
   final double executionTimeMs;
 }
 
-class _ArchiveSnapshot {
-  _ArchiveSnapshot(this.clips, this.pendingJob, this.events);
-  final List<ArchiveClip> clips;
-  final String pendingJob;
-  final List<ArchiveEvent> events;
-}
-
 List<ArchiveClip> streetClips() => [
   ArchiveClip(
     id: 'neighborhood_crossing',
@@ -137,6 +131,7 @@ class ArchiveController extends ChangeNotifier {
   final List<ArchiveEvent> events = [];
   bool initialized = false, connecting = false, busy = false, searching = false;
   String phase = '', notice = '', activeQuery = '', pendingJob = '';
+  SessionJob? _pendingHandle;
   double? progress;
   SearchBatch? batch;
   int? indexVersion;
@@ -149,8 +144,10 @@ class ArchiveController extends ChangeNotifier {
   bool _disposed = false;
   String _scopeId = '';
   bool canRead = false, canWrite = false;
-  Future<void> _saveQueue = Future<void>.value();
-  final Map<String, _ArchiveSnapshot> _pendingReconciliation = {};
+  SessionStorageLease? _writer;
+  Map<String, Object?>? _owner;
+  String? get archiveDirectory => _directory?.path;
+  String? get sessionId => _gateway?.session.sessionId;
   bool get connected => _gateway != null;
   bool get ready => connected && indexVersion != null;
   bool get hasPendingUploads => clips.any((c) => !c.uploaded);
@@ -171,9 +168,35 @@ class ArchiveController extends ChangeNotifier {
     SearchGateway gateway, {
     required bool canRead,
     required bool canWrite,
+    required String serviceNamespace,
+    required String tenantId,
+    required String appUserId,
+    required String policyRevision,
   }) async {
     deactivate();
+    if ([
+      serviceNamespace,
+      tenantId,
+      appUserId,
+      policyRevision,
+      scopeId,
+    ].any((value) => value.trim().isEmpty)) {
+      throw const ValidationException('Resolved archive owner is required');
+    }
     final generation = _generation;
+    final owner = <String, Object?>{
+      'serviceNamespace': serviceNamespace,
+      'tenantId': tenantId,
+      'appUserId': appUserId,
+      'scopeId': scopeId,
+      'representation': 'opaque',
+      'streamName': archiveStream,
+      'mode': 'vid_file',
+      'policyRevision': policyRevision,
+    };
+    _owner = owner;
+    final writer = gateway.scope.storageLease;
+    _writer = writer;
     _scopeId = scopeId;
     this.canRead = canRead;
     this.canWrite = canWrite;
@@ -182,58 +205,59 @@ class ArchiveController extends ChangeNotifier {
     try {
       final root = supportDirectory ?? await getApplicationSupportDirectory();
       if (generation != _generation) return;
-      _directory = Directory('${root.path}/accounts/$scopeId');
+      await root.create(recursive: true);
+      final rootPath = await root.resolveSymbolicLinks();
+      writer.check();
+      String safe(String value) =>
+          sha256.convert(utf8.encode(value)).toString();
+      final directory = Directory(
+        '$rootPath/accounts/'
+        '${safe(serviceNamespace)}/${safe(tenantId)}/${safe(appUserId)}/${safe(scopeId)}',
+      );
+      _directory = directory;
       if (persist) {
-        final state = File('${_directory!.path}/archive.json');
-        if (await state.exists()) {
-          final data =
-              jsonDecode(await state.readAsString()) as Map<String, dynamic>;
-          final saved = (data['clips'] as List)
-              .map(
-                (r) =>
-                    ArchiveClip.fromJson(Map<String, dynamic>.from(r as Map)),
-              )
-              .toList();
-          if (generation != _generation) return;
-          for (final clip in saved) {
-            if (clip.path != null && !File(clip.path!).existsSync()) {
-              clip.path = null;
+        await writer.run(() async {
+          final state = File('${directory.path}/archive.json');
+          if (await state.exists()) {
+            final data =
+                jsonDecode(await state.readAsString()) as Map<String, dynamic>;
+            writer.check();
+            if (jsonEncode(data['owner']) != jsonEncode(owner)) return;
+            final saved = (data['clips'] as List)
+                .map(
+                  (r) =>
+                      ArchiveClip.fromJson(Map<String, dynamic>.from(r as Map)),
+                )
+                .toList();
+            if (generation != _generation) return;
+            for (final clip in saved) {
+              if (clip.path != null &&
+                  !await _contained(directory, clip.path!)) {
+                clip.path = null;
+              }
+            }
+            writer.check();
+            clips = saved
+                .where((c) => c.bundled || c.path != null || c.uploaded)
+                .toList();
+            if (clips.isEmpty) clips = streetClips();
+            pendingJob = data['pendingJob'] as String? ?? '';
+            for (final raw in (data['events'] as List? ?? [])) {
+              final r = Map<String, dynamic>.from(raw as Map);
+              events.add(
+                ArchiveEvent(
+                  r['title'] as String,
+                  r['detail'] as String,
+                  error: r['error'] == true,
+                  time: DateTime.parse(r['time'] as String),
+                ),
+              );
             }
           }
-          clips = saved
-              .where((c) => c.bundled || c.path != null || c.uploaded)
-              .toList();
-          if (clips.isEmpty) clips = streetClips();
-          pendingJob = data['pendingJob'] as String? ?? '';
-          for (final raw in (data['events'] as List? ?? [])) {
-            final r = Map<String, dynamic>.from(raw as Map);
-            events.add(
-              ArchiveEvent(
-                r['title'] as String,
-                r['detail'] as String,
-                error: r['error'] == true,
-                time: DateTime.parse(r['time'] as String),
-              ),
-            );
-          }
-        }
-      }
-      final reconciliation = _pendingReconciliation[scopeId];
-      if (reconciliation != null && generation == _generation) {
-        clips = reconciliation.clips.map((c) => c.copy()).toList();
-        pendingJob = reconciliation.pendingJob;
-        events
-          ..clear()
-          ..addAll(reconciliation.events);
-        try {
-          await _saveStrict(_directory!, clips, pendingJob, events);
-          _pendingReconciliation.remove(scopeId);
-        } on Object {
-          notice =
-              'Cloud status is restored in memory but could not be saved locally.';
-        }
+        });
       }
     } on Object {
+      if (generation != _generation) return;
       notice =
           'Local archive could not be restored. Built-in clips are available.';
     }
@@ -244,6 +268,9 @@ class ArchiveController extends ChangeNotifier {
 
   void deactivate() {
     _generation++;
+    _writer?.retire();
+    _writer = null;
+    _owner = null;
     stopWork();
     invalidateSearch();
     _gateway = null;
@@ -258,6 +285,7 @@ class ArchiveController extends ChangeNotifier {
     busy = false;
     searching = false;
     phase = notice = activeQuery = pendingJob = '';
+    _pendingHandle = null;
     progress = null;
     batch = null;
     indexVersion = null;
@@ -270,35 +298,41 @@ class ArchiveController extends ChangeNotifier {
     }
     // Snapshot and serialize writes so progress events cannot truncate each other.
     // Never serialize the client, key, response rows or signed URLs.
-    final snapshot = _manifestJson(clips, pendingJob, events);
+    final writer = _writer;
+    if (writer == null) return Future<void>.value();
+    final snapshot = _manifestJson(clips, pendingJob, events, _owner!);
     final path = '${_directory!.path}/archive.json';
-    final write = _saveQueue.catchError((_) {}).then((_) async {
-      if (_disposed) return;
-      await _writeManifest(path, snapshot);
-    });
-    _saveQueue = write.catchError((_) {
+    return writer.run(() => _writeManifest(path, snapshot, writer)).catchError((
+      _,
+    ) {
       /* Optional history must not cancel network work. */
     });
-    return _saveQueue;
   }
 
   String _manifestJson(
     List<ArchiveClip> savedClips,
     String savedJob,
     List<ArchiveEvent> savedEvents,
+    Map<String, Object?> owner,
   ) => jsonEncode({
+    'owner': owner,
     'clips': savedClips.map((c) => c.toJson()).toList(),
     'pendingJob': savedJob,
     'events': savedEvents.take(40).map((e) => e.toJson()).toList(),
   });
 
-  Future<void> _writeManifest(String path, String snapshot) async {
+  Future<void> _writeManifest(
+    String path,
+    String snapshot,
+    SessionStorageLease writer,
+  ) async {
     final target = File(path);
     await target.parent.create(recursive: true);
     final temp = File('$path.${DateTime.now().microsecondsSinceEpoch}.tmp');
     try {
       await temp.writeAsString(snapshot, flush: true);
-      await temp.rename(path);
+      writer.check();
+      temp.renameSync(path);
     } on Object {
       if (await temp.exists()) await temp.delete();
       rethrow;
@@ -310,15 +344,23 @@ class ArchiveController extends ChangeNotifier {
     List<ArchiveClip> savedClips,
     String savedJob,
     List<ArchiveEvent> savedEvents,
+    SessionStorageLease writer,
+    Map<String, Object?> owner,
   ) async {
     if (!persist) return;
-    final snapshot = _manifestJson(savedClips, savedJob, savedEvents);
+    final snapshot = _manifestJson(savedClips, savedJob, savedEvents, owner);
     final path = '${directory.path}/archive.json';
-    final write = _saveQueue
-        .catchError((_) {})
-        .then((_) => _writeManifest(path, snapshot));
-    _saveQueue = write.catchError((_) {});
-    await write;
+    await writer.run(() => _writeManifest(path, snapshot, writer));
+  }
+
+  Future<bool> _contained(Directory directory, String path) async {
+    try {
+      final root = await directory.resolveSymbolicLinks();
+      final file = await File(path).resolveSymbolicLinks();
+      return file.startsWith('$root${Platform.pathSeparator}');
+    } on FileSystemException {
+      return false;
+    }
   }
 
   void record(String title, String detail, {bool error = false}) {
@@ -329,26 +371,42 @@ class ArchiveController extends ChangeNotifier {
   }
 
   Future<File> localFile(ArchiveClip clip) async {
-    if (clip.path != null && await File(clip.path!).exists()) {
-      return File(clip.path!);
-    }
-    if (!clip.bundled) {
-      throw const FileSystemException('Recording no longer available');
-    }
-    if (_directory == null || _scopeId.isEmpty) {
+    final directory = _directory;
+    final writer = _writer;
+    final path = clip.path;
+    if (directory == null || writer == null || !clips.contains(clip)) {
       throw const FileSystemException('No active library');
     }
-    final file = File('${_directory!.path}/${clip.filename}');
-    if (!await file.exists()) {
+    return writer.run(() async {
+      if (path != null && await _contained(directory, path)) {
+        writer.check();
+        return File(path);
+      }
+      if (!clip.bundled ||
+          clip.filename.contains('/') ||
+          clip.filename.contains('\\')) {
+        throw const FileSystemException('Recording no longer available');
+      }
+      final file = File('${directory.path}/${clip.filename}');
       await file.parent.create(recursive: true);
-      final data = await rootBundle.load(clip.asset);
-      await file.writeAsBytes(
-        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
-        flush: true,
-      );
-    }
-    clip.path = file.path;
-    return file;
+      if (!await _contained(directory, file.path)) {
+        final data = await rootBundle.load(clip.asset);
+        final temp = File('${file.path}.${writer.sessionId}.tmp');
+        try {
+          await temp.writeAsBytes(
+            data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+            flush: true,
+          );
+          writer.check();
+          temp.renameSync(file.path);
+        } finally {
+          if (temp.existsSync()) temp.deleteSync();
+        }
+      }
+      writer.check();
+      clip.path = file.path;
+      return file;
+    });
   }
 
   Future<LocalRemovalResult> removeLocalCopy(ArchiveClip clip) async {
@@ -356,7 +414,11 @@ class ArchiveController extends ChangeNotifier {
     final scope = _scopeId;
     final generation = _generation;
     final path = clip.path;
+    final writer = _writer;
+    final owner = _owner;
     if (directory == null ||
+        writer == null ||
+        owner == null ||
         scope.isEmpty ||
         busy ||
         pendingJob.isNotEmpty ||
@@ -367,20 +429,15 @@ class ArchiveController extends ChangeNotifier {
     }
     final target = File(path);
     try {
-      final rootPath = await directory.resolveSymbolicLinks();
-      final targetPath = await target.resolveSymbolicLinks();
-      final prefix = rootPath.endsWith(Platform.pathSeparator)
-          ? rootPath
-          : '$rootPath${Platform.pathSeparator}';
-      if (!targetPath.startsWith(prefix) ||
-          generation != _generation ||
-          scope != _scopeId ||
-          directory.path != _directory?.path) {
-        notice = 'The video could not be removed from this device.';
-        emit();
-        return LocalRemovalResult.unavailable;
-      }
-      await target.delete();
+      await writer.run(() async {
+        if (!await _contained(directory, path)) {
+          throw const FileSystemException(
+            'Recording is outside selected owner',
+          );
+        }
+        writer.check();
+        target.deleteSync();
+      });
     } on Object {
       if (generation == _generation && scope == _scopeId) {
         notice = 'The video could not be removed from this device.';
@@ -413,7 +470,7 @@ class ArchiveController extends ChangeNotifier {
         : 'Video removed from this device.';
     emit();
     try {
-      await _saveStrict(directory, clips, pendingJob, events);
+      await _saveStrict(directory, clips, pendingJob, events, writer, owner);
       return LocalRemovalResult.removed;
     } on Object {
       notice =
@@ -424,13 +481,23 @@ class ArchiveController extends ChangeNotifier {
   }
 
   Future<void> importFile(String path, double duration) async {
-    if (!canWrite || _directory == null) return;
+    if (!canWrite || _directory == null || _writer == null) return;
     final generation = _generation;
     final directory = _directory!;
-    await directory.create(recursive: true);
-    if (generation != _generation) return;
-    final id = 'street_${DateTime.now().millisecondsSinceEpoch}';
-    final file = await File(path).copy('${directory.path}/$id.mp4');
+    final writer = _writer!;
+    final id = 'street_${DateTime.now().microsecondsSinceEpoch}';
+    final file = File('${directory.path}/$id.mp4');
+    await writer.run(() async {
+      await directory.create(recursive: true);
+      final temp = File('${file.path}.${writer.sessionId}.tmp');
+      try {
+        await File(path).copy(temp.path);
+        writer.check();
+        temp.renameSync(file.path);
+      } finally {
+        if (temp.existsSync()) temp.deleteSync();
+      }
+    });
     if (generation != _generation) return;
     final sourceName = basename(path);
     clips.add(
@@ -513,7 +580,13 @@ class ArchiveController extends ChangeNotifier {
   Future<CloudDeletionResult> deleteCloudLibrary() async {
     final gateway = _gateway;
     final directory = _directory;
-    if (gateway == null || directory == null || !canDeleteCloudLibrary) {
+    final writer = _writer;
+    final owner = _owner;
+    if (gateway == null ||
+        directory == null ||
+        writer == null ||
+        owner == null ||
+        !canDeleteCloudLibrary) {
       return CloudDeletionResult.failed;
     }
     final generation = _generation;
@@ -529,6 +602,8 @@ class ArchiveController extends ChangeNotifier {
     emit();
     try {
       final response = await gateway.deleteLibrary(token);
+      writer.check();
+      token.throwIfCanceled();
       _validateDeletion(response, 'ok', scope);
 
       for (final clip in savedClips) {
@@ -560,15 +635,16 @@ class ArchiveController extends ChangeNotifier {
         emit();
       }
       try {
-        await _saveStrict(directory, savedClips, '', savedEvents);
-        _pendingReconciliation.remove(scope);
+        await _saveStrict(
+          directory,
+          savedClips,
+          '',
+          savedEvents,
+          writer,
+          owner,
+        );
         return CloudDeletionResult.deleted;
       } on Object {
-        _pendingReconciliation[scope] = _ArchiveSnapshot(
-          savedClips.map((c) => c.copy()).toList(),
-          '',
-          List<ArchiveEvent>.from(savedEvents),
-        );
         if (current) {
           notice =
               'Cloud library was deleted, but local status could not be saved. Your device videos were kept.';
@@ -656,6 +732,7 @@ class ArchiveController extends ChangeNotifier {
       final job = await gateway.createIndex(token);
       token.throwIfCanceled();
       pendingJob = job.jobId;
+      _pendingHandle = job;
       await save();
       if (pendingJob.isEmpty) {
         throw const MalformedResponse('No index job identifier');
@@ -720,9 +797,21 @@ class ArchiveController extends ChangeNotifier {
     CancellationToken token,
   ) async {
     final watch = Stopwatch()..start();
+    final job =
+        _pendingHandle ??
+        await gateway.rebindJob(
+          DurableJobReference(
+            jobId: pendingJob,
+            ownerKey: gateway.context.ownerKey,
+            scopeKey: gateway.scope.scopeKey,
+            policyRevision: gateway.context.policyRevision,
+          ),
+        );
+    token.throwIfCanceled();
+    _pendingHandle = job;
     for (var attempt = 0; attempt < 120; attempt++) {
       token.throwIfCanceled();
-      final state = await gateway.indexStatus(pendingJob, token);
+      final state = await gateway.indexStatus(job, token);
       token.throwIfCanceled();
       if (indexDone(state.status)) {
         await gateway.refreshVersion();
@@ -813,6 +902,7 @@ class ArchiveController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _writer?.retire();
     _queryToken?.cancel();
     stopWork();
     super.dispose();

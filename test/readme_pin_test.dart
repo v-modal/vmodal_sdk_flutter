@@ -20,6 +20,15 @@ void main() {
       multiLine: true,
     ).firstMatch(pubspec)!.group(1);
     final tag = RegExp(r'ref:\s*v([^\s]+)').firstMatch(section!)?.group(1);
-    if (tag != null) expect(tag, version);
+    final published = RegExp(
+      r'vmodal_sdk_flutter:\s*([^\s]+)',
+    ).firstMatch(section)?.group(1);
+    expect(published, isNotNull);
+    if (tag != null) expect(tag, published);
+    if (published != version) {
+      expect(section, contains('**$version source release**'));
+      expect(section, contains('do not contain these additions'));
+      expect(section, contains('does not publish `$version` to pub.dev'));
+    }
   });
 }

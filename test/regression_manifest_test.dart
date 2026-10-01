@@ -49,6 +49,8 @@ void main() {
       'lib/vmodal_sdk_flutter.dart',
       'lib/src/client.dart',
       'lib/src/content_scope.dart',
+      'lib/src/user_session.dart',
+      'lib/src/session_guard.dart',
       'lib/src/transport.dart',
       'lib/src/upload.dart',
       'lib/src/adaptive_upload.dart',
@@ -174,6 +176,11 @@ void main() {
         'test.sh',
         'tool/live_test.dart',
         'tool/perf_benchmark.dart',
+        'lib/src/user_session.dart',
+        'lib/src/session_guard.dart',
+        'test/user_session_test.dart',
+        'test/session_guard_test.dart',
+        'test/tenant_credentials_test.dart',
         'example/readme.md',
         'example/01_full_app/README.md',
         'example/01_full_app/lib/main.dart',
@@ -209,6 +216,7 @@ void main() {
         'docs/sdk_doc.md',
         'docs/manage_api_key.md',
         'docs/sdk_contract.md',
+        'docs/user_session_implementation.md',
       ]) {
         expect(File('${dir.path}/$path').existsSync(), isTrue, reason: path);
       }

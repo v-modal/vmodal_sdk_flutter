@@ -37,6 +37,14 @@ class AuthException extends SdkException {
   });
 }
 
+/// Tenant connection failure. This does not invalidate host app-user identity.
+/// No server body, credential, or issuer error is attached to this failure.
+class TenantAuthException extends AuthException {
+  const TenantAuthException([
+    super.message = 'tenant connection authentication failed',
+  ]);
+}
+
 /// Valid service response that represents an unsuccessful operation.
 class ApiException extends SdkException {
   const ApiException(
@@ -85,4 +93,9 @@ class MalformedResponse extends SdkException {
 /// Operation stopped because its [CancellationToken] was canceled.
 class OperationCanceled extends SdkException {
   const OperationCanceled() : super('operation canceled');
+}
+
+/// An operation belongs to a session which is no longer active.
+class SessionInvalidated extends OperationCanceled {
+  const SessionInvalidated();
 }

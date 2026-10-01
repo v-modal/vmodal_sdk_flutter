@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'config.dart';
 import 'errors.dart';
 import 'http.dart';
@@ -7,7 +9,7 @@ import 'transport.dart';
 import 'upload.dart';
 
 /// Version of the Dart SDK contract represented by this package.
-const String vmodalSdkVersion = '1.2.3';
+const String vmodalSdkVersion = '1.3.0';
 
 /// Owns configuration, transports, and feature resources for one app session.
 ///
@@ -75,7 +77,7 @@ class VmodalClient {
 
   /// Compatibility surface whose methods currently throw [FeatureDisabled].
   final SqlResource sql = SqlResource();
-  bool _closed = false;
+  Future<void>? _closeFuture;
 
   /// Checks service health and returns version/dependency information.
   Future<HealthResponse> health({CancellationToken? cancellation}) =>
@@ -162,11 +164,24 @@ class VmodalClient {
     );
   }
 
-  /// Closes both owned transports. Repeated calls have no effect.
-  Future<void> close() async {
-    if (_closed) return;
-    _closed = true;
-    await transport.close();
-    await signedUploadTransport.close();
+  /// Closes both owned transports, even if one fails, sharing cleanup calls.
+  Future<void> close() {
+    final pending = _closeFuture;
+    if (pending != null) return pending;
+    final result = Completer<void>();
+    _closeFuture = result.future;
+    unawaited(
+      _closeTransports().then(result.complete, onError: result.completeError),
+    );
+    return result.future;
+  }
+
+  Future<void> _closeTransports() async {
+    // Start both independently, even if one throws synchronously or waits on
+    // uncooperative I/O. Future.wait observes both failures before settling.
+    await Future.wait<void>(<Future<void>>[
+      Future<void>.sync(transport.close),
+      Future<void>.sync(signedUploadTransport.close),
+    ]);
   }
 }

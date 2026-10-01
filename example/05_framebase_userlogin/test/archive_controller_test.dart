@@ -1,14 +1,15 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:framebase/data/archive_controller.dart';
 import 'package:framebase/data/search_gateway.dart';
 import 'package:vmodal_sdk_flutter/vmodal_sdk_flutter.dart';
+import 'session_fixture.dart';
 
 class UploadGateway extends SearchGateway {
-  UploadGateway()
-    : super(MutableApiKeyProvider('fixture-upload'), 'scope_upload');
+  UploadGateway(UserSession session) : super(session, 'scope_upload');
 
   @override
   Future<UploadTask<VideoUploadResponse>> upload(File file) async =>
@@ -21,16 +22,8 @@ class UploadGateway extends SearchGateway {
       });
 
   @override
-  Future<IndexationSubmitResponse> createIndex(
-    CancellationToken cancellation,
-  ) async => IndexationSubmitResponse(const <String, Object?>{
-    'job_id': 'job-ready',
-    'status': 'queued',
-  });
-
-  @override
   Future<IndexationStatusResponse> indexStatus(
-    String job,
+    SessionJob job,
     CancellationToken cancellation,
   ) async => IndexationStatusResponse(const <String, Object?>{
     'job_id': 'job-ready',
@@ -42,8 +35,8 @@ class UploadGateway extends SearchGateway {
 }
 
 class DeleteGateway extends SearchGateway {
-  DeleteGateway({this.deleteError})
-    : super(MutableApiKeyProvider('fixture-delete'), 'scope_delete');
+  DeleteGateway(UserSession session, {this.deleteError})
+    : super(session, 'scope_delete');
   final Object? deleteError;
   int previews = 0;
   int deletes = 0;
@@ -82,6 +75,7 @@ class DeleteGateway extends SearchGateway {
 }
 
 class DelayedDeleteGateway extends DeleteGateway {
+  DelayedDeleteGateway(super.session);
   final Completer<DeleteCollectionResponse> completion =
       Completer<DeleteCollectionResponse>();
 
@@ -95,8 +89,7 @@ class DelayedDeleteGateway extends DeleteGateway {
 }
 
 class BlockingGateway extends SearchGateway {
-  BlockingGateway()
-    : super(MutableApiKeyProvider('fixture-blocking'), 'scope_blocking') {
+  BlockingGateway(UserSession session) : super(session, 'scope_blocking') {
     version = 1;
   }
 
@@ -118,16 +111,8 @@ class BlockingGateway extends SearchGateway {
   }
 
   @override
-  Future<IndexationSubmitResponse> createIndex(
-    CancellationToken cancellation,
-  ) async => IndexationSubmitResponse(const <String, Object?>{
-    'job_id': 'job-continues-remotely',
-    'status': 'queued',
-  });
-
-  @override
   Future<IndexationStatusResponse> indexStatus(
-    String job,
+    SessionJob job,
     CancellationToken cancellation,
   ) async {
     indexStarted.complete();
@@ -152,16 +137,106 @@ class BlockingGateway extends SearchGateway {
 
 void main() {
   test(
+    'same scope owners stay separate and narrowed policy refuses cached state',
+    () async {
+      final root = await Directory.systemTemp.createTemp('framebase_owner_');
+      addTearDown(() => root.delete(recursive: true));
+      final gateway = SearchGateway(await testSession(scopeId: 'same'), 'same');
+      addTearDown(gateway.close);
+      final c = ArchiveController(supportDirectory: root);
+      addTearDown(c.dispose);
+      Future<void> activate(String user, {String policy = 'p1'}) => c.activate(
+        'same',
+        gateway,
+        canRead: true,
+        canWrite: true,
+        serviceNamespace: 'service',
+        tenantId: 'tenant',
+        appUserId: user,
+        policyRevision: policy,
+      );
+      await activate('a/b');
+      final first = c.archiveDirectory!;
+      c.record('Private A', 'owner A history');
+      await c.save();
+      await activate('a_b');
+      expect(c.archiveDirectory, isNot(first));
+      expect(c.events, isEmpty);
+      await activate('a/b');
+      expect(c.events.single.title, 'Private A');
+      await activate('a/b', policy: 'narrowed');
+      expect(c.events, isEmpty);
+    },
+  );
+
+  test(
+    'unknown legacy archives and restored outside paths are ignored',
+    () async {
+      final root = await Directory.systemTemp.createTemp('framebase_paths_');
+      addTearDown(() => root.delete(recursive: true));
+      final outside = File('${root.path}/outside.mp4')..writeAsBytesSync([1]);
+      final legacy = File('${root.path}/accounts/same/archive.json');
+      await legacy.parent.create(recursive: true);
+      await legacy.writeAsString(jsonEncode({'pendingJob': 'foreign-job'}));
+      final gateway = SearchGateway(await testSession(scopeId: 'same'), 'same');
+      addTearDown(gateway.close);
+      final c = ArchiveController(supportDirectory: root);
+      addTearDown(c.dispose);
+      Future<void> activate() => c.activate(
+        'same',
+        gateway,
+        canRead: true,
+        canWrite: true,
+        serviceNamespace: 'service',
+        tenantId: 'tenant',
+        appUserId: 'resolved-user',
+        policyRevision: 'p1',
+      );
+      await activate();
+      expect(c.pendingJob, isEmpty);
+      await Directory(c.archiveDirectory!).create(recursive: true);
+      c.clips = [
+        ArchiveClip(
+          id: 'foreign',
+          title: 'Foreign',
+          location: 'Test',
+          duration: 1,
+          asset: '',
+          poster: '',
+          path: outside.path,
+          bundled: false,
+        ),
+      ];
+      await c.save();
+      c.deactivate();
+      await activate();
+      expect(c.clips.any((clip) => clip.path == outside.path), isFalse);
+      expect(await outside.exists(), isTrue);
+      expect(await legacy.exists(), isTrue);
+    },
+  );
+
+  test(
     'archive manifests and imported files stay with their account',
     () async {
       final root = await Directory.systemTemp.createTemp('framebase_test_');
       addTearDown(() => root.delete(recursive: true));
       const scopeA = 'scope_7K3A';
       const scopeB = 'scope_B9Q2';
-      final a = SearchGateway(MutableApiKeyProvider('fixture-a'), scopeA);
-      final b = SearchGateway(MutableApiKeyProvider('fixture-b'), scopeB);
+      final a = SearchGateway(await testSession(scopeId: scopeA), scopeA);
+      final b = SearchGateway(await testSession(scopeId: scopeB), scopeB);
       final c = ArchiveController(supportDirectory: root);
-      await c.activate(scopeA, a, canRead: true, canWrite: true);
+      await c.activate(
+        scopeA,
+        a,
+        canRead: true,
+        canWrite: true,
+        serviceNamespace: "fixture-service",
+        tenantId: "fixture-tenant",
+        appUserId: "fixture-user",
+        policyRevision: "fixture-policy",
+      );
+      final accountA = c.archiveDirectory!;
       c.clips.first.uploaded = true;
       c.pendingJob = 'alice-job';
       c.record('Alice upload', 'done');
@@ -169,23 +244,42 @@ void main() {
       await src.writeAsBytes([1, 2, 3]);
       await c.importFile(src.path, 3);
       await c.save();
-      expect(c.clips.last.path, startsWith('${root.path}/accounts/$scopeA/'));
+      expect(c.clips.last.path, startsWith('$accountA/'));
       c.deactivate();
       expect(c.events, isEmpty);
       expect(c.pendingJob, isEmpty);
-      await c.activate(scopeB, b, canRead: true, canWrite: true);
+      await c.activate(
+        scopeB,
+        b,
+        canRead: true,
+        canWrite: true,
+        serviceNamespace: "fixture-service",
+        tenantId: "fixture-tenant",
+        appUserId: "fixture-user",
+        policyRevision: "fixture-policy",
+      );
+      final accountB = c.archiveDirectory!;
       expect(c.clips, hasLength(3));
       expect(c.clips.first.uploaded, isFalse);
       expect(c.pendingJob, isEmpty);
       expect(c.events, isEmpty);
       await c.importFile(src.path, 4);
-      expect(c.clips.last.path, startsWith('${root.path}/accounts/$scopeB/'));
-      await c.activate(scopeA, a, canRead: true, canWrite: true);
+      expect(c.clips.last.path, startsWith('$accountB/'));
+      await c.activate(
+        scopeA,
+        a,
+        canRead: true,
+        canWrite: true,
+        serviceNamespace: "fixture-service",
+        tenantId: "fixture-tenant",
+        appUserId: "fixture-user",
+        policyRevision: "fixture-policy",
+      );
       expect(c.clips, hasLength(4));
       expect(c.clips.first.uploaded, isTrue);
       expect(c.pendingJob, 'alice-job');
       expect(c.events.any((e) => e.title == 'Alice upload'), isTrue);
-      final manifest = File('${root.path}/accounts/$scopeA/archive.json');
+      final manifest = File('$accountA/archive.json');
       final saved = await manifest.readAsString();
       for (final forbidden in [
         'fixture-a',
@@ -196,7 +290,7 @@ void main() {
       ]) {
         expect(saved, isNot(contains(forbidden)));
       }
-      expect(await Directory('${root.path}/accounts/$scopeB').exists(), isTrue);
+      expect(await Directory(accountB).exists(), isTrue);
       await a.close();
       await b.close();
       c.dispose();
@@ -210,14 +304,26 @@ void main() {
       addTearDown(() => root.delete(recursive: true));
       final source = File('${root.path}/camera.mp4')
         ..writeAsBytesSync([1, 2, 3]);
-      final gateway = BlockingGateway();
+      final gateway = BlockingGateway(
+        await testSession(
+          scopeId: 'scope_blocking',
+          transport: QueueTransport([
+            {'job_id': 'job-continues-remotely', 'status': 'queued'},
+          ]),
+        ),
+      );
       final c = ArchiveController(supportDirectory: root);
       await c.activate(
         'scope_blocking',
         gateway,
         canRead: true,
         canWrite: true,
+        serviceNamespace: "fixture-service",
+        tenantId: "fixture-tenant",
+        appUserId: "fixture-user",
+        policyRevision: "fixture-policy",
       );
+      await Directory(c.archiveDirectory!).create(recursive: true);
       c.clips = [
         ArchiveClip(
           id: 'camera',
@@ -226,7 +332,7 @@ void main() {
           duration: 1,
           asset: '',
           poster: '',
-          path: source.path,
+          path: source.copySync('${c.archiveDirectory}/camera.mp4').path,
           bundled: false,
         ),
       ];
@@ -266,9 +372,19 @@ void main() {
     addTearDown(() => root.delete(recursive: true));
     final source = File('${root.path}/camera.mp4');
     await source.writeAsBytes([1, 2, 3]);
-    final gateway = UploadGateway();
+    final gateway = UploadGateway(await testSession(scopeId: 'scope_upload'));
     final controller = ArchiveController(supportDirectory: root);
-    await controller.activate('alice', gateway, canRead: true, canWrite: true);
+    await controller.activate(
+      'alice',
+      gateway,
+      canRead: true,
+      canWrite: true,
+      serviceNamespace: "fixture-service",
+      tenantId: "fixture-tenant",
+      appUserId: "fixture-user",
+      policyRevision: "fixture-policy",
+    );
+    await Directory(controller.archiveDirectory!).create(recursive: true);
     controller.clips = <ArchiveClip>[
       ArchiveClip(
         id: 'camera',
@@ -277,7 +393,7 @@ void main() {
         duration: 3,
         asset: '',
         poster: '',
-        path: source.path,
+        path: source.copySync('${controller.archiveDirectory}/camera.mp4').path,
         bundled: false,
       ),
     ];
@@ -285,7 +401,16 @@ void main() {
     await controller.uploadAndIndex();
     expect(controller.clips.single.remoteAssetId, 'asset-uploaded');
     controller.deactivate();
-    await controller.activate('alice', gateway, canRead: true, canWrite: true);
+    await controller.activate(
+      'alice',
+      gateway,
+      canRead: true,
+      canWrite: true,
+      serviceNamespace: "fixture-service",
+      tenantId: "fixture-tenant",
+      appUserId: "fixture-user",
+      policyRevision: "fixture-policy",
+    );
     final clip = controller.clips.single;
     expect(clip.remoteAssetId, 'asset-uploaded');
     expect(
@@ -332,11 +457,20 @@ void main() {
     final root = await Directory.systemTemp.createTemp('framebase_remote_');
     addTearDown(() => root.delete(recursive: true));
     final gateway = SearchGateway(
-      MutableApiKeyProvider('fixture-remote'),
+      await testSession(scopeId: 'scope_remote'),
       'scope_remote',
     );
     final c = ArchiveController(supportDirectory: root);
-    await c.activate('scope_remote', gateway, canRead: true, canWrite: true);
+    await c.activate(
+      'scope_remote',
+      gateway,
+      canRead: true,
+      canWrite: true,
+      serviceNamespace: "fixture-service",
+      tenantId: "fixture-tenant",
+      appUserId: "fixture-user",
+      policyRevision: "fixture-policy",
+    );
     c.clips = [
       ArchiveClip(
         id: 'remote',
@@ -363,7 +497,16 @@ void main() {
     ];
     await c.save();
     c.deactivate();
-    await c.activate('scope_remote', gateway, canRead: true, canWrite: true);
+    await c.activate(
+      'scope_remote',
+      gateway,
+      canRead: true,
+      canWrite: true,
+      serviceNamespace: "fixture-service",
+      tenantId: "fixture-tenant",
+      appUserId: "fixture-user",
+      policyRevision: "fixture-policy",
+    );
     expect(c.clips, hasLength(1));
     expect(c.clips.single.path, isNull);
     expect(c.clips.single.remoteOnly, isTrue);
@@ -379,12 +522,21 @@ void main() {
     final root = await Directory.systemTemp.createTemp('framebase_remove_');
     addTearDown(() => root.delete(recursive: true));
     final gateway = SearchGateway(
-      MutableApiKeyProvider('fixture-remove'),
+      await testSession(scopeId: 'scope_remove'),
       'scope_remove',
     );
     final c = ArchiveController(supportDirectory: root);
-    await c.activate('scope_remove', gateway, canRead: true, canWrite: true);
-    final account = Directory('${root.path}/accounts/scope_remove');
+    await c.activate(
+      'scope_remove',
+      gateway,
+      canRead: true,
+      canWrite: true,
+      serviceNamespace: "fixture-service",
+      tenantId: "fixture-tenant",
+      appUserId: "fixture-user",
+      policyRevision: "fixture-policy",
+    );
+    final account = Directory('${c.archiveDirectory}');
     await account.create(recursive: true);
     final local = File('${account.path}/local.mp4')..writeAsBytesSync([1]);
     final remote = File('${account.path}/remote.mp4')..writeAsBytesSync([2]);
@@ -424,10 +576,20 @@ void main() {
   test('preview is non-mutating and commit keeps device videos', () async {
     final root = await Directory.systemTemp.createTemp('framebase_delete_');
     addTearDown(() => root.delete(recursive: true));
-    final gateway = DeleteGateway()..version = 7;
+    final gateway = DeleteGateway(await testSession(scopeId: 'scope_delete'))
+      ..version = 7;
     final c = ArchiveController(supportDirectory: root);
-    await c.activate('scope_delete', gateway, canRead: true, canWrite: true);
-    final account = Directory('${root.path}/accounts/scope_delete');
+    await c.activate(
+      'scope_delete',
+      gateway,
+      canRead: true,
+      canWrite: true,
+      serviceNamespace: "fixture-service",
+      tenantId: "fixture-tenant",
+      appUserId: "fixture-user",
+      policyRevision: "fixture-policy",
+    );
+    final account = Directory('${c.archiveDirectory}');
     await account.create(recursive: true);
     final file = File('${account.path}/kept.mp4')..writeAsBytesSync([1, 2]);
     ArchiveClip uploaded(String id, {String? path}) => ArchiveClip(
@@ -462,14 +624,23 @@ void main() {
     await gateway.close();
   });
 
-  test('known late success reconciles only its captured scope', () async {
+  test('late cloud deletion cannot commit a retired archive writer', () async {
     final root = await Directory.systemTemp.createTemp('framebase_late_');
     addTearDown(() => root.delete(recursive: true));
-    final a = DelayedDeleteGateway();
-    final b = SearchGateway(MutableApiKeyProvider('fixture-b'), 'scope_b');
+    final a = DelayedDeleteGateway(await testSession(scopeId: 'scope_delete'));
+    final b = SearchGateway(await testSession(scopeId: 'scope_b'), 'scope_b');
     final c = ArchiveController(supportDirectory: root);
-    await c.activate('scope_delete', a, canRead: true, canWrite: true);
-    final account = Directory('${root.path}/accounts/scope_delete');
+    await c.activate(
+      'scope_delete',
+      a,
+      canRead: true,
+      canWrite: true,
+      serviceNamespace: "fixture-service",
+      tenantId: "fixture-tenant",
+      appUserId: "fixture-user",
+      policyRevision: "fixture-policy",
+    );
+    final account = Directory('${c.archiveDirectory}');
     await account.create(recursive: true);
     final file = File('${account.path}/kept.mp4')..writeAsBytesSync([1]);
     c.clips = [
@@ -489,7 +660,16 @@ void main() {
     await c.save();
     final deletion = c.deleteCloudLibrary();
     await Future<void>.delayed(Duration.zero);
-    await c.activate('scope_b', b, canRead: true, canWrite: true);
+    await c.activate(
+      'scope_b',
+      b,
+      canRead: true,
+      canWrite: true,
+      serviceNamespace: "fixture-service",
+      tenantId: "fixture-tenant",
+      appUserId: "fixture-user",
+      policyRevision: "fixture-policy",
+    );
     expect(c.clips, hasLength(3));
     a.completion.complete(
       DeleteCollectionResponse(const {
@@ -499,14 +679,23 @@ void main() {
         'scope': 'all',
       }),
     );
-    expect(await deletion, CloudDeletionResult.deleted);
+    expect(await deletion, CloudDeletionResult.failed);
     expect(c.clips, hasLength(3));
     expect(c.clips.any((item) => item.id == 'kept'), isFalse);
 
-    await c.activate('scope_delete', a, canRead: true, canWrite: true);
+    await c.activate(
+      'scope_delete',
+      a,
+      canRead: true,
+      canWrite: true,
+      serviceNamespace: "fixture-service",
+      tenantId: "fixture-tenant",
+      appUserId: "fixture-user",
+      policyRevision: "fixture-policy",
+    );
     expect(c.clips.single.id, 'kept');
-    expect(c.clips.single.uploaded, isFalse);
-    expect(c.clips.single.remoteAssetId, isNull);
+    expect(c.clips.single.uploaded, isTrue);
+    expect(c.clips.single.remoteAssetId, 'asset-kept');
     expect(await file.exists(), isTrue);
     c.dispose();
     await a.close();
@@ -517,10 +706,20 @@ void main() {
     final root = await Directory.systemTemp.createTemp('framebase_fail_');
     addTearDown(() => root.delete(recursive: true));
     final gateway = DeleteGateway(
+      await testSession(scopeId: 'scope_delete'),
       deleteError: const ApiException('active', statusCode: 409),
     );
     final c = ArchiveController(supportDirectory: root);
-    await c.activate('scope_delete', gateway, canRead: true, canWrite: true);
+    await c.activate(
+      'scope_delete',
+      gateway,
+      canRead: true,
+      canWrite: true,
+      serviceNamespace: "fixture-service",
+      tenantId: "fixture-tenant",
+      appUserId: "fixture-user",
+      policyRevision: "fixture-policy",
+    );
     c.clips = [
       ArchiveClip(
         id: 'remote',

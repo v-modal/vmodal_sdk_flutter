@@ -161,6 +161,11 @@ next command I should run.
 </code></pre>
 <h3 id="how-to-get-get-api-key-">How to get get API KEY :</h3>
 <p>Get an API Key : <a href="https://v-modal.com/page/contact.ts">API Key</a></p>
+<h2 id="integrate-into-an-existing-app">Integrate into an existing app</h2>
+<p>Start with <a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/README.md">the documentation index</a> and
+<a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/authentication.md">Choose authentication</a>, then
+<a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/component_patterns.md">ready-to-use app recipes</a> for session ownership,
+controller/widget wiring, upload/index/search, recovery, and mobile lifecycle.</p>
 <h2 id="start-in-minutes">Start in minutes</h2>
 <p><a href="https://v-modal.github.io/vmodal_sdk_flutter/">SDK docs: v-modal.github.io/vmodal_sdk_flutter/</a></p>
 <p>For production, prefer the exact published pub.dev version when it is
@@ -209,6 +214,32 @@ internally.</p>
 <blockquote>
 <p>The SDK never owns your login screen or persists your API key. Authentication identity is separate from project, collection, and stream organization. <code>VModalProject</code> and <code>VmodalClient</code> provide tenant-scoped access; use <code>UserSessionManager</code> below for app-user isolation.</p>
 </blockquote>
+<h3 id="choose-authentication-developer-backend-scoped-tokens">Choose authentication: developer-backend scoped tokens</h3>
+<p>The direct runtime-key setup above remains supported. For server-enforced user
+grants, your backend verifies the current app session and obtains a short-lived
+VModal token using its registered server credential:</p>
+<pre class="language-dart"><code class="language-dart">final backend = await VModal.connectWithBackend(
+  expectedAppUserId: signedInUser.id,
+  expectedProjectId: 'framebase',
+  loadToken: () async =&gt; ScopedTokenEnvelope.fromJson(
+    await developerApi.createVmodalSession(),
+  ),
+);
+final collections = await backend.session.listCollections();
+final library = backend.scope('my_library');
+final results = await library.search('a person entering the room');
+await backend.close();
+</code></pre>
+<p>Both mechanisms use the public gateway; data requests go directly to VModal.
+Flutter receives no master key, constructs no backend collection selector, and
+adds no identity headers. The SDK confirms auth/me binding/grants before return
+and coalesces renewal. Close at the start of logout or account switch.</p>
+<p>This source API requires corresponding registered origin, Worker and upstream
+capabilities; it is not a claim of live deployment. See
+<a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/authentication.md">Choose authentication</a>,
+<a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/backend_authentication.md">the backend guide</a>, and the independent
+<a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/example/06_backend_auth/README.md">backend-auth reference</a>. The preserved
+Framebase user-login app remains a shared-key/local-isolation example.</p>
 <h2 id="isolate-signed-in-app-users-sharing-one-tenant-key">Isolate signed-in app users sharing one tenant key</h2>
 <p>Your authenticated host app resolves a stable user ID and its allowed content
 mapping. VModal's API key and <code>auth.me()</code> identify the tenant principal; A and B
@@ -281,8 +312,8 @@ bypass it. A modified client holding the shared tenant key can make arbitrary
 tenant-authorized requests; server protection requires separately verified
 app-user authorization. The SDK cannot recall data returned while A was active
 or stop work already accepted by the server. Read the
-<a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/sdk_contract.md">session contract</a>
-and <a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/manage_api_key.md">tenant-key rotation guide</a>
+<a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/sdk_contract.md">session contract</a>
+and <a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/manage_api_key.md">tenant-key rotation guide</a>
 before integration.</p>
 <h2 id="search-video-with-natural-language">Search video with natural language</h2>
 <pre class="language-dart"><code class="language-dart">final collections = await project.listCollections(mode: 'vid_file');
@@ -385,7 +416,7 @@ UTC offset; the SDK preserves the caller text without timezone conversion.</p>
 one network-concurrency budget per bulk task. For image caches, use
 <code>writeImageFromUrl</code> with a caller-owned sink or <code>saveImageFromUrl</code> for atomic
 file replacement instead of buffering the image. See
-<a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/performance.md">the performance guide</a>
+<a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/performance.md">the performance guide</a>
 for limits, timeout behavior, and the benchmark command.</p>
 <h2 id="designed-for-real-mobile-lifecycles">Designed for real mobile lifecycles</h2>
 <ul>
@@ -533,10 +564,10 @@ networks.</p>
 <li><a href="https://github.com/v-modal/vmodal_sdk_flutter/tree/main/example/01_full_app">Run the complete example app</a></li>
 <li><a href="https://github.com/v-modal/vmodal_sdk_flutter/tree/main/example/02_users">Organize global, per-user, multi-stream, and catalog indexes</a></li>
 <li><a href="https://github.com/v-modal/vmodal_sdk_flutter/tree/main/example/03_cctv">Upload timestamped CCTV footage and search an absolute time range</a></li>
-<li><a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/sdk_doc.md">Read the SDK guide</a></li>
-<li><a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/manage_api_key.md">Manage API keys safely</a></li>
-<li><a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/search_app.md">Build a search experience</a></li>
-<li><a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/sdk_contract.md">Review the API contract</a></li>
+<li><a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/sdk_doc.md">Read the SDK guide</a></li>
+<li><a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/manage_api_key.md">Manage API keys safely</a></li>
+<li><a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/search_app.md">Build a search experience</a></li>
+<li><a href="https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/sdk_contract.md">Review the API contract</a></li>
 <li><a href="https://github.com/v-modal/vmodal_sdk_flutter/issues">Open an issue</a></li>
 </ul>
 <h2 id="development">Development</h2>
@@ -559,16 +590,16 @@ The framework supports unified cross-platform logic, ensuring identical integrat
 <li>Image Recognition: Identify object patterns, text elements, and spatial relationships within static images.</li>
 <li>Vector Indexing: Convert unstructured multimedia content into searchable mathematical representations.</li>
 <li>Secure Authorization: Protect developer access tokens through integrated, secure API headers.</li>
-<li>Asynchronous Execution: Run complex indexing tasks in background threads to maintain app performance.</li>
+<li>Asynchronous Execution: Submit asynchronous server indexing jobs and monitor their status from the app.</li>
 </ul>
-<p>Developers can quickly query their indexed catalog by passing strings or files to the search client. The SDK processes these inputs, communicates with V-Modal's specialized embedding models, and returns structured data objects. These response objects contain relevance confidence scores, metadata tags, and specific timestamps for video matches, allowing apps to jump directly to relevant frames.</p>
+<p>Developers can quickly query their indexed catalog by passing strings or files to the search client. The SDK processes these inputs, communicates with V-Modal's specialized embedding models, and returns structured data objects. These response objects expose nullable lower-is-better distances, metadata tags, and playback offsets for video matches, allowing apps to jump directly to relevant frames.</p>
 <hr>
 <h2 id="evaluate-technical-architecture">Evaluate Technical Architecture</h2>
 <ul>
 <li>Dart Native: Built natively on Dart to ensure seamless compatibility with Flutter 3.x engines.</li>
 <li>Lightweight Footprint: Avoids heavy local binary files by offloading heavy ML math to cloud APIs.</li>
-<li>Reactive Model: Emits search states using streams, simplifying UI updates during long-running network requests.</li>
-<li>Error Resilience: Features built-in handling for network dropouts, rate limiting, and invalid API keys.</li>
+<li>Reactive Model: Returns search Futures and upload progress streams; app controllers publish UI state.</li>
+<li>Error Resilience: Retries eligible GET/HEAD failures within a bounded budget; apps handle rate limits and reconcile unknown mutation outcomes.</li>
 </ul>
 <hr>
 <h2 id="review-use-cases">Review Use Cases</h2>

@@ -213,16 +213,35 @@ void main() {
         'example/05_framebase_userlogin/lib/data/archive_controller.dart',
         'example/05_framebase_userlogin/test/user_session_controller_test.dart',
         'docs/search_app.md',
+        'docs/diagrams.md',
         'docs/sdk_doc.md',
         'docs/manage_api_key.md',
         'docs/sdk_contract.md',
-        'docs/user_session_implementation.md',
+        'docs/README.md',
+        'docs/component_patterns.md',
       ]) {
         expect(File('${dir.path}/$path').existsSync(), isTrue, reason: path);
       }
       final exampleReadme = File(
         '${dir.path}/example/01_full_app/README.md',
       ).readAsStringSync();
+      for (final guide in <String>[
+        'docs/README.md',
+        'docs/component_patterns.md',
+      ]) {
+        final content = File('${dir.path}/$guide').readAsStringSync();
+        for (final match in RegExp(r'\]\(([^)]+)\)').allMatches(content)) {
+          final target = match.group(1)!;
+          if (target.contains('://') || target.startsWith('#')) continue;
+          final relative = target.split('#').first;
+          final resolved = File('${dir.path}/$guide').uri.resolve(relative);
+          expect(
+            File.fromUri(resolved).existsSync(),
+            isTrue,
+            reason: '$guide links to missing export: $target',
+          );
+        }
+      }
       final searchGuide = File(
         '${dir.path}/docs/search_app.md',
       ).readAsStringSync();

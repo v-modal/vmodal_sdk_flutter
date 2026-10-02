@@ -209,8 +209,8 @@ history, and copied/downloaded files at identity transitions. The SDK exposes
 session invalidation; it cannot manage these host-owned surfaces.
 
 Tenant renewal and bounded read recovery are documented in
-[Manage API keys](manage_api_key.md). Implemented block and verification notes
-are in [User-session implementation](user_session_implementation.md).
+[Manage API keys](manage_api_key.md). Ready-to-use controller, upload, storage,
+and lifecycle recipes are in [Component patterns](component_patterns.md).
 
 ## Typed video-search results
 

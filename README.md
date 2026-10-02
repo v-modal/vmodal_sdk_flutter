@@ -77,6 +77,12 @@ next command I should run.
   Get an API Key : [API Key](https://v-modal.com/page/contact.ts)
 
 
+## Integrate into an existing app
+
+Start with [the documentation index](docs/README.md) and
+[ready-to-use app recipes](docs/component_patterns.md) for session ownership,
+controller/widget wiring, upload/index/search, recovery, and mobile lifecycle.
+
 ## Start in minutes
 
 [SDK docs: v-modal.github.io/vmodal_sdk_flutter/](https://v-modal.github.io/vmodal_sdk_flutter/)
@@ -221,8 +227,8 @@ bypass it. A modified client holding the shared tenant key can make arbitrary
 tenant-authorized requests; server protection requires separately verified
 app-user authorization. The SDK cannot recall data returned while A was active
 or stop work already accepted by the server. Read the
-[session contract](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/sdk_contract.md)
-and [tenant-key rotation guide](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/manage_api_key.md)
+[session contract](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/sdk_contract.md)
+and [tenant-key rotation guide](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/manage_api_key.md)
 before integration.
 
 ## Search video with natural language
@@ -346,7 +352,7 @@ Uploads use exact file ranges, awaited socket streaming, coalesced progress, and
 one network-concurrency budget per bulk task. For image caches, use
 `writeImageFromUrl` with a caller-owned sink or `saveImageFromUrl` for atomic
 file replacement instead of buffering the image. See
-[the performance guide](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/performance.md)
+[the performance guide](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/performance.md)
 for limits, timeout behavior, and the benchmark command.
 
 ## Designed for real mobile lifecycles
@@ -462,10 +468,10 @@ Minimum toolchain: Flutter `3.44.0` and Dart `3.12.0`.
 - [Run the complete example app](https://github.com/v-modal/vmodal_sdk_flutter/tree/main/example/01_full_app)
 - [Organize global, per-user, multi-stream, and catalog indexes](https://github.com/v-modal/vmodal_sdk_flutter/tree/main/example/02_users)
 - [Upload timestamped CCTV footage and search an absolute time range](https://github.com/v-modal/vmodal_sdk_flutter/tree/main/example/03_cctv)
-- [Read the SDK guide](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/sdk_doc.md)
-- [Manage API keys safely](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/manage_api_key.md)
-- [Build a search experience](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/search_app.md)
-- [Review the API contract](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/sdk_contract.md)
+- [Read the SDK guide](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/sdk_doc.md)
+- [Manage API keys safely](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/manage_api_key.md)
+- [Build a search experience](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/search_app.md)
+- [Review the API contract](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/sdk_contract.md)
 - [Open an issue](https://github.com/v-modal/vmodal_sdk_flutter/issues)
 
 ## Development
@@ -498,18 +504,18 @@ The framework supports unified cross-platform logic, ensuring identical integrat
 * Image Recognition: Identify object patterns, text elements, and spatial relationships within static images.
 * Vector Indexing: Convert unstructured multimedia content into searchable mathematical representations.
 * Secure Authorization: Protect developer access tokens through integrated, secure API headers.
-* Asynchronous Execution: Run complex indexing tasks in background threads to maintain app performance.
+* Asynchronous Execution: Submit asynchronous server indexing jobs and monitor their status from the app.
 
 
-Developers can quickly query their indexed catalog by passing strings or files to the search client. The SDK processes these inputs, communicates with V-Modal's specialized embedding models, and returns structured data objects. These response objects contain relevance confidence scores, metadata tags, and specific timestamps for video matches, allowing apps to jump directly to relevant frames.
+Developers can quickly query their indexed catalog by passing strings or files to the search client. The SDK processes these inputs, communicates with V-Modal's specialized embedding models, and returns structured data objects. These response objects expose nullable lower-is-better distances, metadata tags, and playback offsets for video matches, allowing apps to jump directly to relevant frames.
 
 ------------------------------
 ## Evaluate Technical Architecture
 
 * Dart Native: Built natively on Dart to ensure seamless compatibility with Flutter 3.x engines.
 * Lightweight Footprint: Avoids heavy local binary files by offloading heavy ML math to cloud APIs.
-* Reactive Model: Emits search states using streams, simplifying UI updates during long-running network requests.
-* Error Resilience: Features built-in handling for network dropouts, rate limiting, and invalid API keys.
+* Reactive Model: Returns search Futures and upload progress streams; app controllers publish UI state.
+* Error Resilience: Retries eligible GET/HEAD failures within a bounded budget; apps handle rate limits and reconcile unknown mutation outcomes.
 
 ------------------------------
 ## Review Use Cases

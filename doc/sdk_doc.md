@@ -1,5 +1,11 @@
 # SDK guide
 
+For account-based apps, start with [Component patterns](component_patterns.md):
+activate a verified app-user session, discover its allowed library, and inject
+the resulting `UserScope` into a feature controller. The examples below use the
+compatible **tenant-scoped** API, whose host owns isolation and lifecycle.
+See the [documentation index](README.md) for the recommended reading paths.
+
 The generated class and method reference is published at
 `https://v-modal.github.io/vmodal_sdk_flutter/` and is built from the public
 Dart declarations in `lib/vmodal_sdk_flutter.dart`. The monorepo release

@@ -1,5 +1,12 @@
 # Pre-upload 360px video transcode
 
+This custom-reducer recipe applies to **tenant-scoped** uploads. Restricted
+`UserScope.upload` accepts only `PassthroughVideoTranscoder` and rejects custom
+transcoders. See [mobile file and interruption policies](component_patterns.md#9-set-mobile-file-and-interruption-policies)
+for the session path. Treat the reducer snippet as an adapter starting point:
+before production use, check native execution success, output validity, cache
+identity, concurrent destination handling, and temporary-file ownership.
+
 The SDK can reduce a video to a smaller resolution (longer side = 360px) *before*
 uploading, to cut upload bytes. The core package stays free of native code: it owns only
 the `VideoTranscoder` interface and the upload lifecycle. **By default there is no

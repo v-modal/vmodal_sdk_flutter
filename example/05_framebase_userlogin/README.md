@@ -71,6 +71,110 @@ service namespace and tenant/principal binding, then opens a SDK session with
 the Firebase UID as `appUserId`. `SearchGateway.connect()` uses
 `session.verifyPrincipal(...)` for the optional tenant-principal check.
 
+### User-auth components and responsibilities
+
+There are two authentication contexts. Firebase identifies the person using
+the app; the VModal bearer identifies the tenant principal making cloud calls.
+The trusted issuer connects the verified person to an allowed library policy.
+For example, Firebase users A and B can receive the same `api_token` and
+`vmodal_user_id`, but different `firebase_uid` and `scope_id` values. Their
+SDK sessions and local archives remain separate.
+
+| Component | Owner / location | Responsibility |
+| --- | --- | --- |
+| `FirebaseAuthAdapter` | Host app; [auth_adapter.dart](lib/user/auth_adapter.dart) | Implements `signIn`, `signOut`, nullable `users` events, and `idToken(AppUser)`. Translates token-acquisition failures into `FirebaseIdentityExpired` or `FirebaseIdentityTransient`. |
+| Trusted issuer / policy resolver | Host backend; production integration required | Verifies the Firebase token, derives the authenticated UID, authorizes library access, and returns the bound tenant credential, exact scope, permissions, and expiry. It is the authority for the envelope. |
+| `VmodalCredentialSource` | Host issuer client; [vmodal_credential.dart](lib/user/vmodal_credential.dart) | Implements `acquire(AppUser, String? firebaseIdToken)` against the trusted issuer and classifies identity rejection, policy denial, temporary failure, and invalid responses. This example supplies a mock implementation. |
+| `VmodalCredential` | App contract model; same file | Parses the version-1 envelope and validates UID agreement, required fields, scope syntax, permission, expiry, and tenant/principal continuity during renewal. These local checks do not verify a Firebase token or establish server authorization. |
+| `UserSessionController` | App orchestration; [user_session_controller.dart](lib/user/user_session_controller.dart) | Subscribes to identity changes, retires outgoing data state, acquires and validates credentials, builds SDK policy, connects the library, and exposes readiness/failure state to the UI. Owns renewal scheduling, bounded issuer retries, and activation-generation checks. |
+| `TenantCredentialSource` | SDK; [api_key_provider.dart](../../lib/src/api_key_provider.dart) | Coordinates accepted tenant-key revisions and renewal across live session providers. Checks service/tenant/principal binding and fences stale renewal results. It supplies credentials to transport; it does not sign in the app user. |
+| `UserSessionManager`, `UserSession`, `UserScope` | SDK; [user_session.dart](../../lib/src/user_session.dart) | Freeze the resolved app-user identity and content policy, create a fresh runtime session, and guard requests, callbacks, handles, and storage leases against invalidation. |
+| `SearchGateway` | App cloud adapter; [search_gateway.dart](lib/data/search_gateway.dart) | Wraps session-bound library operations, calls the host freshness callback, verifies the tenant principal during `connect`, and reports `401`/`403` to the controller. This Dart class is distinct from the remote VModal gateway. |
+| `ArchiveController` | App storage; [archive_controller.dart](lib/data/archive_controller.dart) | Activates only the resolved owner's archive, validates persisted ownership/policy, commits through the scope's storage lease, and retires local work when deactivated. |
+| `FramebaseApp` and its views | App UI; [main.dart](lib/main.dart) | Display sign-in/recovery/denial states, clear decoded image caches on runtime-session changes, replace navigation state, and fence dialogs, playback, and asynchronous view updates. |
+
+`VmodalCredentialSource` and `TenantCredentialSource` are separate objects.
+The first retrieves the host envelope; the second manages the accepted VModal
+key inside the SDK. Neither replaces the host identity provider. The remote
+VModal gateway verifies the tenant bearer and routes cloud calls; `auth.me()`
+reports that principal rather than the Firebase user.
+
+Email/password belong to the host sign-in flow. The Firebase ID token goes
+to the issuer client, while SDK gateway calls use the tenant VModal bearer.
+`auth.me()` does not exchange a Firebase token, and neither issuer nor runtime
+session IDs are bearer credentials. Credentials remain in memory and are
+excluded from the owner archive.
+
+### Activation handoff
+
+1. The UI calls `UserSessionController.signIn`. The auth adapter performs
+   sign-in and emits the resulting `AppUser` through `users`.
+2. On an identity change, the controller advances its generation, invalidates
+   the outgoing SDK session, and deactivates the archive before awaiting new
+   credentials. A null user leaves the app signed out.
+3. The controller obtains `auth.idToken(user)`, calls
+   `credentials.acquire(user, token)`, and validates the returned envelope
+   against that same user and the current clock. Late results from an older
+   generation cannot activate a library.
+4. The controller configures the tenant source and opens a SDK session using
+   the verified UID as `appUserId`. It converts issuer permissions into a
+   frozen opaque mapping for the exact `scope_id` and `street_study` stream.
+5. `SearchGateway.connect(vmodal_user_id)` verifies the tenant principal and
+   discovers usable index metadata and, when permitted, jobs. The archive
+   then activates with the SDK's service/tenant/app-user/policy context.
+6. Only after connection and archive activation complete does the controller
+   publish `SessionState.ready`. UI read/write controls also check the
+   envelope's corresponding permission.
+
+The issuer's `session_id` identifies its envelope. The SDK's `sessionId`
+identifies one runtime activation, while the controller's generation fences
+its own asynchronous work. Stable Firebase UID and owner keys identify
+persisted data. These values serve different lifecycle responsibilities.
+
+### Expiry, failures, and sign-out ownership
+
+The controller schedules renewal 60 seconds before envelope expiry, and
+`SearchGateway` checks `ensureFresh()` before cloud operations. A renewal
+acquires a current Firebase token and a fresh issuer envelope. An unchanged
+policy installs through the tenant source; a changed scope or permission set
+retires the outgoing session and resolves a new one.
+
+| Event | Controller behavior | Integration responsibility |
+| --- | --- | --- |
+| Temporary Firebase token or issuer failure | Up to three acquisition attempts, with 250 ms and 500 ms backoff; exhaustion enters `recoverable` and gates operations | Adapter/source must use the typed transient exceptions; UI offers `retry()` |
+| Rejected or expired Firebase identity | Deactivates private data and enters `error` with `firebaseIdentityExpired` | Host requires fresh sign-in; tenant-key rotation cannot repair app identity |
+| Issuer policy denial or VModal `403` | Deactivates private data and enters `denied` | Host resolves authorization with the issuer; a broader key is not a fallback |
+| Invalid envelope, UID mismatch, or invalid connection contract | Deactivates private data and enters `error` with `contract` | Correct the adapter/issuer contract before allowing library activation |
+| VModal `401` / tenant-auth failure | Enters tenant-connection recovery while retaining the authenticated Firebase UID; retry renews an established connection or resolves a fresh one | Keep tenant recovery separate from Firebase sign-out; mutations are not automatically replayed |
+| Explicit sign-out | Retires SDK/archive state and publishes `signedOut` before awaiting `auth.signOut()` | Auth adapter ends host sign-in; UI clears visible state; owner-local files remain available for later verified restoration |
+
+### Connecting production user auth
+
+The default app constructs `MockFirebaseAuth` and
+`MockVmodalCredentialSource`. The auth mock returns no ID token and performs
+no real password verification; the credential mock only returns queued
+fixtures. Mock success demonstrates the local flow, not verified identity.
+
+Implement the two host interfaces, then inject them into
+`UserSessionController(auth: ..., credentials: ..., archive: ...)` and pass
+that controller to `FramebaseApp(session: ..., controller: ...)`, using the
+same archive instance. A production credential source must require a usable
+host token and obtain the envelope from the trusted issuer; an arbitrary
+caller-supplied UID is not identity proof. No production issuer URL, Firebase
+configuration, or server verifier is supplied by this example.
+
+When the embedding host supplies these controllers, it owns their disposal;
+`FramebaseApp` disposes only instances it creates itself. The session
+controller's `dispose()` retires SDK state, closes the tenant coordinator,
+cancels its auth subscription, and closes the auth adapter. The host must
+also dispose its archive controller.
+
+See [component coupling diagrams](../../docs/diagrams.md),
+[the session contract](../../docs/sdk_contract.md), and
+[tenant credential management](../../docs/manage_api_key.md) for the SDK
+boundaries. Server enforcement requirements are described below under
+[SDK isolation and server authorization](#sdk-isolation-and-server-authorization).
+
 ## 2. Discover collections and indexing work
 
 `scope_id` stays unchanged as backend `group_name`; the app never prefixes it
@@ -201,8 +305,8 @@ bind an app-user identity to requests can expect A's raw request for B's resourc
 to return `403` or a non-enumerating `404`. This same-key example and its offline
 tests demonstrate SDK isolation, not those server authorization guarantees.
 
-See [the SDK contract](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/sdk_contract.md)
-and [tenant key management](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/doc/manage_api_key.md).
+See [the SDK contract](../../docs/sdk_contract.md)
+and [tenant key management](../../docs/manage_api_key.md).
 
 ## Code map and verification
 

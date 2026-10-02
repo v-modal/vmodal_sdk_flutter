@@ -1,5 +1,11 @@
 # Search application integration
 
+This guide uses the advanced **tenant-scoped** project/client and signed-image
+path. For an account-based app, use the complete
+[session-bound controller/widget recipe](component_patterns.md#3-copy-a-session-bound-search-screen)
+and live `SessionAsset` media through `UserScope.imageBytes`. Do not mix raw
+selectors or arbitrary signed URLs into a feature relying on session isolation.
+
 Keep the project above individual pages so navigation does not close shared
 network state. Retain an immutable scope in the page controller, provider,
 BLoC, or notifier:

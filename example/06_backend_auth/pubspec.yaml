@@ -1,0 +1,13 @@
+name: vmodal_backend_auth_example
+description: Host-owned scoped VModal authentication integration reference.
+publish_to: none
+environment:
+  sdk: '>=3.12.0 <4.0.0'
+dependencies:
+  vmodal_sdk_flutter:
+    path: ../..
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  uses-material-design: true

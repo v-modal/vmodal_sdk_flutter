@@ -7,6 +7,7 @@ behavior. `test/fixtures/routes_contract.json` is the reviewed normalized mirror
 
 | Resource | Public Flutter operations | Contract status |
 |---|---|---|
+| Backend scoped connection | `VModal.connectWithBackend`, `BackendConnection`, `ScopedTokenEnvelope`, `ScopedGrant` | Async scoped acquisition/renewal and guarded session; requires enabled server deployment |
 | App-user sessions | `UserSessionManager`, `UserSession`, `UserScope`, `ContentMapping` | Opt-in same-tenant app-user isolation; gateway only |
 | Scoped facade | `VModal.configure`, `VModal.fromClient`, `VModalProject.scope`, `listCollections`, `close` | Compatible tenant-scoped API; bypasses session guarantees |
 | Scoped operations | `upload`, `uploadMetadata`, `search`, `addAssets`, `updateAsset`, index lifecycle, collection deletion | Immutable organization; delegates to resources |
@@ -49,16 +50,46 @@ or API-key-provider contract. `VmodalClient` remains public and compatible.
 `VModal.fromClient` transfers lifecycle ownership, so the project is the object
 that must be closed.
 
+## Dual-auth credential contract
+
+Direct `SdkConfig(token:)`, synchronous `ApiKeyProvider.current()`,
+`VModal.configure` and tenant rotation APIs stay compatible. Backend mode is
+explicit through `connectWithBackend`; both use gateway Bearer credentials.
+Internal-development `unsafeDirect` is a separate connection mode.
+
+The backend source performs async readiness before every gateway snapshot.
+Its candidate auth/me probe bypasses coordinator renewal hooks, confirms the
+complete delegated identity/policy/grants, and installs only after confirmation.
+Eligible reads have bounded recovery; POST search/upload/index/delete never
+receive automatic auth replay.
+
+`ScopedTokenEnvelope` and `ScopedGrant` are strict immutable version-1 handoffs.
+`BackendConnection` selects exact grants through an existing guarded `UserScope`,
+exposes state, coalesces refresh, and retires its session synchronously before
+awaited cleanup. It exposes no unrestricted tenant resources. SDK checks do
+not replace origin and upstream enforcement against raw clients.
+
+Same binding/policy renewal preserves session/handles/storage. Changed principal,
+tenant, project, app user, policy, delegation revision or grants invalidates.
+Project enters backend ownership before archive/checkpoint keys are derived;
+direct key encoding stays compatible. Bearer, `jti` and expiry are excluded.
+
+See [authentication.md](authentication.md) for pattern choice and
+[backend_authentication.md](backend_authentication.md) for envelopes,
+server-authorized actions, errors and rollout requirements.
+
 ## App-user session contract
 
 This opt-in interface is implemented in the 1.3.0 source release. Existing
 pub.dev `1.2.3` and `v1.2.3` installs retain their earlier API. Source publication
 through GitHub Actions does not create a pub.dev release or version tag.
 
-VModal credentials authenticate a tenant principal. A and B can have identical
+Direct VModal API keys authenticate a tenant principal. A and B can have identical
 tenant IDs, API keys, and `auth.me()` responses while remaining different local
-app users. The authenticated host resolves each stable `appUserId` and allowed
-mapping; `auth.me()` does not supply them. Do not use app-user identity as
+app users. For these direct-key sessions, the authenticated host resolves each
+stable `appUserId` and allowed mapping; direct `auth.me()` does not supply them.
+Backend-scoped `auth.me()` adds the signed app identity and grants, which the
+connection must confirm against its envelope before activation. Do not use app-user identity as
 `SdkConfig.userId`, a direct-mode header, an API-key-derived cache name, or a
 collection typed by the user. No new environment variable represents the user.
 
@@ -103,7 +134,9 @@ prefixing it. Both capture `streamName`, `mode`, an immutable `actions` set,
 and `collectionWide` (false by default). `session.scope(mapping)` matches the
 representation and all selectors, then uses the session's frozen permitted
 actions rather than a caller's replacement grants. Duplicate mappings are
-rejected. Local actions are policy guardrails, not server-issued claims.
+rejected. Host-selected direct-session actions are local policy guardrails.
+Backend-session mappings come from VModal-issued grants confirmed by `auth.me()`;
+the server checks those signed grants independently of the local mapping.
 
 | API | Required action / ownership |
 | --- | --- |

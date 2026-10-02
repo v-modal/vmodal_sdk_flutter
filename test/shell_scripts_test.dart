@@ -69,6 +69,24 @@ void main() {
     },
   );
 
+  test('backend auth reference participates in the offline Dart gates', () {
+    final build = File('build.sh').readAsStringSync();
+    for (final command in <String>['pub_get', 'analyze', 'test']) {
+      final body = RegExp(
+        'sdk_$command\\(\\) \\{([\\s\\S]*?)\\n\\}',
+      ).firstMatch(build)!.group(1)!;
+      final operation = command == 'pub_get' ? 'pub get' : command;
+      expect(
+        body,
+        contains('(cd example/06_backend_auth && sdk_flutter $operation)'),
+        reason: 'Missing backend reference gate: $command',
+      );
+    }
+    expect(build, contains('example/06_backend_auth/lib'));
+    expect(build, contains('example/06_backend_auth/test'));
+    expect(build, isNot(contains('node --test')));
+  });
+
   test('security commands and fixed all ordering are registered', () {
     final text = File('security_check.sh').readAsStringSync();
     for (final command in <String>[

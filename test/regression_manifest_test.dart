@@ -178,6 +178,8 @@ void main() {
         'tool/perf_benchmark.dart',
         'lib/src/user_session.dart',
         'lib/src/session_guard.dart',
+        'lib/src/backend_auth.dart',
+        'test/backend_auth_test.dart',
         'test/user_session_test.dart',
         'test/session_guard_test.dart',
         'test/tenant_credentials_test.dart',
@@ -219,6 +221,14 @@ void main() {
         'docs/sdk_contract.md',
         'docs/README.md',
         'docs/component_patterns.md',
+        'docs/authentication.md',
+        'docs/backend_authentication.md',
+        'example/06_backend_auth/README.md',
+        'example/06_backend_auth/pubspec.yaml',
+        'example/06_backend_auth/lib/backend_auth_example.dart',
+        'example/06_backend_auth/test/backend_auth_example_test.dart',
+        'example/06_backend_auth/developer_backend/session.mjs',
+        'example/06_backend_auth/developer_backend/session_test.mjs',
       ]) {
         expect(File('${dir.path}/$path').existsSync(), isTrue, reason: path);
       }
@@ -228,6 +238,14 @@ void main() {
       for (final guide in <String>[
         'docs/README.md',
         'docs/component_patterns.md',
+        'docs/authentication.md',
+        'docs/backend_authentication.md',
+        'docs/manage_api_key.md',
+        'docs/sdk_contract.md',
+        'docs/diagrams.md',
+        'docs/release.md',
+        'README.md',
+        'example/06_backend_auth/README.md',
       ]) {
         final content = File('${dir.path}/$guide').readAsStringSync();
         for (final match in RegExp(r'\]\(([^)]+)\)').allMatches(content)) {

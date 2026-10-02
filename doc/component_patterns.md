@@ -33,15 +33,52 @@ Canonical contracts remain in [sdk_contract.md](sdk_contract.md) and
 [Framebase](../example/05_framebase_userlogin/README.md); its auth and issuer
 implementations are mocks unless the host replaces them.
 
+## Choose authentication first
+
+[Choose authentication](authentication.md) puts the two quickstarts together.
+The existing recipes below demonstrate direct keys with local app-user policy.
+For server-issued exact user grants, replace that setup with:
+
+```dart
+final backend = await VModal.connectWithBackend(
+  expectedAppUserId: verifiedHostUser.id,
+  expectedProjectId: 'framebase',
+  loadToken: () async => ScopedTokenEnvelope.fromJson(
+    await authenticatedDeveloperApi.createVmodalSession(),
+  ),
+);
+final collections = await backend.session.listCollections();
+final library = backend.scope('my_library');
+```
+
+Inject `library` into the same session-bound search controller. BackendConnection
+owns the manager/source lifecycle and confirms delegated binding/grants through
+auth/me before return. The callback uses current host identity, maps failures
+to `BackendAuthException`, and returns no master key. The separate
+[backend-auth reference](../example/06_backend_auth/README.md) demonstrates
+generation fencing and mandatory verified backend adapters, preserving Framebase.
+
+Scope actions determine usable recipes. Initial scoped reads support discovery,
+search and media; upload/index/metadata/delete recipes require enforced server
+handler support and enabled grants. Direct scope instances keep their existing
+resource contract. Mobile action sets do not enable server capabilities.
+
+Close the backend connection at the start of account switch/logout, clear host
+view/player/cache state, and activate another after authorization. Observe state
+at the account owner. Temporary failure preserves host login; identity/policy
+invalidation retires scopes. Same-policy rotation preserves handles/storage,
+and project participates in backend owner identity.
+
 ## 1. Choose the API and own its lifetime
 
 | Integration | Use when | Host responsibility |
 | --- | --- | --- |
+| `BackendConnection` → `UserSession` → `UserScope` | Backend issues exact server-enforced user grants | Own host login/callback; close connection and clear UI on transition |
 | `UserSessionManager` → `UserSession` → `UserScope` | A signed-in user has an exact allowed library policy | Verify host identity/policy; clear app-owned UI, players, caches, and navigation on transition |
 | `VModalProject` → `VModalScope` | Tenant-scoped evaluation or an app that implements its own complete isolation | Own identity fencing, cancellation, storage partitions, and every low-level resource lifecycle |
 | `VmodalClient` resources | Advanced tenant operations outside the restricted session interface | Own all isolation and selector contracts; never mix these calls into a feature claiming session guarantees |
 
-A VModal bearer authenticates the tenant. `auth.me()` reports that tenant
+A direct VModal API-key bearer authenticates the tenant. Its `auth.me()` reports that tenant
 principal. It cannot determine which app user is signed in or which content
 that user may access. Local session isolation does not establish server-side
 app-user authorization under a shared tenant key; the deployment must enforce

@@ -230,7 +230,7 @@ final class SessionContext {
 final class UserSessionManager {
   UserSessionManager({
     required SdkConfig config,
-    required TenantCredentialSource credentialSource,
+    required SessionCredentialSource credentialSource,
     VmodalTransport Function(SdkConfig config)? transportFactory,
     SignedUploadTransport Function(SdkConfig config)?
     signedUploadTransportFactory,
@@ -255,7 +255,7 @@ final class UserSessionManager {
   }
 
   final SdkConfig _config;
-  final TenantCredentialSource _credentials;
+  final SessionCredentialSource _credentials;
   final UploadSessionStore? _uploadSessionStore;
   final VmodalTransport Function(SdkConfig) _transportFactory;
   final SignedUploadTransport Function(SdkConfig) _signedFactory;
@@ -305,7 +305,12 @@ final class UserSessionManager {
       );
     }
     final context = SessionContext._(
-      SessionContext.serviceNamespaceFor(_config),
+      _credentials.projectId == null
+          ? SessionContext.serviceNamespaceFor(_config)
+          : jsonEncode(<String>[
+              SessionContext.serviceNamespaceFor(_config),
+              _credentials.projectId!,
+            ]),
       policy,
     );
     final selectors = <String>{};
@@ -1302,6 +1307,8 @@ Future<T> _safeWork<T>(Future<T> Function() work) async {
     throw const FeatureDisabled('Operation is unavailable in this scope');
   } on ValidationException {
     throw const ValidationException('Operation validation failed');
+  } on BackendAuthException {
+    rethrow;
   } on AuthException {
     throw const TenantAuthException();
   } on ApiException catch (error) {

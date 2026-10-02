@@ -79,8 +79,9 @@ next command I should run.
 
 ## Integrate into an existing app
 
-Start with [the documentation index](docs/README.md) and
-[ready-to-use app recipes](docs/component_patterns.md) for session ownership,
+Start with [the documentation index](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/README.md) and
+[Choose authentication](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/authentication.md), then
+[ready-to-use app recipes](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/component_patterns.md) for session ownership,
 controller/widget wiring, upload/index/search, recovery, and mobile lifecycle.
 
 ## Start in minutes
@@ -148,6 +149,38 @@ backend value is also limited to 80 characters. The SDK performs that encoding
 internally.
 
 > The SDK never owns your login screen or persists your API key. Authentication identity is separate from project, collection, and stream organization. `VModalProject` and `VmodalClient` provide tenant-scoped access; use `UserSessionManager` below for app-user isolation.
+
+### Choose authentication: developer-backend scoped tokens
+
+The direct runtime-key setup above remains supported. For server-enforced user
+grants, your backend verifies the current app session and obtains a short-lived
+VModal token using its registered server credential:
+
+```dart
+final backend = await VModal.connectWithBackend(
+  expectedAppUserId: signedInUser.id,
+  expectedProjectId: 'framebase',
+  loadToken: () async => ScopedTokenEnvelope.fromJson(
+    await developerApi.createVmodalSession(),
+  ),
+);
+final collections = await backend.session.listCollections();
+final library = backend.scope('my_library');
+final results = await library.search('a person entering the room');
+await backend.close();
+```
+
+Both mechanisms use the public gateway; data requests go directly to VModal.
+Flutter receives no master key, constructs no backend collection selector, and
+adds no identity headers. The SDK confirms auth/me binding/grants before return
+and coalesces renewal. Close at the start of logout or account switch.
+
+This source API requires corresponding registered origin, Worker and upstream
+capabilities; it is not a claim of live deployment. See
+[Choose authentication](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/authentication.md),
+[the backend guide](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/backend_authentication.md), and the independent
+[backend-auth reference](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/example/06_backend_auth/README.md). The preserved
+Framebase user-login app remains a shared-key/local-isolation example.
 
 ## Isolate signed-in app users sharing one tenant key
 

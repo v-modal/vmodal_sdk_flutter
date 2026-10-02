@@ -1,10 +1,53 @@
-# Manage tenant API keys and app-user sessions
+# Manage runtime credentials and app-user sessions
+
+Choose the credential pattern first in [authentication.md](authentication.md).
+This guide's tenant coordinator applies to direct API-key authentication.
+For server-enforced user grants, use `VModal.connectWithBackend` and the scoped
+coordinator described in [backend_authentication.md](backend_authentication.md).
+Do not share a scoped credential source across users or attach it to the
+tenant-wide rotation flow.
 
 Retrieve credentials through the host's authenticated, trusted service and
-keep them in memory. VModal credentials identify the tenant principal; Firebase,
+keep them in memory. Direct VModal API keys identify the tenant principal; Firebase,
 Clerk, or another host identity system supplies the stable app-user ID. A and B
 may share one tenant key and `auth.me()` response. That response never selects
-their local owner namespace or proves their content permissions.
+their local owner namespace or proves their content permissions. Scoped auth/me
+instead adds the verified app subject/project/policy/grants and is checked
+against the envelope before the backend connection becomes ready.
+
+## Backend connection lifecycle
+
+```dart
+final backend = await VModal.connectWithBackend(
+  expectedAppUserId: signedInUser.id,
+  expectedProjectId: 'framebase',
+  loadToken: () async => ScopedTokenEnvelope.fromJson(
+    await developerApi.createVmodalSession(),
+  ),
+);
+final library = backend.scope('my_library');
+await backend.refresh(); // coalesced renewal, no mutation replay
+await backend.close(); // local VModal cleanup; host owns sign-out
+```
+
+The callback verifies current host login through the developer backend on every
+acquisition and returns only a short-lived VModal-signed token. Parse/identity
+errors differ from temporary availability failures; see the backend guide and
+the [reference adapter](../example/06_backend_auth/lib/backend_auth_example.dart).
+
+Shared HTTP gateway paths check readiness before taking Bearer snapshots.
+Proactive renewal leeway is capped at half the lifetime. Expiry uses
+`expires_at`, and renewal is coalesced. A valid token may continue during a
+temporary outage; expired or rejected revisions block dispatch. Same-policy
+renewal preserves session and owner; changed policy/binding requires reconnect.
+
+Observe token-free `ready`, `refreshing`, `unavailable`, `expired`, `invalidated`
+and `closed` events at the account owner. Call `close()` at the start of an
+account transition and discard retired scopes/UI. Backend owner identity
+includes project/service/tenant/user and excludes bearer, expiry and `jti`.
+
+The tenant-specific sections below retain their contract. The tenant option
+`retainOnRenewalFailure` is not a backend-mode fallback to broader credentials.
 
 ## Session-bound configuration
 

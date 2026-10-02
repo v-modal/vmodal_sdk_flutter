@@ -1,5 +1,10 @@
 # SDK guide
 
+Begin with [Choose authentication](authentication.md). Direct runtime keys keep
+the setup below; backend-scoped credentials use `VModal.connectWithBackend`
+and its typed callback. [Backend authentication](backend_authentication.md)
+describes strict envelopes, server grants, renewal and account transitions.
+
 For account-based apps, start with [Component patterns](component_patterns.md):
 activate a verified app-user session, discover its allowed library, and inject
 the resulting `UserScope` into a feature controller. The examples below use the
@@ -59,7 +64,9 @@ change identity or content scope.
 usage, and direct resource access. `VModal.fromClient` accepts an existing
 fully configured client and transfers close ownership to the returned project.
 All ordinary operations are asynchronous. Gateway mode sends only
-`Authorization: Bearer <key>` as caller identity.
+`Authorization: Bearer <credential>` as caller identity. Scoped backend tokens
+use the same header and data paths; they require the backend connection and
+server capability described in the authentication guides.
 
 Resources are grouped under `auth`, `searches`, `collections`, `indexes`,
 `admin`, `r2`, and `images`. Request models preserve server snake_case during

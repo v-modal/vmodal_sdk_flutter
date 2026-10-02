@@ -1,8 +1,10 @@
 import 'api_key_provider.dart';
+import 'backend_auth.dart';
 import 'client.dart';
 import 'collection_uploads.dart';
 import 'config.dart';
 import 'content_scope.dart';
+import 'http.dart';
 import 'models.dart';
 import 'transport.dart';
 import 'upload.dart';
@@ -10,6 +12,36 @@ import 'utils.dart';
 
 /// Preferred entry point for project, collection, and stream scoped clients.
 abstract final class VModal {
+  /// Acquires a scoped VModal token through the host's authenticated backend.
+  /// Readiness requires authoritative identity and grant confirmation.
+  static Future<BackendConnection> connectWithBackend({
+    required String expectedAppUserId,
+    required String expectedProjectId,
+    required Future<ScopedTokenEnvelope> Function() loadToken,
+    Uri? baseUri,
+    Duration timeout = const Duration(seconds: 30),
+    int maxRetries = 1,
+    Duration refreshLeeway = const Duration(seconds: 60),
+    ScopedTokenEnvelope? initialToken,
+    DateTime Function()? clock,
+    DelayStrategy? delay,
+    VmodalTransport Function(SdkConfig)? transportFactory,
+    SignedUploadTransport Function(SdkConfig)? signedUploadTransportFactory,
+  }) => BackendConnection.connect(
+    expectedAppUserId: expectedAppUserId,
+    expectedProjectId: expectedProjectId,
+    loadToken: loadToken,
+    baseUri: baseUri,
+    timeout: timeout,
+    maxRetries: maxRetries,
+    refreshLeeway: refreshLeeway,
+    initialToken: initialToken,
+    clock: clock,
+    delay: delay,
+    transportFactory: transportFactory,
+    signedUploadTransportFactory: signedUploadTransportFactory,
+  );
+
   /// Creates one owned project client without performing network I/O.
   static VModalProject configure({
     required String projectId,

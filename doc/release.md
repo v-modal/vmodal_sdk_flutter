@@ -1,5 +1,37 @@
 # Release process
 
+## Scoped authentication rollout gate
+
+The source includes `connectWithBackend` and a separate
+[backend-auth reference](../example/06_backend_auth/README.md). Neither local
+fixtures nor source export establish live support. Before releasing this mode,
+complete the [backend acceptance sequence](backend_authentication.md#deployment-and-acceptance):
+registered project/key/resource authority, bounded registry distribution,
+origin RS256 issuance/validation, independent Worker VModal policy, and upstream
+default-deny canonical grant enforcement. Test the real public edge chain with
+raw cross-user requests and preserve direct-key regression.
+
+The initial scoped route allowlist covers search, filtered group discovery and
+four image operations. Indexation/upload/metadata/delete are denied until their
+complete handler and side-protocol ownership contracts are enabled and tested.
+Do not document these writes as available merely because Flutter exposes those
+actions in its existing direct-auth session API.
+
+The normal Dart build gates include the backend reference's dependency,
+format, analysis and tests. Node is optional for Flutter consumers. Run the
+reference backend's separate offline gate explicitly with Node 22+:
+
+```bash
+node --test example/06_backend_auth/developer_backend/session_test.mjs
+```
+
+The Dart SDK suite covers strict envelopes, auth/me agreement, expiry, renewal,
+and account fencing. The standalone export regression checks auth guides,
+source, reference files and their local links, keeping `docs/todo` excluded.
+Release workflows retain their existing secret-detection and publication gates.
+Disabling issuance/registration rolls back scoped access while preserving direct
+keys. No deployment or public publication is performed by adding these sources.
+
 The package is pinned to Flutter 3.44.6. `install.sh` verifies the official
 archive checksum and installs only into a user-owned cache. Run `bash test.sh all`
 for the offline gate and `bash test.sh live` only after explicitly loading the

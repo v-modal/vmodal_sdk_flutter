@@ -5,6 +5,61 @@ API in the 1.3.0 source interface. The host app owns sign-in, trusted identity
 and policy resolution, and visible UI state. The SDK owns session guards,
 resource operations, transport, and tenant credential coordination.
 
+## Dual authentication and the server authority boundary
+
+The numbered tenant-session sequences below remain the direct-key pattern.
+Backend-scoped mode adds a separate credential source while reusing guarded
+session operations. Both use the same public gateway. See
+[authentication.md](authentication.md) and
+[backend_authentication.md](backend_authentication.md).
+
+```mermaid
+flowchart LR
+  Host["Host identity and policy"] --> Dev["Developer backend"]
+  Dev -->|"Registered server credential + exact user grants"| Issuer["VModal issuer / delegation ceiling"]
+  Issuer -->|"Short-lived signed envelope"| Dev
+  Dev -->|"Authenticated host callback"| Connection["BackendConnection"]
+  Connection --> Source["Scoped readiness / renewal coordinator"]
+  Connection --> Session["Existing UserSession / UserScope"]
+  Source -->|"Candidate auth/me verification"| Gateway["Public edge and origin"]
+  Session --> HTTP["Shared guarded HTTP"]
+  Source -->|"Immutable accepted revision"| HTTP
+  Direct["Direct ApiKeyProvider / tenant source"] --> HTTP
+  HTTP -->|"Bearer credential"| Gateway
+  Gateway -->|"Storage principal + trusted signed scope"| Search["Canonical resource authorization"]
+```
+
+The storage principal determines home selection, billing and aggregate quota.
+App subject/project determine delegated ownership and a stable rate bucket.
+Grant labels select exact collection/stream/mode and never manufacture authority.
+Upstream handlers enforce complete grants even for raw HTTP clients.
+
+```mermaid
+stateDiagram-v2
+  [*] --> ready: acquire, validate binding, confirm auth/me
+  ready --> refreshing: renewal window or explicit refresh
+  refreshing --> ready: same identity and policy verified
+  refreshing --> unavailable: temporary acquisition failure
+  unavailable --> refreshing: retry acquisition
+  ready --> expired: expiry gates dispatch
+  unavailable --> expired: accepted token expires
+  expired --> refreshing: new acquisition
+  ready --> invalidated: changed policy or rejected identity
+  refreshing --> invalidated: binding or policy mismatch
+  invalidated --> closed: close and reconnect separately
+  ready --> closed: logout / account switch
+  refreshing --> closed: invalidate before awaiting cleanup
+  unavailable --> closed: host closes connection
+  expired --> closed: host closes connection
+```
+
+State is observable behavior, not a host login state machine. A still-valid old
+revision can serve independent requests during transient renewal failure;
+expired/rejected revisions cannot dispatch. Closing fences late renewal and
+search/progress/storage completions. Same-policy rotation preserves owner keys;
+new project/user/policy requires a fresh session. Already issued remote jobs or
+signed capabilities retain their independently documented lifetime.
+
 ## 1. App, user auth, VModal auth, and SDK layers
 
 ```mermaid

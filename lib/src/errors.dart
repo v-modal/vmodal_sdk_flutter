@@ -45,6 +45,22 @@ class TenantAuthException extends AuthException {
   ]);
 }
 
+/// Safe failures reported by the host's authenticated backend callback.
+enum BackendAuthFailure {
+  identityRejected,
+  accessDenied,
+  unavailable,
+  invalidResponse,
+}
+
+/// Contains no host response, identity token, or VModal credential.
+class BackendAuthException extends AuthException {
+  const BackendAuthException(this.failure, {this.retryAfter})
+    : super('developer backend authentication failed');
+  final BackendAuthFailure failure;
+  final Duration? retryAfter;
+}
+
 /// Valid service response that represents an unsuccessful operation.
 class ApiException extends SdkException {
   const ApiException(

@@ -852,6 +852,15 @@ class UserProfile extends JsonBackedResponse {
                 .map((Object? value) => '$value')
                 .toList()
           : <String>[],
+      authMode = raw['auth_mode'] as String?,
+      principalId = raw['principal_id'] as String?,
+      projectId = raw['project_id'] as String?,
+      appUserId = raw['app_user_id'] as String?,
+      policyRevision = raw['policy_revision'] as String?,
+      delegationRevision = raw['delegation_revision'] as int?,
+      expiresAt = raw['expires_at'] is String
+          ? DateTime.tryParse(raw['expires_at']! as String)
+          : null,
       type = '${raw['type'] ?? 'user'}';
 
   final String? userId;
@@ -861,6 +870,9 @@ class UserProfile extends JsonBackedResponse {
   final String? tenantId;
   final List<String> permissions;
   final String type;
+  final String? authMode, principalId, projectId, appUserId, policyRevision;
+  final int? delegationRevision;
+  final DateTime? expiresAt;
 }
 
 /// Usage totals grouped by operation for one date.

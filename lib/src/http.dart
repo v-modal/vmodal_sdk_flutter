@@ -22,6 +22,20 @@ class VmodalHttp {
   final DelayStrategy _delay;
   final Expando<TenantCredentialSnapshot> _credentialSnapshots =
       Expando<TenantCredentialSnapshot>();
+  final Expando<int> _scopedRevisions = Expando<int>();
+
+  Future<T> _withReady<T>(
+    Future<T> Function(Map<String, String>) work, {
+    bool usersApi = false,
+  }) {
+    final provider = config.apiKeyProvider;
+    Map<String, String> capture() =>
+        headers(forceToken: usersApi, requireUserId: !usersApi);
+    if (provider is AsyncCredentialProvider) {
+      return provider.ensureReady().then((_) => work(capture()));
+    }
+    return work(capture());
+  }
 
   Map<String, String> headers({
     bool forceToken = false,
@@ -59,6 +73,10 @@ class VmodalHttp {
     _assertGatewayHeaders(out);
     final frozen = Map<String, String>.unmodifiable(out);
     if (snapshot != null) _credentialSnapshots[frozen] = snapshot;
+    final provider = config.apiKeyProvider;
+    if (provider is AsyncCredentialProvider) {
+      _scopedRevisions[frozen] = provider.revision;
+    }
     return frozen;
   }
 
@@ -70,15 +88,17 @@ class VmodalHttp {
     List<VmodalFilePart> files = const <VmodalFilePart>[],
     Map<String, Object?> params = const <String, Object?>{},
     CancellationToken? cancellation,
-  }) => _requestJson(
-    method,
-    path,
-    headers: headers(),
-    json: json,
-    data: data,
-    files: files,
-    params: params,
-    cancellation: cancellation,
+  }) => _withReady(
+    (captured) => _requestJson(
+      method,
+      path,
+      headers: captured,
+      json: json,
+      data: data,
+      files: files,
+      params: params,
+      cancellation: cancellation,
+    ),
   );
 
   Future<Map<String, Object?>> requestUsers(
@@ -87,14 +107,17 @@ class VmodalHttp {
     Object? json,
     Map<String, Object?> params = const <String, Object?>{},
     CancellationToken? cancellation,
-  }) => _requestJson(
-    method,
-    path,
-    headers: headers(forceToken: true, requireUserId: false),
-    json: json,
-    params: params,
+  }) => _withReady(
+    (captured) => _requestJson(
+      method,
+      path,
+      headers: captured,
+      json: json,
+      params: params,
+      usersApi: true,
+      cancellation: cancellation,
+    ),
     usersApi: true,
-    cancellation: cancellation,
   );
 
   Future<Uint8List> requestBytes(
@@ -107,21 +130,23 @@ class VmodalHttp {
   }) async {
     final limit = _binaryLimit(maxBytes);
     final token = cancellation ?? CancellationToken();
-    return _executeRead<Uint8List>(
-      method,
-      path,
-      headers: headers(),
-      json: json,
-      params: params,
-      responseMode: VmodalResponseMode.bytes,
-      cancellation: token,
-      reader: (VmodalResponse response, CancellationToken attempt) =>
-          readBounded(
-            response,
-            limit,
-            cancellation: attempt,
-            idleTimeout: config.idleTimeout,
-          ),
+    return _withReady(
+      (captured) => _executeRead<Uint8List>(
+        method,
+        path,
+        headers: captured,
+        json: json,
+        params: params,
+        responseMode: VmodalResponseMode.bytes,
+        cancellation: token,
+        reader: (VmodalResponse response, CancellationToken attempt) =>
+            readBounded(
+              response,
+              limit,
+              cancellation: attempt,
+              idleTimeout: config.idleTimeout,
+            ),
+      ),
     );
   }
 
@@ -136,22 +161,24 @@ class VmodalHttp {
   }) async {
     final limit = _binaryLimit(maxBytes);
     final token = cancellation ?? CancellationToken();
-    await _executeRead<void>(
-      method,
-      path,
-      headers: headers(),
-      json: json,
-      params: params,
-      responseMode: VmodalResponseMode.bytes,
-      cancellation: token,
-      reader: (VmodalResponse response, CancellationToken attempt) =>
-          writeBounded(
-            response,
-            sink,
-            limit,
-            cancellation: attempt,
-            idleTimeout: config.idleTimeout,
-          ),
+    await _withReady(
+      (captured) => _executeRead<void>(
+        method,
+        path,
+        headers: captured,
+        json: json,
+        params: params,
+        responseMode: VmodalResponseMode.bytes,
+        cancellation: token,
+        reader: (VmodalResponse response, CancellationToken attempt) =>
+            writeBounded(
+              response,
+              sink,
+              limit,
+              cancellation: attempt,
+              idleTimeout: config.idleTimeout,
+            ),
+      ),
     );
   }
 
@@ -207,18 +234,39 @@ class VmodalHttp {
     final tenantProvider = provider is TenantSessionApiKeyProvider
         ? provider
         : null;
+    final scopedProvider = provider is AsyncCredentialProvider
+        ? provider
+        : null;
     var requestHeaders = headers;
     var snapshot = _credentialSnapshots[requestHeaders];
+    var scopedRevision = _scopedRevisions[requestHeaders];
     var recovered = false;
     var retries = 0;
     final retryBudget =
         config.normalizedMaxRetries +
-        (canRetry && tenantProvider != null ? 1 : 0);
+        (canRetry && (tenantProvider != null || scopedProvider != null)
+            ? 1
+            : 0);
     for (var attempt = 0; attempt <= retryBudget; attempt++) {
       cancellation.throwIfCanceled();
       final attemptCancellation = CancellationToken();
       final removeCancel = cancellation.onCancel(attemptCancellation.cancel);
       try {
+        if (scopedProvider != null &&
+            scopedRevision != null &&
+            !scopedProvider.isRevisionUsable(scopedRevision)) {
+          if (recovered || (!canRetry && attempt > 0)) {
+            throw const AuthException('scoped credential expired');
+          }
+          recovered = true;
+          await scopedProvider.recover(scopedRevision);
+          cancellation.throwIfCanceled();
+          requestHeaders = this.headers(
+            forceToken: usersApi,
+            requireUserId: !usersApi,
+          );
+          scopedRevision = _scopedRevisions[requestHeaders];
+        }
         final request = VmodalRequest(
           method: normalized,
           uri: uri,
@@ -233,6 +281,23 @@ class VmodalHttp {
         // revocation or after its session lease has expired.
         tenantProvider?.snapshot();
         final response = await transport.send(request);
+        if (scopedProvider != null && response.statusCode == 401) {
+          await _discard(response, attemptCancellation);
+          cancellation.throwIfCanceled();
+          scopedProvider.reject(scopedRevision!);
+          if (!canRetry || recovered || attempt >= retryBudget) {
+            throw const AuthException('scoped request authentication failed');
+          }
+          recovered = true;
+          await scopedProvider.recover(scopedRevision);
+          cancellation.throwIfCanceled();
+          requestHeaders = this.headers(
+            forceToken: usersApi,
+            requireUserId: !usersApi,
+          );
+          scopedRevision = _scopedRevisions[requestHeaders];
+          continue;
+        }
         if (tenantProvider != null && response.statusCode == 401) {
           await _discard(response, attemptCancellation);
           cancellation.throwIfCanceled();

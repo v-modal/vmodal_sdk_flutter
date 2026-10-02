@@ -12,6 +12,24 @@ abstract interface class ApiKeyProvider {
   String current();
 }
 
+/// @nodoc
+abstract interface class AsyncCredentialProvider implements ApiKeyProvider {
+  int get revision;
+  Future<void> ensureReady();
+  bool isRevisionUsable(int revision);
+  void reject(int revision);
+  Future<void> recover(int failedRevision);
+}
+
+/// @nodoc
+abstract interface class SessionCredentialSource {
+  String get serviceNamespace;
+  String get tenantId;
+  String get expectedPrincipal;
+  String? get projectId;
+  MutableApiKeyProvider createProvider({required bool Function() isActive});
+}
+
 /// In-memory credential provider supporting rotation and explicit clearing.
 ///
 /// [close] permanently disables the provider. Values are redacted from
@@ -97,7 +115,7 @@ class TenantCredentialSnapshot {
 /// external install fences older results using both ticket and base revision.
 /// No key is persisted, and failures block calls unless the host explicitly
 /// permits retaining the previous credential under its validity policy.
-class TenantCredentialSource {
+class TenantCredentialSource implements SessionCredentialSource {
   TenantCredentialSource({
     required this.serviceNamespace,
     required this.tenantId,
@@ -127,9 +145,14 @@ class TenantCredentialSource {
     );
   }
 
+  @override
   final String serviceNamespace;
+  @override
   final String tenantId;
+  @override
   final String expectedPrincipal;
+  @override
+  String? get projectId => null;
   final Future<TenantCredential> Function()? renew;
   final bool retainOnRenewalFailure;
   late TenantCredentialSnapshot _snapshot;
@@ -151,6 +174,7 @@ class TenantCredentialSource {
   }
 
   /// Attaches and reads the latest committed revision without an await gap.
+  @override
   TenantSessionApiKeyProvider createProvider({
     required bool Function() isActive,
   }) {

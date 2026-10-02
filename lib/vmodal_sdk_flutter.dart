@@ -31,6 +31,7 @@ library vmodal_sdk_flutter;
 
 export 'src/adaptive_upload.dart';
 export 'src/api_key_provider.dart';
+export 'src/backend_auth.dart';
 export 'src/client.dart';
 export 'src/collection_uploads.dart';
 export 'src/config.dart';

@@ -1,9 +1,10 @@
 # Choose authentication
 
-The SDK supports two ways to obtain the Bearer credential used by the public
-VModal gateway. Your app owns login, signup, guest identity, user permissions and
+Choose one of the three integration modes below. They use two credential types:
+a direct VModal API key or a VModal-issued scoped token. Your app owns end-user
+login, signup, guest identity, user permissions and
 the identity provider. The SDK owns VModal request credentials and connection
-cleanup. Both patterns send search and media requests directly to VModal.
+cleanup. All three modes send search and media requests directly to VModal.
 
 | Pattern | Credential supplied to Flutter | Server authority | Best fit |
 | --- | --- | --- | --- |
@@ -19,10 +20,20 @@ app-user boundary.
 This guide describes source APIs. A successful local test is not evidence that
 your public VModal deployment supports delegated access. Configure the origin,
 edge, registrations and upstream enforcement and complete the
-[rollout checks](backend_authentication.md#deployment-and-acceptance) before
+[rollout checks](auth_user_backend_mode.md#deployment-and-acceptance) before
 enabling the scoped pattern in a production app.
 
-## Direct runtime credential
+---
+
+## 1. Direct runtime credential
+
+**Example:** [`uinterface/sdk_flutter/example/05_framebase`](../example/05_framebase/README.md).
+
+**End-user authentication:** This example has no separate app-user sign-in.
+The user enters a VModal API key at runtime. VModal authenticates the principal
+that owns that key; the key's existing authority governs cloud access.
+
+**SDK entry point:** `MutableApiKeyProvider` and `VModal.configure`.
 
 Preserve your existing integration:
 
@@ -51,9 +62,25 @@ keys.close();
 uses `projectId__collectionName`; these names organize data and do not verify
 app identity or narrow the API key's server authority.
 
-For account-specific ownership under a shared runtime key, use
-`TenantCredentialSource` and `UserSessionManager` as shown in
-[manage_api_key.md](manage_api_key.md). The host resolves the verified subject
+---
+
+## 2. Direct credential with app-user sessions
+
+**Example:** [`uinterface/sdk_flutter/example/05_framebase_userlogin`](../example/05_framebase_userlogin/README.md).
+
+**End-user authentication:** The host app signs in the person using its own
+identity provider. A trusted host issuer verifies that identity and returns a
+direct VModal tenant credential together with the user's allowed library policy.
+Different app users can share the same VModal key and principal.
+
+**SDK entry point:** `TenantCredentialSource` and `UserSessionManager`, as shown
+in [manage_api_key.md](manage_api_key.md).
+
+**Access boundary:** SDK sessions isolate local account data, operations and
+callbacks. Cloud access still uses the direct key's authority; the local user
+policy does not turn that key into a server-enforced app-user credential.
+
+The host resolves the verified subject
 and allowed content mapping, and invalidates the outgoing session at the start
 of a switch. `auth.me()` and `session.verifyPrincipal(...)` check the VModal
 storage principal; they do not identify the host app user in this pattern.
@@ -63,7 +90,23 @@ demonstrates this host orchestration and shared-key local isolation. Its mock
 issuer and `api_token`/`firebase_uid` envelope are a separate contract from a
 VModal-issued scoped token.
 
-## Developer-backend scoped connection
+---
+
+## 3. User backend authentication (scoped connection)
+
+**Example:** [`uinterface/sdk_flutter/example/06_userlogin_backend_auth`](../example/06_userlogin_backend_auth/README.md).
+
+**End-user authentication:** The host app signs in the person, then calls its
+authenticated developer backend. That backend verifies the current identity,
+resolves exact permissions, and obtains a short-lived scoped token from VModal.
+Flutter receives the scoped envelope; the registered server key stays on the backend.
+
+**SDK entry point:** `VModal.connectWithBackend`.
+
+**Access boundary:** VModal and the upstream handlers enforce the token's
+app-user grants on the server once the scoped deployment is configured.
+See [auth_user_backend_mode.md](auth_user_backend_mode.md) for the backend
+handoff, token contract, renewal and deployment checks.
 
 Sign your user in using the host app's existing identity stack, then connect:
 
@@ -108,7 +151,7 @@ after the deployment enables and enforces that action. The initial scoped
 read implementation denies unsupported writes and index operations. Your
 direct tenant integration retains its existing upload/index APIs.
 
-## Login patterns
+### Host login options for user backend authentication
 
 | Host login pattern | Callback responsibility |
 | --- | --- |
@@ -122,7 +165,7 @@ Host identity tokens are not VModal credentials. Send them only to your
 developer backend. VModal signs its own scoped token after authenticating your
 registered backend credential; the developer does not sign VModal tokens.
 
-## Lifetime and account changes
+### Scoped connection lifetime and account changes
 
 Keep the connection at the host account lifetime and inject its `UserScope`
 into feature controllers. Pages dispose their own subscriptions, players and
@@ -144,16 +187,18 @@ owner references, but never a bearer or envelope. Reauthorize before restoring
 owner data. Logout does not instantly revoke a copied token or an already
 issued standalone signed media URL; those capabilities have separate validity.
 
+---
+
 ## Terminology and next guides
 
-Both authentication patterns normally use `SdkConfig.mode == 'gateway'` and
+All three integration modes normally use `SdkConfig.mode == 'gateway'` and
 `Authorization: Bearer <credential>`. The SDK's internal-development
 `mode: 'direct'` / `unsafeDirect` is a different connection mode that can send
 trusted identity fields. It is not the direct authentication pattern described
 here. Mobile callers never supply `X-User-Id`, `X-Tenant-Id` or grant headers.
 
-- [Backend setup, contracts and lifecycle](backend_authentication.md)
+- [Backend setup, contracts and lifecycle](auth_user_backend_mode.md)
 - [Tenant key rotation and local user sessions](manage_api_key.md)
 - [Controller and widget integration](component_patterns.md)
 - [Exact ownership and resource contract](sdk_contract.md)
-- [Independent backend-auth reference](../example/06_backend_auth/README.md)
+- [Independent backend-auth reference](../example/06_userlogin_backend_auth/README.md)

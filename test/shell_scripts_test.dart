@@ -78,12 +78,14 @@ void main() {
       final operation = command == 'pub_get' ? 'pub get' : command;
       expect(
         body,
-        contains('(cd example/06_backend_auth && sdk_flutter $operation)'),
+        contains(
+          '(cd example/06_userlogin_backend_auth && sdk_flutter $operation)',
+        ),
         reason: 'Missing backend reference gate: $command',
       );
     }
-    expect(build, contains('example/06_backend_auth/lib'));
-    expect(build, contains('example/06_backend_auth/test'));
+    expect(build, contains('example/06_userlogin_backend_auth/lib'));
+    expect(build, contains('example/06_userlogin_backend_auth/test'));
     expect(build, isNot(contains('node --test')));
   });
 

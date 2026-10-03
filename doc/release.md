@@ -3,9 +3,9 @@
 ## Scoped authentication rollout gate
 
 The source includes `connectWithBackend` and a separate
-[backend-auth reference](../example/06_backend_auth/README.md). Neither local
+[backend-auth reference](../example/06_userlogin_backend_auth/README.md). Neither local
 fixtures nor source export establish live support. Before releasing this mode,
-complete the [backend acceptance sequence](backend_authentication.md#deployment-and-acceptance):
+complete the [backend acceptance sequence](auth_user_backend_mode.md#deployment-and-acceptance):
 registered project/key/resource authority, bounded registry distribution,
 origin RS256 issuance/validation, independent Worker VModal policy, and upstream
 default-deny canonical grant enforcement. Test the real public edge chain with
@@ -22,7 +22,7 @@ format, analysis and tests. Node is optional for Flutter consumers. Run the
 reference backend's separate offline gate explicitly with Node 22+:
 
 ```bash
-node --test example/06_backend_auth/developer_backend/session_test.mjs
+node --test example/06_userlogin_backend_auth/developer_backend/session_test.mjs
 ```
 
 The Dart SDK suite covers strict envelopes, auth/me agreement, expiry, renewal,
@@ -51,8 +51,12 @@ public commits, tags, and documentation metadata record that value for
 traceability. Workflow steps only orchestrate named functions from a
 monorepo-owned release helper; that private CI helper is not part of the
 standalone SDK export. Its workspace, runner-temporary directory, publication
-input, repository targets, URLs, and secrets remain explicit in the workflow
-for debugging. A secret-detection job scans the Flutter SDK tree and source
+input, repository targets, and URLs remain explicit in the workflow. Credential
+steps source `.github/workflows/utils.sh` and use the GitHub Actions secret
+`INFISICAL_TOKEN` to load scoped Infisical keys. `GH_TOKEN` supplies public
+repository and documentation publication; `TEST_CLIENT_CLERK_USER_API_TOKEN`
+supplies `VMODAL_API_KEY` for live tests. The helper masks values and writes
+them to `GITHUB_ENV` for subsequent steps in each job. A secret-detection job scans the Flutter SDK tree and source
 publication waits for secret detection, offline tests, Android and iOS builds,
 the live test, and the tested package artifact. Protected release approval
 remains disabled during this development mode. Optional pub.dev publication is

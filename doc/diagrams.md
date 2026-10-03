@@ -11,7 +11,7 @@ The numbered tenant-session sequences below remain the direct-key pattern.
 Backend-scoped mode adds a separate credential source while reusing guarded
 session operations. Both use the same public gateway. See
 [authentication.md](authentication.md) and
-[backend_authentication.md](backend_authentication.md).
+[auth_user_backend_mode.md](auth_user_backend_mode.md).
 
 ```mermaid
 flowchart LR

@@ -178,8 +178,8 @@ and coalesces renewal. Close at the start of logout or account switch.
 This source API requires corresponding registered origin, Worker and upstream
 capabilities; it is not a claim of live deployment. See
 [Choose authentication](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/authentication.md),
-[the backend guide](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/backend_authentication.md), and the independent
-[backend-auth reference](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/example/06_backend_auth/README.md). The preserved
+[the backend guide](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/docs/auth_user_backend_mode.md), and the independent
+[backend-auth reference](https://github.com/v-modal/vmodal_sdk_flutter/blob/main/example/06_userlogin_backend_auth/README.md). The preserved
 Framebase user-login app remains a shared-key/local-isolation example.
 
 ## Isolate signed-in app users sharing one tenant key

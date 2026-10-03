@@ -1,4 +1,13 @@
 ----------------------------------------------------------
+date: 2026-10-03
+commit_hash: 2e046e436191798fb3d725e2a95d7077b3e8e44f
+title: Publish Flutter SDK with shared Infisical credentials
+summary:
+  - Load live-test and public repository credentials through the shared workflow Bash helpers.
+  - Publish the Flutter SDK source and generated reference documentation after release checks pass.
+  - Restore tracked example library sources by correcting Flutter exceptions to the root Python packaging ignore rule.
+
+----------------------------------------------------------
 date: 2026-10-02
 commit_hash: e02e2e15a2d2eb6af43125e89dc4e5bef904ce20
 title: Isolate app-user sessions under shared tenant credentials

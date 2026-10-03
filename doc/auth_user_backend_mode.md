@@ -35,7 +35,7 @@ query or replicate the developer's user directory.
 ## Implement your session endpoint
 
 Your backend chooses its route and authentication mechanism. The independent
-[Node handler reference](../example/06_backend_auth/developer_backend/session.mjs)
+[Node handler reference](../example/06_userlogin_backend_auth/developer_backend/session.mjs)
 uses `POST /vmodal/session` with `{}` and mandatory injected identity/policy
 adapters. Mount the equivalent handler in your existing backend stack.
 
@@ -249,7 +249,7 @@ throw const BackendAuthException(BackendAuthFailure.invalidResponse);
 Do not throw every response as a generic AuthException or expose backend bodies.
 The coordinator bounds transient retries and interprets authoritative identity/
 policy rejection separately. The
-[reference adapter](../example/06_backend_auth/lib/backend_auth_example.dart)
+[reference adapter](../example/06_userlogin_backend_auth/lib/backend_auth_example.dart)
 maps HTTP status to these classifications.
 
 ### Enabled read routes

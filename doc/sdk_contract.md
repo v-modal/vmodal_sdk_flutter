@@ -75,7 +75,7 @@ Project enters backend ownership before archive/checkpoint keys are derived;
 direct key encoding stays compatible. Bearer, `jti` and expiry are excluded.
 
 See [authentication.md](authentication.md) for pattern choice and
-[backend_authentication.md](backend_authentication.md) for envelopes,
+[auth_user_backend_mode.md](auth_user_backend_mode.md) for envelopes,
 server-authorized actions, errors and rollout requirements.
 
 ## App-user session contract

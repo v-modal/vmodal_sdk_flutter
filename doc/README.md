@@ -9,7 +9,7 @@ polling, recovery, storage, mobile lifecycle, and host acceptance tests.
 | Reading path | Guide |
 | --- | --- |
 | Direct keys, local user isolation, or server-enforced scoped tokens | [Choose authentication](authentication.md) |
-| Backend endpoint, exact grants, renewal, errors and rollout | [Backend authentication](backend_authentication.md) |
+| Backend endpoint, exact grants, renewal, errors and rollout | [Backend authentication](auth_user_backend_mode.md) |
 | Ready-to-use production integration patterns | [Component patterns](component_patterns.md) |
 | Concise tenant-scoped API orientation | [SDK guide](sdk_doc.md) |
 | Exact sessions, permissions, provenance, storage, and response semantics | [SDK contract](sdk_contract.md) |
@@ -19,7 +19,7 @@ polling, recovery, storage, mobile lifecycle, and host acceptance tests.
 | Streaming, concurrency, timeouts, and device measurement | [Performance](performance.md) |
 | Tenant-scoped custom video reducer | [Transcode](transcode_360.md) |
 | Complete session app and host adapter injection | [Framebase example](../example/05_framebase_userlogin/README.md) |
-| Separate scoped callback and verified-identity backend reference | [Backend-auth reference](../example/06_backend_auth/README.md) |
+| Separate scoped callback and verified-identity backend reference | [Backend-auth reference](../example/06_userlogin_backend_auth/README.md) |
 | SDK maintainer publication and export | [Release](release.md) |
 
 Session recipes require the 1.3.0 APIs present in this source tree. Use the local

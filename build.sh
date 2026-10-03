@@ -44,7 +44,7 @@ sdk_pub_get() {
   (cd example/03_cctv && sdk_flutter pub get)
   (cd example/04_example && sdk_flutter pub get)
   (cd example/05_framebase_userlogin && sdk_flutter pub get)
-  (cd example/06_backend_auth && sdk_flutter pub get)
+  (cd example/06_userlogin_backend_auth && sdk_flutter pub get)
 }
 
 sdk_format() {
@@ -52,7 +52,7 @@ sdk_format() {
     ## Usage:
       bash build.sh format
   '
-  sdk_dart format --output=none --set-exit-if-changed lib test tool example/01_full_app/lib example/01_full_app/test example/02_users/lib example/02_users/test example/03_cctv/bin example/03_cctv/lib example/03_cctv/test example/04_example/lib example/04_example/test example/04_example/integration_test example/05_framebase_userlogin/lib example/05_framebase_userlogin/test example/06_backend_auth/lib example/06_backend_auth/test
+  sdk_dart format --output=none --set-exit-if-changed lib test tool example/01_full_app/lib example/01_full_app/test example/02_users/lib example/02_users/test example/03_cctv/bin example/03_cctv/lib example/03_cctv/test example/04_example/lib example/04_example/test example/04_example/integration_test example/05_framebase_userlogin/lib example/05_framebase_userlogin/test example/06_userlogin_backend_auth/lib example/06_userlogin_backend_auth/test
 }
 
 sdk_analyze() {
@@ -66,7 +66,7 @@ sdk_analyze() {
   (cd example/03_cctv && sdk_flutter analyze)
   (cd example/04_example && sdk_flutter analyze)
   (cd example/05_framebase_userlogin && sdk_flutter analyze)
-  (cd example/06_backend_auth && sdk_flutter analyze)
+  (cd example/06_userlogin_backend_auth && sdk_flutter analyze)
 }
 
 sdk_test() {
@@ -80,7 +80,7 @@ sdk_test() {
   (cd example/03_cctv && sdk_flutter test)
   (cd example/04_example && sdk_flutter test)
   (cd example/05_framebase_userlogin && sdk_flutter test)
-  (cd example/06_backend_auth && sdk_flutter test)
+  (cd example/06_userlogin_backend_auth && sdk_flutter test)
 }
 
 sdk_example_android() {

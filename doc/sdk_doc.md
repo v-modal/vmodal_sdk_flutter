@@ -2,7 +2,7 @@
 
 Begin with [Choose authentication](authentication.md). Direct runtime keys keep
 the setup below; backend-scoped credentials use `VModal.connectWithBackend`
-and its typed callback. [Backend authentication](backend_authentication.md)
+and its typed callback. [Backend authentication](auth_user_backend_mode.md)
 describes strict envelopes, server grants, renewal and account transitions.
 
 For account-based apps, start with [Component patterns](component_patterns.md):

@@ -9,7 +9,7 @@ It is a host integration library, not another login UI or deployable identity
 provider. Prerequisites are a verified host identity/session, an existing policy
 store, and a VModal deployment with registered scoped issuance and complete
 resource enforcement. Use [Choose authentication](../../docs/authentication.md)
-and [Backend authentication](../../docs/backend_authentication.md) alongside it.
+and [Backend authentication](../../docs/auth_user_backend_mode.md) alongside it.
 
 ## 1. Authenticate and connect
 
@@ -143,9 +143,9 @@ From the SDK root:
 ```bash
 # The normal build gates include this reference's Dart pub_get/format/analyze/test.
 # The backend handler has an optional separate Node gate (no npm dependencies).
-node --test example/06_backend_auth/developer_backend/session_test.mjs
+node --test example/06_userlogin_backend_auth/developer_backend/session_test.mjs
 flutter_bin="$(bash install.sh flutter_bin)"
-cd example/06_backend_auth
+cd example/06_userlogin_backend_auth
 "$flutter_bin" pub get
 "$flutter_bin" analyze
 "$flutter_bin" test

@@ -55,7 +55,7 @@ Inject `library` into the same session-bound search controller. BackendConnectio
 owns the manager/source lifecycle and confirms delegated binding/grants through
 auth/me before return. The callback uses current host identity, maps failures
 to `BackendAuthException`, and returns no master key. The separate
-[backend-auth reference](../example/06_backend_auth/README.md) demonstrates
+[backend-auth reference](../example/06_userlogin_backend_auth/README.md) demonstrates
 generation fencing and mandatory verified backend adapters, preserving Framebase.
 
 Scope actions determine usable recipes. Initial scoped reads support discovery,

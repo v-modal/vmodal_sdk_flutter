@@ -222,13 +222,13 @@ void main() {
         'docs/README.md',
         'docs/component_patterns.md',
         'docs/authentication.md',
-        'docs/backend_authentication.md',
-        'example/06_backend_auth/README.md',
-        'example/06_backend_auth/pubspec.yaml',
-        'example/06_backend_auth/lib/backend_auth_example.dart',
-        'example/06_backend_auth/test/backend_auth_example_test.dart',
-        'example/06_backend_auth/developer_backend/session.mjs',
-        'example/06_backend_auth/developer_backend/session_test.mjs',
+        'docs/auth_user_backend_mode.md',
+        'example/06_userlogin_backend_auth/README.md',
+        'example/06_userlogin_backend_auth/pubspec.yaml',
+        'example/06_userlogin_backend_auth/lib/backend_auth_example.dart',
+        'example/06_userlogin_backend_auth/test/backend_auth_example_test.dart',
+        'example/06_userlogin_backend_auth/developer_backend/session.mjs',
+        'example/06_userlogin_backend_auth/developer_backend/session_test.mjs',
       ]) {
         expect(File('${dir.path}/$path').existsSync(), isTrue, reason: path);
       }
@@ -239,13 +239,13 @@ void main() {
         'docs/README.md',
         'docs/component_patterns.md',
         'docs/authentication.md',
-        'docs/backend_authentication.md',
+        'docs/auth_user_backend_mode.md',
         'docs/manage_api_key.md',
         'docs/sdk_contract.md',
         'docs/diagrams.md',
         'docs/release.md',
         'README.md',
-        'example/06_backend_auth/README.md',
+        'example/06_userlogin_backend_auth/README.md',
       ]) {
         final content = File('${dir.path}/$guide').readAsStringSync();
         for (final match in RegExp(r'\]\(([^)]+)\)').allMatches(content)) {

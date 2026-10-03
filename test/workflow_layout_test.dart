@@ -52,22 +52,39 @@ void checkWorkflow(String main, String script, String tagged) {
   );
   expect(main, contains('GA_RELEASE_DIR: \${{ runner.temp }}'));
   expect(main, contains('VMODAL_ENV: prd'));
+  expect(main, contains('INFISICAL_TOKEN: \${{ secrets.INFISICAL_TOKEN }}'));
   expect(
     main,
-    contains(
-      'VMODAL_API_KEY: \${{ secrets.TEST_CLIENT_CLERK_USER_API_TOKEN }}',
-    ),
+    contains('infs_assign VMODAL_API_KEY TEST_CLIENT_CLERK_USER_API_TOKEN'),
   );
-  expect(main, contains('RELEASE_TOKEN: \${{ secrets.GH_TOKEN }}'));
-  expect(main, contains('GH_TOKEN: \${{ secrets.GH_TOKEN }}'));
+  expect(main, contains('infs_assign RELEASE_TOKEN GH_TOKEN'));
+  expect(main, contains('infs_assign GH_TOKEN GH_TOKEN'));
+  expect(main, contains('token: \${{ env.GH_TOKEN }}'));
+  expect(main, isNot(contains('\${{ secrets.GH_TOKEN }}')));
+  expect(
+    main,
+    isNot(contains('\${{ secrets.TEST_CLIENT_CLERK_USER_API_TOKEN }}')),
+  );
+  expect(
+    main,
+    contains('source "\$GITHUB_WORKSPACE/vmx_api/.github/workflows/utils.sh"'),
+  );
   expect(main, contains('PUBLISH_PUB_DEV: \${{ inputs.publish_pub_dev }}'));
   expect(main, isNot(contains('\n          ref: \${{ env.RELEASE_SHA }}')));
-  expect(main, isNot(contains('run: |')));
 
   final runs = RegExp(r'^\s+run:\s*(.+)$', multiLine: true).allMatches(main);
   expect(runs, isNotEmpty);
   for (final run in runs) {
+    if (run.group(1) == '|') continue;
     expect(run.group(1), contains('ga_release.sh'));
+  }
+  final loads = RegExp(r'run: \|\n((?: {10}[^\n]*\n)+)').allMatches(main);
+  expect(loads.length, 4);
+  for (final load in loads) {
+    expect(load.group(1), contains('.github/workflows/utils.sh'));
+    expect(load.group(1), contains('infs_fetch_secret'));
+    expect(load.group(1), contains('infs_assign'));
+    expect(load.group(1), contains("trap 'unset INFISICAL_PAYLOAD' EXIT"));
   }
   expect(
     main,
